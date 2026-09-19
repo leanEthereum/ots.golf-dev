@@ -270,6 +270,9 @@ def linux_command(cmd: list[str], cwd: Path, sandbox_env: dict, limits: dict, un
     into its public log."""
     props = [f"MemoryMax={limits['memory_bytes']}", "MemorySwapMax=0",
              f"RuntimeMaxSec={limits['wall_clock_seconds']}", "KillMode=control-group",
+             # PID-namespace init or a candidate may ignore SIGTERM. Bound the shutdown
+             # grace too, then force-kill the whole cgroup instead of waiting 90 seconds.
+             "TimeoutStopSec=5", "SendSIGKILL=yes",
              "TasksMax=512", "RestrictAddressFamilies=~AF_UNIX", "NoNewPrivileges=yes",
              # Comparator builds only beneath .lake (nanoda is disabled in every pinned
              # config). A read-only mount also blocks chmod/xattr/utime metadata changes

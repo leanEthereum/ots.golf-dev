@@ -453,7 +453,7 @@ else:
         cmd = linux_command(["comparator", "config.json"], self.root, {"PATH": "/usr/bin", "HOME": "/empty"},
                             {"memory_bytes": 1234, "wall_clock_seconds": 56}, "test-unit",
                             [Path("/srv/ots/data/ots.db")])
-        for required in ("InaccessiblePaths=-/etc/ots -/srv/ots/data/ots.db", "MemoryMax=1234", "MemorySwapMax=0", "RuntimeMaxSec=56", "KillMode=control-group",
+        for required in ("InaccessiblePaths=-/etc/ots -/srv/ots/data/ots.db", "MemoryMax=1234", "MemorySwapMax=0", "RuntimeMaxSec=56", "KillMode=control-group", "TimeoutStopSec=5", "SendSIGKILL=yes",
                          "TasksMax=512", "PrivatePIDs=yes", "ProcSubset=pid", "InaccessiblePaths=/sys", "PrivateDevices=yes", "PrivateIPC=yes",
                          "ProtectSystem=strict", f"ReadWritePaths={self.root / '.lake'}",
                          "SystemCallErrorNumber=EPERM",

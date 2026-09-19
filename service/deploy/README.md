@@ -119,7 +119,7 @@ Run these with the public webhook disconnected and the production configuration 
 
    The probe must pass actual environment, `/proc`, filesystem, network, process-memory and signal
    denial checks, including a running canary process and forbidden truncation/permission changes. The verifier requires Landlock ABI 3 or newer and systemd, private devices and shared memory, a
-   clean environment, masked `/proc`, `/sys`, `/etc/ots` and the service's data directory (database,
+   clean environment, a private PID namespace for `/proc`, and inaccessible `/sys`, `/etc/ots` and the service's data directory (database,
    logs and locks; only the job's own work directory stays visible), read-only system mounts with
    only the job’s `.lake` writable, and denied networking and cross-process control.
    An in-service launcher checks that the kernel actually enforces these restrictions before starting
@@ -147,7 +147,7 @@ Run these with the public webhook disconnected and the production configuration 
 4. In a staging repository, exercise a signed PR webhook, duplicate delivery, a rejected proof,
    a verified improvement, a second PR with the same claim (verified, not a record), and a GitHub
    API outage followed by recovery. Confirm that the bot never merges or closes a PR. Stop and restart
-   the worker during a job; it must retry the interrupted job once and refuse a concurrent worker.
+   the worker during a job; it must requeue the interrupted job and refuse a concurrent worker.
    Confirm a retained source tag and frozen pending receipt exist before compilation, and that
    a result remains `publishing` until GitHub confirms its verdict comment. An outage must pause
    subsequent verification while that result awaits publication; delivery retries do not repeat
@@ -197,7 +197,8 @@ Proof verification is not repeated for an ordinary reporting outage.
 The worker holds a process lock for the shared data directory. At startup it requeues interrupted
 `verifying` jobs, then processes one job at a time. Outer pipeline timeouts retain their logs and
 terminate the verifier process group; the verifier also cleans up its comparator group and Linux
-service. SIGTERM unwinds cleanup and exits 143, which the worker unit treats as a successful stop.
+service. A timed-out sandbox gets at most five seconds to stop before systemd force-kills its
+whole process group. SIGTERM unwinds worker cleanup and exits 143, which the worker unit treats as a successful stop.
 Keep one trusted checkout per worker and update it only while that worker is stopped.
 
 ### Rebuilding the server from nothing
@@ -288,7 +289,8 @@ stored and hidden.
 
 ### Webhook delivery
 
-Webhook delivery is at least once, not guaranteed: use GitHub's delivery history to redeliver a lost
-push event, or restart the website, whose resync queues open heads without a verdict. Records are
+Webhook events can be duplicated or missed. GitHub does not automatically retry failed deliveries:
+use its delivery history to redeliver a lost push event, or restart the website, whose resync queues
+open heads without a verdict. Records are
 decided when verification finishes, never by webhook events, and the service never updates the
 trusted checkout.
