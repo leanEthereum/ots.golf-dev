@@ -5,9 +5,10 @@
 
 Checks: the root is flat and holds only `.lean` files, `claim.txt`, and optional `NOTES.md` and
 `README.md`;
-`Solution.lean` exists; the claim is canonical; every import is Mathlib, VCVio, the statement, or
-a sibling file of the same root; the size limits hold. Exit 0 iff the root is admissible.
-These are policy checks; soundness is comparator's job.
+`Solution.lean` exists; the claim is canonical; each explicit source-header import names a
+permitted library, contract module, or sibling file; the size limits hold. Exit 0 iff these
+source-policy checks pass. This does not restrict transitive imports or runtime module loads by
+metaprograms, nor certify proof provenance. Soundness is comparator's job.
 """
 from __future__ import annotations
 
@@ -21,19 +22,30 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from contract import LEAN_FILE_RE, ContractError, load_challenges, read_claim, repo_root, track  # noqa: E402
 
 OTHER_ALLOWED = {"claim.txt", "NOTES.md", "README.md"}
+# Lean quoted identifiers can contain path separators and `..`. Never treat an arbitrary
+# string starting with "Mathlib." or "VCVio." as a module inside that library.
+MODULE_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)*")
 
 
 def strip_comments(text: str) -> str:
-    """Remove `--` line comments and (nested) `/- ... -/` block comments."""
+    """Replace comments with whitespace for header scanning, preserving token boundaries.
+
+    In particular, `module/- comment -/prelude` must not become `moduleprelude`.
+    This is not a lexer for command bodies or quoted identifiers; the header checker stops at
+    the first body command and admits only unquoted ASCII module identifiers.
+    """
     out, i, depth, n = [], 0, 0, len(text)
     while i < n:
         if text.startswith("/-", i):
+            out.append(" ")
             depth += 1
             i += 2
         elif depth and text.startswith("-/", i):
             depth -= 1
             i += 2
         elif depth:
+            if text[i] == "\n":
+                out.append("\n")
             i += 1
         elif text.startswith("--", i):
             j = text.find("\n", i)
@@ -45,7 +57,11 @@ def strip_comments(text: str) -> str:
 
 
 def header_imports(text: str) -> tuple[list[str], str | None]:
-    """The module header: `import` lines up to the first other command. Returns (imports, error)."""
+    """Check ordinary, single-line header imports; return (imports, error).
+
+    Commands after the header can execute arbitrary Lean metaprograms. This function does not
+    attempt to inspect their behavior or constrain their runtime module loads.
+    """
     imports = []
     for line in strip_comments(text.removeprefix("\ufeff")).splitlines():
         s = line.strip()
@@ -57,6 +73,8 @@ def header_imports(text: str) -> tuple[list[str], str | None]:
             return imports, "use ordinary `import` lines; alternate module headers are not allowed"
         m = re.match(r"^import\s+(\S+)\s*$", s)
         if m:
+            if not MODULE_RE.fullmatch(m.group(1)):
+                return imports, "module names must be dot-separated, unquoted ASCII identifiers"
             imports.append(m.group(1))
             continue
         if s.startswith("import"):

@@ -134,9 +134,14 @@ input and uses the competition's single oracle. The machine, loader and system c
 1. **Flat.** A single directory containing only identifier-named `.lean` files, `claim.txt`,
    and optional `NOTES.md` and `README.md`. `Solution.lean` is required: it is the module the
    verifier exports from.
-2. **Imports.** Every root may import `Mathlib` and `VCVio` modules, `OptimalOTS.Model`, `OptimalOTS.Dag`, and
-   sibling files of the same root as `Submissions.<Root>.<File>`; all construction and proof helpers
-   must be such siblings. Contract modules are exact imports, never prefixes. Additionally:
+2. **Source-header imports.** In every submitted `.lean` file, use one ordinary
+   `import Module.Name` per line. Module names must be dot-separated, unquoted ASCII identifiers:
+   each component starts with a letter or underscore and continues with letters, digits,
+   underscores or apostrophes. `module`, `prelude` and modified imports are not admitted.
+   Header imports may name `Mathlib` and `VCVio` modules, `OptimalOTS.Model`, `OptimalOTS.Dag`, and
+   sibling files of the same root as `Submissions.<Root>.<File>`. Put additional submitted
+   construction and proof helper files in that same root. Contract modules are exact imports,
+   never prefixes. Additionally:
 
    | Root | Additional contract modules |
    |---|---|
@@ -144,6 +149,11 @@ input and uses the competition's single oracle. The machine, loader and system c
    | `LowerGenerality1` | `OptimalOTS.WholeWords` |
    | `LowerGenerality3`, `UpperCompressions` | `OptimalOTS.OracleAlgorithm` |
    | `UpperRiscv` | `OptimalOTS.OracleAlgorithm`, `OptimalOTS.RiscvMachine`, `OptimalOTS.Riscv` |
+
+   This list restricts explicit source-header imports. Dependencies of permitted modules are
+   available transitively. It does not restrict runtime module loads by Lean metaprograms or
+   certify where a proof was obtained. Exported declarations must still pass the comparator's
+   statement comparison, axiom checks and kernel replay.
 
 3. **Claim.** `claim.txt` holds one non-negative integer without leading zeros, at most 1,000,000,
    with at most one trailing newline. The verifier embeds this integer in the theorem it checks.
@@ -173,7 +183,7 @@ submissions checkout as `--source`.
 
 `setup_tools.sh` requires elan and installs the pinned comparator and lean4export (and landrun on
 Linux); the `lake build` line fetches Mathlib and builds VCVio and the contract. `verify.py` first
-runs the policy checks of `check_submission.py` (flat root, imports, sizes, claim), then copies the
+runs the policy checks of `check_submission.py` (flat root, source-header imports, sizes, claim), then copies the
 trusted tree, lays your submission root over it, attaches a fresh clone of the warm `.lake`,
 renders the stub, and runs comparator under the contract's limits. Linux requires the isolated,
 bounded work storage and sandbox in `service/deploy/README.md`; unsupported hosts fail closed.

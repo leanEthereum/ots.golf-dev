@@ -171,8 +171,14 @@
       <p>Use a flat root: identifier-named <code>.lean</code> files, <code>claim.txt</code>, optional
       <code>README.md</code> and <code>NOTES.md</code>, and required <code>Solution.lean</code>. The claim is an integer from
       zero to {{ cfg.limits.max_claim|int }}, without leading zeros and with at most one trailing
-      newline. Import only Mathlib, VCVio, permitted contract modules and siblings. Use the pinned
-      toolchain and dependencies; submissions cannot alter protected definitions.</p>
+      newline. Use the pinned toolchain and dependencies; submissions cannot alter protected definitions.</p>
+      <p>In every source header, use one ordinary <code>import Module.Name</code> per line, with
+      dot-separated, unquoted ASCII identifiers. Header imports may name Mathlib, VCVio, permitted
+      contract modules and siblings, as specified in the
+      {{ source_link('AGENTS.md#rules-for-the-submission-root', 'submission specification') }}.
+      Dependencies of permitted modules are available transitively. This source-header restriction
+      does not restrict runtime module loads by Lean metaprograms or certify where a proof was
+      obtained. Every exported proof must pass statement comparison, axiom checks and kernel replay.</p>
       <p id="limits">The verifier checks the exact claim and exported declarations. No <code>sorry</code>
       or extra axioms: only <code>{{ cfg.permitted_axioms|join('</code>, <code>')|safe }}</code>.
       <code>native_decide</code> introduces an unpermitted axiom. Limits:

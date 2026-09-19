@@ -100,6 +100,44 @@ class VerifierTests(unittest.TestCase):
                 (self.sub / "Solution.lean").write_text(prefix + "\nimport Submissions.UpperCompressions.Solution\n")
                 self.assertFalse(check(self.root, "lower-generality-3")["ok"])
 
+    def test_comments_cannot_hide_header_commands(self):
+        # Lean treats comments as whitespace. Deleting them used to fuse these keywords,
+        # making the policy checker stop before the forbidden import.
+        for prefix in ("module/- comment -/prelude", "prelude/- comment -/import Mathlib",
+                       "module/- outer /- nested -/ -/import Mathlib",
+                       "module/- first\nsecond -/prelude"):
+            with self.subTest(prefix=prefix):
+                (self.sub / "Solution.lean").write_text(prefix + "\nimport Witnesses.Hidden\n")
+                result = check(self.root, "lower-generality-3")
+                self.assertFalse(result["ok"])
+                self.assertTrue(any("not allowed" in error for error in result["errors"]))
+
+    def test_header_comments_preserve_import_boundaries(self):
+        imports, error = header_imports(
+            "import/- comment -/Mathlib/- first\nsecond -/import VCVio\n"
+            "def value := 1\n")
+        self.assertEqual(imports, ["Mathlib", "VCVio"])
+        self.assertIsNone(error)
+
+    def test_quoted_module_paths_cannot_escape_library_prefixes(self):
+        for module in ("Mathlib.«..».Witnesses.Hidden", "Mathlib.«../Witnesses/Hidden»",
+                       "VCVio.«..».Witnesses.Hidden", "VCVio.«../Witnesses/Hidden»",
+                       "Mathlib..Witnesses.Hidden", "Mathlib./Witnesses/Hidden"):
+            with self.subTest(module=module):
+                (self.sub / "Solution.lean").write_text(f"import {module}\n")
+                result = check(self.root, "lower-generality-3")
+                self.assertFalse(result["ok"])
+                self.assertTrue(any("module names" in error for error in result["errors"]))
+
+    def test_source_header_policy_does_not_restrict_runtime_loads(self):
+        # This checks admission only: the source is never executed here. Runtime loads are
+        # outside this policy; the comparator must still check the exported proof.
+        (self.sub / "Solution.lean").write_text(
+            "import Mathlib\nrun_cmd do\n"
+            "  let _ ← Lean.importModules #[{ module := `Witnesses.Hidden }] {}\n"
+            "  pure ()\n")
+        self.assertTrue(check(self.root, "lower-generality-3")["ok"])
+
     def test_bom_does_not_hide_imports(self):
         (self.sub / "Solution.lean").write_text("\ufeffimport Submissions.UpperCompressions.Solution\n")
         self.assertFalse(check(self.root, "lower-generality-3")["ok"])
@@ -125,7 +163,7 @@ class VerifierTests(unittest.TestCase):
         (self.sub / "Solution.lean").write_text("import Submissions.LowerGenerality3.Helper\n")
         self.assertTrue(check(self.root, "lower-generality-3")["ok"])
 
-    def test_upper_compressions_root_is_self_contained(self):
+    def test_upper_compressions_header_imports_stay_in_allowed_modules(self):
         sub = self.root / "formal/Submissions/UpperCompressions"
         sub.mkdir(parents=True)
         (sub / "claim.txt").write_text("106\n")

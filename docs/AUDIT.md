@@ -25,6 +25,14 @@ project-owned Lean file.
 Submission proofs are checked by the kernel. Their permitted axioms are only
 `propext`, `Classical.choice` and `Quot.sound`.
 
+The import policy checks explicit source headers in every submitted `.lean` file. It permits the
+transitive dependencies of allowed modules and does not restrict module loads performed by Lean
+metaprograms or certify proof provenance. The build can read the staged contract and warm cache;
+passing the header check is not evidence of runtime module isolation. Inspecting candidate
+`.olean` import lists would not establish that isolation either: metaprograms can load a separate
+environment, and compiled artifacts are candidate-controlled. The independent comparator checks
+exported proof terms against the protected statement, allowed axioms and Lean kernel.
+
 ## Contract semantics
 
 `CostAtMost` uses VCVio's `IsQueryBound`: a pure computation satisfies any budget;
