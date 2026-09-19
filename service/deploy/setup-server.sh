@@ -58,7 +58,7 @@ if ! mountpoint -q /srv/ots-work; then
   if [[ ! -f "${work_image}" ]]; then
     fallocate -l 48G "${work_image}"
     chmod 600 "${work_image}"
-    mkfs.ext4 -q -m 0 "${work_image}"
+    mkfs.ext4 -q -m 0 -E nodiscard "${work_image}"   # discard would punch holes into the image
   fi
   grep -q "^${work_image} " /etc/fstab || echo "${work_image} /srv/ots-work ext4 loop,nosuid,nodev 0 2" >> /etc/fstab
   mount /srv/ots-work
