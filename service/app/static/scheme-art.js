@@ -3,7 +3,7 @@
   // The iris is the forest scheme; each cycle lights one real signature and lets the verifier run.
   //
   // A signature is a uniform element of the scheme's disclosure family (Cuts.lean), the cuts of
-  // cost 105 with at most 41 revealed values, of three shapes (revealed subtrees, revealed groups,
+  // cost 103 with at most 42 revealed values, of three shapes (revealed subtrees, revealed groups,
   // chain cost). The shape is drawn by its share of the family, the digests uniformly, and the
   // chain positions exactly through the counting table (doubles carry the ratios).
   //
@@ -15,7 +15,7 @@
   var svg = document.querySelector('svg.scheme-art');
   if (!svg) return;
   var NS = 'http://www.w3.org/2000/svg';
-  var LEN = +svg.dataset.len, SUBTREES = 7, GROUPS = 21, CHAINS = 63;
+  var LEN = +svg.dataset.len, SUBTREES = 6, GROUPS = 18, CHAINS = 54;
   var SHAPES = svg.dataset.shapes.split(';').map(function (t) { return t.split(',').map(Number); });
   var els = Array.prototype.slice.call(svg.querySelectorAll('[data-r]'));
   var TOP = Math.max.apply(null, SHAPES.map(function (t) { return t[2]; }));
