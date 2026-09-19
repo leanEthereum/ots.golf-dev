@@ -2,11 +2,11 @@
 
     .venv/bin/python -m app.resync
 
-GitHub keeps everything durable: pull requests (author, description, attribution, head commits,
-merges), each head's code and NOTES.md under refs/pull/<N>/head, and every verdict in the hidden
-block of the verifier's own comment. A rebuild reads them back, recomputes records from the merges
-in merge order, and queues any open head that has no verdict yet. It only adds what is missing,
-so running it on a live database is harmless.
+GitHub keeps everything durable: pull requests (author, description, attribution, head commits),
+each head's code and NOTES.md under refs/pull/<N>/head, and every verdict in the hidden block of the
+verifier's own comment. A rebuild reads them back, decides records by replaying the verified verdicts
+in the order their verifications finished, and queues any open head that has no verdict yet. It only
+adds what is missing, so running it on a live database is harmless.
 """
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def resync(queue_open_heads: bool = True) -> dict:
         return {"skipped": "no GitHub token or submissions repository configured"}
     repo = settings.submissions_repo
     bot = (settings.bot_login or github.token_login()).lower()
-    restored, queued, merged = 0, [], []
+    restored, queued = 0, []
     for pr in github.list_pulls(repo):
         number, head = pr["number"], pr["head"]["sha"]
         pr_url = f"https://github.com/{repo}/pull/{number}"
@@ -52,8 +52,6 @@ def resync(queue_open_heads: bool = True) -> dict:
                     verdicts, comment_id = found, c.get("id")
         fields = github.parse_pr_body(pr.get("body") or "")
         head_repo = (pr["head"].get("repo") or {}).get("clone_url") or f"https://github.com/{repo}.git"
-        merge = ({"head": head, "repository": repo, "number": number, "merged_at": pr.get("merged_at")}
-                 if pr.get("merged_at") else None)
         with local_lock("results"), SessionLocal() as session:
             user = auth.get_or_create_user(session, author["login"], github_id=author.get("id"),
                                            avatar_url=author.get("avatar_url"))
@@ -67,8 +65,6 @@ def resync(queue_open_heads: bool = True) -> dict:
                 detail = {"contract": v.get("contract"), "restored": True}
                 if type(comment_id) is int:
                     detail["github_comment_id"] = comment_id
-                if merge and merge["head"] == v["commit"]:
-                    detail["merge"] = merge
                 notes = github.read_file(repo, f'{t["submission_root"]}/NOTES.md', v["commit"])
                 if notes and notes.strip():
                     detail["notes"] = notes.strip()
@@ -81,14 +77,12 @@ def resync(queue_open_heads: bool = True) -> dict:
                     finished_at=finished, duration_s=v.get("duration_s"), detail=json.dumps(detail)))
                 restored += 1
             session.commit()
-        if merge:
-            merged.append((merge["merged_at"], pr_url, head))
         if queue_open_heads and pr.get("state") == "open" and head not in {v["commit"] for v in verdicts}:
             with SessionLocal() as session:
                 known = session.get(Submission, pr_submission_id(repo, number, head)) is not None
             if not known:
                 queued.append((repo, number, head))
-    promoted = _promote_merged(merged)
+    promoted = replay_records()
     if queued:
         from .main import handle_pull_request
         for repo_, number, head in queued:
@@ -99,17 +93,20 @@ def resync(queue_open_heads: bool = True) -> dict:
     return {"restored": restored, "promoted": promoted, "queued": len(queued)}
 
 
-def _promote_merged(merged: list[tuple]) -> int:
-    """Replay the merges in merge order, so each record is decided as it was at the time."""
+def replay_records() -> int:
+    """Decide records as the live worker would have: verified heads in the order their verifications
+    finished (ties by pull request, then commit), each one a record if it strictly improves the record
+    at that moment. Records already held are kept; demo rows never count."""
     from .worker import promote
     count = 0
     with local_lock("results"), SessionLocal() as session:
-        for merged_at, pr_url, head in sorted(merged):
-            sub = session.scalars(select(Submission).where(Submission.pr_url == pr_url,
-                                                           Submission.commit == head)).first()
-            if sub is None or sub.status != "verified" or sub.is_record:
+        candidates = session.scalars(select(Submission).where(
+            Submission.status == "verified", Submission.is_record.is_(False), Submission.claim.is_not(None),
+            Submission.finished_at.is_not(None), Submission.pr_number.is_not(None)))
+        for sub in sorted(candidates, key=lambda s: (s.finished_at, s.pr_number, s.commit)):
+            if sub.detail_dict.get("demo"):
                 continue
-            promote(session, sub, at=_time(merged_at))
+            promote(session, sub, at=sub.finished_at)
             session.flush()
             count += sub.is_record
         session.commit()

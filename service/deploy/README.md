@@ -33,13 +33,13 @@ before public launch, and day-to-day operations. For local development see the
    and the Python dependency lockfile.
 
 2. Add a token for a dedicated bot account (not a person) to `/etc/ots/secrets.env`. It is a
-   fine-grained token for `leanEthereum/ots.golf-submissions` only, with contents read/write, commit
-   statuses read/write and pull requests read/write. Contents write is used only to merge a verified
-   pull request that beats the record, pinned to its verified head. Protect `main` with a repository
-   ruleset without any bypass: changes only through pull requests, the `ots.golf/verifier` status
-   required, no force pushes, no deletion. The token can then merge only a head the verifier passed,
-   and never push code of its own. `OTS_AUTO_MERGE=0` leaves merges to maintainers and lets the token
-   drop contents write. No core-repository write access is needed. The file already contains a generated webhook secret.
+   fine-grained token for `leanEthereum/ots.golf-submissions` only, with commit statuses read/write,
+   pull requests read/write (verdict comments on pull requests) and contents read-only (reading each
+   head's `NOTES.md`); metadata read-only is implied. The bot writes nothing else: it never merges,
+   closes or pushes, so it needs no contents write. A classic token would need the `public_repo`
+   scope, which grants far more; prefer the fine-grained token. Protect `main`, which holds only the
+   template, with a repository ruleset: no force pushes, no deletion. No core-repository access
+   beyond reading is needed. The file already contains a generated webhook secret.
    Keep it `root:root 0600`. Do not put credentials in `/etc/ots/public.env`, the checkout, Git
    configuration, the `ots` account's home, or the verifier environment.
 
@@ -122,19 +122,19 @@ Run these with the public webhook disconnected and the production configuration 
 3. Nothing needs to be seeded by hand. At every start the website prepares the board: with
    `OTS_PHONY=1` (the current setting, chosen for the pre-launch site) it replaces the invented
    rows with those of `service/demo/submissions.json`; with `OTS_PHONY=0` it adds nothing, and every
-   board starts empty until the first verified, merged submission of its track becomes the record.
+   board starts empty until the first verified submission of its track becomes the record.
 
 4. In a staging repository, exercise a signed PR webhook, duplicate delivery, a rejected proof,
-   a verified improvement, merge-before-verification, and a GitHub API outage followed by recovery.
-   Only an API-confirmed merge of the verified head may promote a PR to a record. Stop and restart
+   a verified improvement, a second PR with the same claim (verified, not a record), and a GitHub
+   API outage followed by recovery. Confirm that the bot never merges or closes a PR. Stop and restart
    the worker during a job; it must retry the interrupted job once and refuse a concurrent worker.
    Verify that result statuses/comments eventually arrive without rerunning the proof after a
    reporting outage. These GitHub mutations are staging tests, never part of local repository tests.
 
 5. On `leanEthereum/ots.golf-submissions`, connect GitHub's **Pull requests** webhook to
    `https://<domain>/webhooks/github`, with JSON content
-   and the configured secret. Keep `closed` events enabled: merged heads are promoted from these
-   events after GitHub's API confirms the merge. The service ignores other repositories and refuses
+   and the configured secret. Only `opened`, `synchronize` and `reopened` events are used; closing
+   or merging a PR changes nothing. The service ignores other repositories and refuses
    admission when `OTS_SUBMISSIONS_REPO` is missing. Core-repository PRs are not proof submissions.
 
 ## Gates before public launch
@@ -174,7 +174,7 @@ service. Keep one trusted checkout per worker and update it only while that work
 ### Rebuilding the server from nothing
 
 The database is a cache. Everything durable lives on GitHub: pull requests (author, description,
-attribution, head commits, merges), each checked head's code and `NOTES.md` under
+attribution, head commits), each checked head's code and `NOTES.md` under
 `refs/pull/<N>/head` of the submissions repository, and every verdict in a hidden
 `<!-- ots-result ... -->` block of the verifier's own comment on the pull request. Keep only
 `/etc/ots/secrets.env` (token and webhook secret) outside the server; `public.env` is regenerated
@@ -183,7 +183,8 @@ by the installer, and the webhook needs its secret to stay the same.
 To rebuild: run `setup-server.sh` on a fresh host, restore `secrets.env`, repeat the acceptance
 checks, and start both services. At startup the website prepares the board (phony rows or nothing, see
 step 3 above) and runs `app.resync`, which restores every checked head from GitHub,
-replays the merges in merge order so records keep their dates, and queues any open head without a
+replays the verified verdicts in the order their verifications finished (ties by PR number, then
+commit) to decide records, which keep their original dates, and queues any open head without a
 verdict. Submission IDs are derived from the pull request and commit, so every page link survives.
 Only old verifier transcripts are lost; rerun the verifier on the checked head to regenerate one.
 `OTS_RESYNC_ON_START=0` skips the startup resync, and `.venv/bin/python -m app.resync` runs it by
@@ -204,14 +205,13 @@ When upgrading from the earlier single-user setup, stop both services, create `o
 `ots-state`, update both units, and make existing database, WAL/SHM, log and lock files group-writable
 by `ots-state`. Provision the bounded work mount and add `OTS_WORK_DIR`/`TMPDIR` to `public.env`;
 existing environment files are not overwritten by the installer. Never grant the group access to
-`secrets.env`. Audit historical real rows marked
-`is_record` against their merged PRs: earlier code promoted at verification time. No automatic rewrite
-is safe for those historical rows. Demo rows and explicit local certificate initialization retain
-their intentional status.
+`secrets.env`. Records are no longer tied to merges: to recompute historical real records in
+verification-finish order, move the old database aside and let the website rebuild it from GitHub.
+Demo rows retain their intentional status.
 
 ### Webhook delivery
 
 Webhook delivery is at least once, not guaranteed: use GitHub's delivery history to redeliver a lost
-merge event. A merge marker received before verification is stored and applied after a successful
-check. The service merges only verified record-breaking PRs and never updates the trusted checkout.
-Upper records, like lower records, require successful verification and a merge of the same head.
+push event, or restart the website, whose resync queues open heads without a verdict. Records are
+decided when verification finishes, never by webhook events, and the service never updates the
+trusted checkout.

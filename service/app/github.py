@@ -150,25 +150,6 @@ def targets_default_branch(pr: dict) -> bool:
     return bool(default) and base.get("ref") == default
 
 
-def merge_pr(owner_repo: str, number: int, sha: str, title: str) -> tuple[bool, str]:
-    """Merge a pull request, but only if its head is still exactly `sha` and it still targets the
-    default branch. Returns whether it merged, and the reason when it did not (a conflict, a newer
-    push, a closed pull request, another target branch)."""
-    if not SHA_RE.fullmatch(sha):
-        raise ValueError("not a commit id")
-    if not targets_default_branch(get_pr(owner_repo, number)):
-        return False, "the pull request must target the default branch"
-    with httpx.Client(timeout=60) as client:
-        r = client.put(f"{API}/repos/{owner_repo}/pulls/{number}/merge", headers=_headers(),
-                       json={"sha": sha, "merge_method": "merge", "commit_title": title})
-    if r.status_code == 200 and r.json().get("merged"):
-        return True, ""
-    if r.status_code in (405, 409, 422):
-        return False, str(r.json().get("message") or f"HTTP {r.status_code}")[:300]
-    _check(r, f"merge #{number}")
-    return False, f"HTTP {r.status_code}"
-
-
 VERDICT_OPEN, VERDICT_CLOSE = "<!-- ots-result", "-->"
 VERDICT_RE = re.compile(r"<!-- ots-result\n(.*)\n-->\s*", re.S)
 VERDICT_KEYS = ("track", "commit", "status", "claim", "duration_s", "finished_at", "contract", "record")

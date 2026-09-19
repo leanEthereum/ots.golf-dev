@@ -1,6 +1,7 @@
 """One-host verifier worker with a durable GitHub result outbox.
 
-Verification checks a proof. A trusted merged-PR event promotes its verified head to a record.
+Verification checks a proof. A verified head that strictly improves its track's record when its check
+finishes becomes the record; GitHub only receives the verdict (a commit status and a comment).
 Run with ``.venv/bin/python -m app.worker``; a file lock prevents concurrent workers.
 """
 from __future__ import annotations
@@ -109,59 +110,18 @@ def beats_record(session, sub: Submission) -> bool:
     return contract.improves(t["direction"], sub.claim, best.claim if best else None)
 
 
-def merge_if_record(sub_id: str) -> bool:
-    """Merge a verified pull request that beats the record, pinned to its verified head, then record
-    it. Runs in the web process, which alone holds the token. A later push or a conflict makes GitHub
-    refuse; the reason is reported on the pull request and a new push is checked again."""
-    if not settings.auto_merge or not settings.github_token or not settings.submissions_repo:
-        return False
-    with local_lock("results"), SessionLocal() as session:
-        sub = session.get(Submission, sub_id)
-        if (sub is None or sub.status != "verified" or sub.is_record or sub.detail_dict.get("merge")
-                or (sub.pr_repository or "").lower() != settings.submissions_repo.lower()
-                or not beats_record(session, sub)):
-            return False
-        t = contract.track(sub.track)
-        repo, number, commit = sub.pr_repository, sub.pr_number, sub.commit
-        title = f"{t['title']} record: {sub.claim} {contract.cost_unit(t, sub.claim)} (#{number})"
-    merged, reason = github.merge_pr(repo, number, commit, title)
-    with local_lock("results"), SessionLocal() as session:
-        sub = session.get(Submission, sub_id)
-        if sub is None or sub.commit != commit:
-            return False
-        detail = sub.detail_dict
-        if merged:
-            detail.pop("merge_blocked", None)
-            detail["merge"] = {"head": commit, "repository": repo, "number": number,
-                               "merged_at": utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"), "automatic": True}
-            sub.detail = json.dumps(detail)
-            promote(session, sub)
-            schedule_report(session, sub)
-        elif detail.get("merge_blocked") != reason:
-            detail["merge_blocked"] = reason
-            sub.detail = json.dumps(detail)
-            schedule_report(session, sub)
-        session.commit()
-    _log(f"{sub_id}: " + ("merged as a record" if merged else f"record not merged: {reason}"))
-    return merged
-
-
 def promote(session, sub: Submission, at=None) -> None:
-    """Only merged, verified heads can become records; the first one of a track always does. A
-    rebuild passes the merge time as `at`, so records keep their original dates."""
+    """Make a verified pull-request head the record if it strictly improves the track's current record
+    (or the track has none). Callers hold the results lock, so records are decided one at a time in
+    the order verifications finish: a later copy of the same claim never improves. A rebuild passes
+    the original finish time as `at`."""
     if sub.status != "verified" or sub.claim is None or sub.is_record:
         return
-    merge = sub.detail_dict.get("merge") or {}
-    if not (
-        merge.get("head") == sub.commit and merge.get("number") == sub.pr_number
-        and settings.submissions_repo
-        and (sub.pr_repository or "").lower() == settings.submissions_repo.lower()
-        and merge.get("repository", "").lower() == settings.submissions_repo.lower()
-    ):
+    if not settings.submissions_repo or (sub.pr_repository or "").lower() != settings.submissions_repo.lower():
         return
     if beats_record(session, sub):
         sub.is_record = True
-        sub.record_at = at or utcnow()
+        sub.record_at = at or sub.finished_at or utcnow()
 
 
 def verdict_entry(sub: Submission) -> dict:
@@ -184,10 +144,6 @@ def report(sub: Submission, history: list[dict] | None = None) -> int | None:
     elif sub.status == "verified":
         what = f"verified: claim {sub.claim}" + (" — new record" if sub.is_record else " (not a record)")
         state, body = "success", f"**ots.golf verifier:** {what}. Details: {url}"
-        blocked = sub.detail_dict.get("merge_blocked")
-        if blocked and not sub.is_record:
-            body += (f"\n\nThis claim beats the record, but GitHub refused the automatic merge: {blocked[:300]}. "
-                     "Update the pull request (for example, merge `main` into it) and the new head is checked again.")
     else:
         failure = (sub.detail_dict.get("failure") or {}).get("message", "")
         what = f"{sub.status}: {failure}"[:140] if failure else sub.status
@@ -239,7 +195,6 @@ def deliver_report(sub_id: str) -> None:
             detail = current.detail_dict
             detail["github_comment_id"] = comment_id
             current.detail = json.dumps(detail)
-        verified = current.status == "verified" and not current.is_record
         if pending.version == version:
             if error is None:
                 session.delete(pending)
@@ -247,11 +202,6 @@ def deliver_report(sub_id: str) -> None:
                 pending.attempts += 1
                 pending.next_attempt = utcnow() + timedelta(seconds=min(3600, 30 * 2 ** min(pending.attempts, 7)))
         session.commit()
-    if error is None and verified:
-        try:
-            merge_if_record(sub_id)
-        except Exception as exc:  # a failed merge is retried with the next report of this submission
-            _log(f"automatic merge for {sub_id} failed: {type(exc).__name__}")
 
 
 def retry_reports() -> None:
@@ -296,7 +246,7 @@ def process(sub_id: str) -> None:
         if sub.status != "verified":
             msg = result.get("reason") or "; ".join(result.get("errors", [])) or result.get("tail", "")[-600:]
             failure = {"code": sub.status, "message": msg}
-        detail = sub.detail_dict  # preserve merge-before-verification and the durable comment identity
+        detail = sub.detail_dict  # preserve the durable comment identity
         detail.update(failure=failure, commit=result.get("commit"), comparator_exit=result.get("comparator_exit"),
                       contract=contract.contract_id())
         notes = result.get("notes")

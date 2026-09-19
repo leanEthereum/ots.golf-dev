@@ -34,9 +34,7 @@ class ServiceWorkerTests(unittest.TestCase):
                         patch.object(settings, 'contract_repo', 'owner/core'),
                         patch.object(settings, 'submissions_repo', 'owner/repo'),
                         patch.object(settings, 'github_token', ''),
-                        patch('app.worker.SessionLocal', self.sessions), patch('app.main.SessionLocal', self.sessions),
-                        patch('app.worker.github.merge_pr', return_value=(False, 'not in tests')),
-                        patch.object(settings, 'auto_merge', False)]
+                        patch('app.worker.SessionLocal', self.sessions), patch('app.main.SessionLocal', self.sessions)]
         for p in self.patches:
             p.start()
         with self.sessions() as session:
@@ -51,10 +49,10 @@ class ServiceWorkerTests(unittest.TestCase):
         self.engine.dispose()
         self.temp.cleanup()
 
-    def submission(self, *, claim=19, status='verified', record=False, pr=7):
+    def submission(self, *, claim=19, status='verified', record=False, pr=7, commit='a' * 40):
         with self.sessions() as session:
             sub = Submission(user_id=self.user_id, track='lower-generality-2', claim=claim, status=status,
-                             commit='a' * 40, source_repo='https://github.com/author/repo.git',
+                             commit=commit, source_repo='https://github.com/author/repo.git',
                              pr_number=pr, pr_url=f'https://github.com/owner/repo/pull/{pr}' if pr else None,
                              is_record=record,
                              record_at=utcnow() if record else None)
@@ -62,57 +60,56 @@ class ServiceWorkerTests(unittest.TestCase):
             session.commit()
             return sub
 
-    def merged_pr(self, *, sha='a' * 40, merged=True):
-        return {'state': 'closed', 'merged': merged, 'merged_at': '2026-09-17T12:00:00Z',
-                'base': {'ref': 'main', 'repo': {'default_branch': 'main'}}, 'head': {'sha': sha, 'repo': {'clone_url': 'https://github.com/author/repo.git'}}}
-
-    def merge(self, sub):
-        with patch('app.main.github.get_pr', return_value=self.merged_pr()):
-            return main.handle_merged_pull_request('owner/repo', sub.pr_number, sub.commit)
-
-    def test_verification_does_not_promote_until_exact_head_is_merged(self):
-        sub = self.submission()
+    def verify(self, sub, claim=19, status='verified'):
+        """Let the worker finish checking `sub` with the given verdict."""
+        result = {'status': status, 'claim': claim, 'commit': sub.commit, 'tail': 'bad proof'}
+        with patch('app.worker.run_pipeline', return_value=(result, None)):
+            worker.process(sub.id)
         with self.sessions() as session:
-            worker.promote(session, session.get(Submission, sub.id))
-            session.commit()
-            self.assertIsNone(records.current_record(session, 'lower-generality-2'))
-        self.assertTrue(self.merge(sub)['promoted'])
+            return session.get(Submission, sub.id)
+
+    def test_first_verified_improvement_becomes_the_record_without_a_merge(self):
+        sub = self.submission(claim=None, status='pending')
+        checked = self.verify(sub, 19)
+        self.assertTrue(checked.is_record)
+        self.assertEqual(checked.record_at, checked.finished_at)
         with self.sessions() as session:
             self.assertEqual(records.current_record(session, 'lower-generality-2').id, sub.id)
-            self.assertIsNotNone(session.get(GithubReport, sub.id))
+            self.assertIsNotNone(session.get(GithubReport, sub.id))   # the comment says "new record"
 
-    def test_unmerged_better_claim_does_not_suppress_merged_record(self):
-        self.submission(claim=500, pr=8)
-        sub = self.submission(claim=19)
-        self.merge(sub)
+    def test_later_identical_claim_never_takes_the_record(self):
+        first = self.submission(claim=None, status='pending', pr=7, commit='a' * 40)
+        copy = self.submission(claim=None, status='pending', pr=8, commit='b' * 40)
+        better = self.submission(claim=None, status='pending', pr=9, commit='c' * 40)
+        self.assertTrue(self.verify(first, 19).is_record)
+        self.assertFalse(self.verify(copy, 19).is_record)
+        self.assertTrue(self.verify(better, 20).is_record)
         with self.sessions() as session:
-            self.assertEqual(records.current_record(session, 'lower-generality-2').claim, 19)
+            self.assertEqual([s.id for s in records.frontier(session, 'lower-generality-2')][::-1],
+                             [first.id, better.id])
 
     def test_demo_records_never_block_a_real_record(self):
         demo = self.submission(claim=500, pr=8, record=True)
         with self.sessions() as session:
             session.get(Submission, demo.id).detail = json.dumps({'demo': True})
             session.commit()
-        sub = self.submission(claim=19)
-        self.assertTrue(self.merge(sub)['promoted'])
+        sub = self.submission(claim=None, status='pending')
+        self.assertTrue(self.verify(sub, 19).is_record)
 
-    def test_same_pr_number_and_head_in_core_cannot_receive_submission_merge(self):
-        old = self.submission()
+    def test_pull_requests_of_another_repository_never_become_records(self):
+        old = self.submission(claim=None, status='pending')
         with self.sessions() as session:
             session.get(Submission, old.id).pr_url = 'https://github.com/owner/core/pull/7'
             session.commit()
-        new = self.submission()
-        self.assertTrue(self.merge(new)['promoted'])
+        self.assertFalse(self.verify(old, 19).is_record)
+        new = self.submission(claim=None, status='pending', commit='b' * 40)
+        self.assertTrue(self.verify(new, 19).is_record)
         with self.sessions() as session:
-            self.assertFalse(session.get(Submission, old.id).is_record)
-            self.assertNotIn('merge', session.get(Submission, old.id).detail_dict)
-            self.assertIsNone(session.get(GithubReport, old.id))
             self.assertEqual(records.current_record(session, 'lower-generality-2').id, new.id)
 
     def test_core_handlers_never_contact_github_for_proof_intake(self):
         with patch('app.main.github.get_pr') as get_pr:
             self.assertFalse(main.handle_pull_request('owner/core', 7, 'a' * 40)['queued'])
-            self.assertFalse(main.handle_merged_pull_request('owner/core', 7, 'a' * 40)['promoted'])
             get_pr.assert_not_called()
 
     def test_submission_pr_queues_its_fork_head_against_the_core_verifier(self):
@@ -148,35 +145,10 @@ class ServiceWorkerTests(unittest.TestCase):
              patch('app.main.github.post_comment') as comment:
             self.assertFalse(main.handle_pull_request('owner/repo', 9, 'b' * 40)['queued'])
             comment.assert_called_once()
-        sub = self.submission()
-        merged = dict(self.merged_pr(), base={'ref': 'side', 'repo': {'default_branch': 'main'}})
-        with patch('app.main.github.get_pr', return_value=merged):
-            self.assertFalse(main.handle_merged_pull_request('owner/repo', sub.pr_number, sub.commit)['promoted'])
         from app import github
-        self.assertFalse(github.targets_default_branch(merged))
+        self.assertFalse(github.targets_default_branch(pr))
         self.assertFalse(github.targets_default_branch({'base': {'ref': 'main', 'repo': {}}}))
-        self.assertTrue(github.targets_default_branch(self.merged_pr()))
-
-    def test_wrong_head_or_unmerged_close_never_promotes(self):
-        sub = self.submission()
-        for pr in [self.merged_pr(merged=False), self.merged_pr(sha='b' * 40)]:
-            with patch('app.main.github.get_pr', return_value=pr):
-                self.assertFalse(main.handle_merged_pull_request('owner/repo', 7, sub.commit)['promoted'])
-        with self.sessions() as session:
-            self.assertFalse(session.get(Submission, sub.id).is_record)
-            self.assertNotIn('merge', session.get(Submission, sub.id).detail_dict)
-
-    def test_merge_before_verification_is_retained_and_promoted_after_success(self):
-        sub = self.submission(claim=None, status='pending')
-        self.assertFalse(self.merge(sub)['promoted'])
-        result = {'status': 'verified', 'claim': 19, 'commit': sub.commit, 'comparator_exit': 0}
-        with patch('app.worker.run_pipeline', return_value=(result, None)):
-            worker.process(sub.id)
-        with self.sessions() as session:
-            checked = session.get(Submission, sub.id)
-            self.assertTrue(checked.is_record)
-            self.assertEqual(checked.detail_dict['merge']['head'], sub.commit)
-            self.assertIsNotNone(session.get(GithubReport, sub.id))
+        self.assertTrue(github.targets_default_branch({'base': {'ref': 'main', 'repo': {'default_branch': 'main'}}}))
 
     def test_notes_from_the_verifier_are_stored_but_not_rendered(self):
         sub = self.submission(claim=None, status='pending')
@@ -194,24 +166,21 @@ class ServiceWorkerTests(unittest.TestCase):
                 main.app.dependency_overrides.clear()
         self.assertNotIn('The averaging lemma loses a factor of two.', page)   # agents read /notes.md
 
-    def test_failed_merged_proof_cannot_become_record(self):
+    def test_failed_proof_cannot_become_record(self):
         sub = self.submission(claim=None, status='pending')
-        self.merge(sub)
-        with patch('app.worker.run_pipeline', return_value=({'status': 'rejected', 'tail': 'bad proof'}, None)):
-            worker.process(sub.id)
+        self.assertFalse(self.verify(sub, None, 'rejected').is_record)
         with self.sessions() as session:
-            self.assertFalse(session.get(Submission, sub.id).is_record)
             self.assertIsNone(records.current_record(session, 'lower-generality-2'))
 
-    def test_first_merged_submission_of_an_empty_track_becomes_the_record(self):
+    def test_first_verified_submission_of_an_empty_track_becomes_the_record(self):
         from app import contract
         self.assertTrue(contract.improves('+', 0, None))
         self.assertTrue(contract.improves('-', 10 ** 6, None))
         with self.sessions() as session:
             self.assertIsNone(records.track_state(session, contract.track('lower-generality-2'))['record_claim'])
-        sub = self.submission(claim=0)
-        self.assertTrue(self.merge(sub)['promoted'])
-        bad = self.submission(claim=None, record=True)
+        sub = self.submission(claim=None, status='pending')
+        self.assertTrue(self.verify(sub, 0).is_record)
+        bad = self.submission(claim=None, record=True, commit='b' * 40)
         with self.sessions() as session:
             self.assertEqual(records.current_record(session, 'lower-generality-2').id, sub.id)
             self.assertEqual(records.track_state(session, contract.track('lower-generality-2'))['record_claim'], 0)
@@ -246,13 +215,13 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertIsNone(session.get(GithubReport, sub.id))
             self.assertEqual(session.get(Submission, sub.id).detail_dict['github_comment_id'], 123)
 
-    def test_merge_during_report_preserves_newer_pending_outbox_version(self):
-        sub = self.submission()
+    def test_result_during_report_preserves_newer_pending_outbox_version(self):
+        sub = self.submission(claim=None, status='pending')
         with self.sessions() as session:
             schedule_report(session, session.get(Submission, sub.id))
             session.commit()
         def report(_sub, _history=None):
-            self.merge(sub)
+            self.verify(sub, 19)
             return 123
         with patch.object(settings, 'github_token', 'test'), patch('app.worker.report', side_effect=report):
             worker.deliver_report(sub.id)
@@ -347,7 +316,7 @@ class ServiceWorkerTests(unittest.TestCase):
                                        'contract': 'c0ffee', 'record': True}])
         forged = github.verdict_block([{'track': 'lower-generality-2', 'commit': 'd' * 40, 'status': 'verified', 'claim': 99}])
         pulls = [
-            {'number': 7, 'state': 'closed', 'merged_at': '2026-09-11T08:00:00Z', 'created_at': '2026-09-09T00:00:00Z',
+            {'number': 7, 'state': 'closed', 'merged_at': None, 'created_at': '2026-09-09T00:00:00Z',
              'user': {'login': 'alice', 'id': 42}, 'body': 'Averaging over classes.\nAssisted by: Model X',
              'base': {'ref': 'main', 'repo': {'default_branch': 'main'}}, 'head': {'sha': 'a' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}},
             {'number': 8, 'state': 'open', 'merged_at': None, 'created_at': '2026-09-12T00:00:00Z',
@@ -369,11 +338,96 @@ class ServiceWorkerTests(unittest.TestCase):
         with self.sessions() as session:
             sub = session.get(Submission, pr_submission_id('owner/repo', 7, 'a' * 40))
             self.assertEqual((sub.claim, sub.status, sub.is_record, sub.user.login), (19, 'verified', True, 'alice'))
-            self.assertEqual(sub.record_at.strftime('%Y-%m-%d %H:%M'), '2026-09-11 08:00')
+            self.assertEqual(sub.record_at.strftime('%Y-%m-%d %H:%M'), '2026-09-10 10:00')
             self.assertEqual(sub.assisted_by, 'Model X')
             self.assertEqual(sub.notes, '## Idea\n\nAverage over classes.')
             self.assertEqual(sub.detail_dict['github_comment_id'], 55)
             self.assertIsNone(session.scalars(select(Submission).where(Submission.commit == 'd' * 40)).first())
+
+    def test_resync_decides_records_in_verification_finish_order(self):
+        from app import github, resync
+        from app.db import pr_submission_id
+        # (PR, commit, claim, finished_at, record flag in the comment: ignored by the rebuild)
+        heads = [(5, 'e' * 40, 20, '2026-09-12T00:00:00Z', True),    # a later copy of the record
+                 (6, 'a' * 40, 19, '2026-09-10T00:00:00Z', False),   # improves 18
+                 (8, 'c' * 40, 20, '2026-09-11T00:00:00Z', True),    # same second as #7: #7 wins the tie
+                 (7, 'b' * 40, 20, '2026-09-11T00:00:00Z', False),   # improves 19 (listed after #8)
+                 (9, 'd' * 40, 18, '2026-09-09T00:00:00Z', True)]    # the track's first verified head
+        pulls, comments = [], {}
+        for number, commit, claim, finished, flag in heads:
+            pulls.append({'number': number, 'state': 'closed', 'merged_at': None,
+                          'created_at': '2026-09-01T00:00:00Z', 'user': {'login': 'alice', 'id': 42}, 'body': '',
+                          'base': {'ref': 'main', 'repo': {'default_branch': 'main'}},
+                          'head': {'sha': commit, 'repo': None}})
+            block = github.verdict_block([{'track': 'lower-generality-2', 'commit': commit, 'status': 'verified',
+                                           'claim': claim, 'finished_at': finished, 'record': flag}])
+            comments[number] = [{'id': number, 'user': {'login': 'ots-bot'}, 'body': block}]
+        with patch.object(settings, 'github_token', 'test'), patch.object(settings, 'bot_login', 'ots-bot'), \
+             patch('app.resync.SessionLocal', self.sessions), \
+             patch('app.resync.github.list_pulls', return_value=pulls), \
+             patch('app.resync.github.list_comments', side_effect=lambda repo, n: comments[n]), \
+             patch('app.resync.github.read_file', return_value=None):
+            self.assertEqual(resync.resync(), {'restored': 5, 'promoted': 3, 'queued': 0})
+        with self.sessions() as session:
+            record = {n: session.get(Submission, pr_submission_id('owner/repo', n, c)).is_record
+                      for n, c, *_ in heads}
+            self.assertEqual(record, {5: False, 6: True, 7: True, 8: False, 9: True})
+            self.assertEqual(records.current_record(session, 'lower-generality-2').pr_number, 7)
+            self.assertEqual([s.pr_number for s in records.frontier(session, 'lower-generality-2')], [7, 6, 9])
+
+    def test_github_receives_only_statuses_and_comments(self):
+        """Queue, verify, report, re-report and rebuild through the real GitHub client: nothing but commit
+        statuses and the verdict comment is ever written, and nothing is merged or closed."""
+        from app import resync
+        head = 'b' * 40
+        pr = {'number': 9, 'state': 'open', 'changed_files': 1, 'body': 'A proof.', 'merged_at': None,
+              'user': {'login': 'alice', 'id': 42}, 'created_at': '2026-09-01T00:00:00Z',
+              'base': {'ref': 'main', 'repo': {'default_branch': 'main'}},
+              'head': {'sha': head, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}}
+        calls, comment = [], {}
+
+        def respond(request):
+            method, path = request.method, request.url.path
+            calls.append((method, path))
+            if method == 'GET' and path == '/repos/owner/repo/pulls/9':
+                return httpx.Response(200, json=pr)
+            if method == 'GET' and path == '/repos/owner/repo/pulls/9/files':
+                return httpx.Response(200, json=[{'filename': 'formal/Submissions/LowerGenerality2/Solution.lean'}])
+            if method == 'GET' and path == '/repos/owner/repo/pulls':
+                return httpx.Response(200, json=[pr])
+            if method == 'GET' and path == '/repos/owner/repo/issues/9/comments':
+                return httpx.Response(200, json=[comment] if comment else [])
+            if method == 'POST' and path == f'/repos/owner/repo/statuses/{head}':
+                return httpx.Response(201, json={})
+            if method == 'POST' and path == '/repos/owner/repo/issues/9/comments':
+                comment.update(id=77, user={'login': 'ots-bot'}, body=json.loads(request.content)['body'])
+                return httpx.Response(201, json={'id': 77})
+            if method == 'PATCH' and path == '/repos/owner/repo/issues/comments/77':
+                comment['body'] = json.loads(request.content)['body']
+                return httpx.Response(200, json={})
+            return httpx.Response(404, json={})
+
+        real_client = httpx.Client
+        client = lambda **kw: real_client(transport=httpx.MockTransport(respond), **kw)
+        with patch.object(settings, 'github_token', 'test'), patch.object(settings, 'bot_login', 'ots-bot'), \
+             patch('app.github.httpx.Client', side_effect=client), patch('app.resync.SessionLocal', self.sessions):
+            queued = main.handle_pull_request('owner/repo', 9, head)
+            with self.sessions() as session:
+                sub = session.get(Submission, queued['id'])
+            self.assertTrue(self.verify(sub, 19).is_record)
+            worker.deliver_report(sub.id)
+            with self.sessions() as session:
+                schedule_report(session, session.get(Submission, sub.id))
+                session.commit()
+            worker.deliver_report(sub.id)
+            resync.resync()
+        self.assertIn('new record', comment['body'])
+        self.assertIn(('PATCH', '/repos/owner/repo/issues/comments/77'), calls)
+        writes = {(m, p) for m, p in calls if m != 'GET'}
+        self.assertEqual(writes, {('POST', f'/repos/owner/repo/statuses/{head}'),
+                                  ('POST', '/repos/owner/repo/issues/9/comments'),
+                                  ('PATCH', '/repos/owner/repo/issues/comments/77')})
+        self.assertFalse(any(m in ('PUT', 'DELETE') or 'merge' in p for m, p in calls))
 
     def test_startup_reseeds_the_phony_board_only_in_phony_mode(self):
         with patch.object(settings, 'phony', True), patch('app.main.SessionLocal', self.sessions), \
@@ -386,55 +440,6 @@ class ServiceWorkerTests(unittest.TestCase):
         reseed.assert_not_called()
         with self.sessions() as session:
             self.assertEqual(session.scalars(select(Submission)).all(), [])
-
-    def deliver(self, sub, merge_result):
-        with self.sessions() as session:
-            schedule_report(session, session.get(Submission, sub.id))
-            session.commit()
-        with patch.object(settings, 'github_token', 'test'), patch('app.worker.github.post_status'), \
-             patch('app.worker.github.post_comment', return_value=11), \
-             patch('app.worker.github.merge_pr', return_value=merge_result) as merge:
-            if 'auto_merge_off' in self._testMethodName:
-                worker.deliver_report(sub.id)
-            else:
-                with patch.object(settings, 'auto_merge', True):
-                    worker.deliver_report(sub.id)
-        return merge
-
-    def test_verified_record_is_merged_automatically_and_promoted(self):
-        sub = self.submission(claim=19)
-        merge = self.deliver(sub, (True, ''))
-        merge.assert_called_once()
-        self.assertEqual(merge.call_args.args[:3], ('owner/repo', 7, 'a' * 40))
-        with self.sessions() as session:
-            stored = session.get(Submission, sub.id)
-            self.assertTrue(stored.is_record)
-            self.assertTrue(stored.detail_dict['merge']['automatic'])
-            self.assertIsNotNone(session.get(GithubReport, sub.id))   # the comment is updated to "new record"
-
-    def test_non_record_is_never_merged(self):
-        self.submission(claim=25, record=True, pr=5)
-        sub = self.submission(claim=19)
-        merge = self.deliver(sub, (True, ''))
-        merge.assert_not_called()
-        with self.sessions() as session:
-            self.assertFalse(session.get(Submission, sub.id).is_record)
-
-    def test_refused_merge_is_explained_on_the_pull_request(self):
-        sub = self.submission(claim=19)
-        self.deliver(sub, (False, 'Pull Request is not mergeable'))
-        with self.sessions() as session:
-            stored = session.get(Submission, sub.id)
-            self.assertFalse(stored.is_record)
-            self.assertEqual(stored.detail_dict['merge_blocked'], 'Pull Request is not mergeable')
-        with patch('app.worker.github.post_status'), patch('app.worker.github.update_comment') as update:
-            worker.report(stored)
-        self.assertIn('GitHub refused the automatic merge', update.call_args.args[2])
-
-    def test_auto_merge_off_never_merges(self):
-        sub = self.submission(claim=19)
-        merge = self.deliver(sub, (True, ''))
-        merge.assert_not_called()
 
     def test_reports_never_retarget_an_old_core_pr(self):
         sub = self.submission()

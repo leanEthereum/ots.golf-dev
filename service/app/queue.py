@@ -3,7 +3,7 @@
     .venv/bin/python -m app.queue lower --repo PATH_OR_URL [--commit HEAD] [--login ots.golf]
 
 `--repo` is a submissions checkout holding the track's submission root. A local job never becomes
-a record: records are merged pull requests of the submissions repository.
+a record: records come only from pull requests to the submissions repository.
 """
 from __future__ import annotations
 

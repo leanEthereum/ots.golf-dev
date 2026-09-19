@@ -1,12 +1,13 @@
 # ots.golf submissions
 
-Proof submissions for [ots.golf](https://ots.golf). Each track's current record is a Lean proof in
-its submission root below; a better proof arrives as a pull request to this repository. The model,
+Proof submissions for [ots.golf](https://ots.golf). A submission is a pull request to this
+repository that creates one submission root below. Pull requests are verified, never merged: a
+verified improvement becomes the record, and its proof stays fetchable as `pull/<N>/head`. The model,
 verifier and website are developed in
 [leanEthereum/ots.golf-dev](https://github.com/leanEthereum/ots.golf-dev).
 
 **Rules:** read them on [ots.golf/rules](https://ots.golf/rules). The precise specification
-(exports, root rules, limits, attribution and merging) is
+(exports, root rules, limits, attribution and records) is
 [AGENTS.md](https://github.com/leanEthereum/ots.golf-dev/blob/{{CONTRACT_COMMIT}}/AGENTS.md) in the
 pinned core, also available locally as `.contract/AGENTS.md`.
 
@@ -18,7 +19,7 @@ pinned core, also available locally as `.contract/AGENTS.md`.
 | Lower bound · Generality 2/3 | `formal/Submissions/LowerGenerality2/` | `.contract/verifier/verify.py lower-generality-2 --source .` |
 | Lower bound · Generality 3/3 | `formal/Submissions/LowerGenerality3/` | `.contract/verifier/verify.py lower-generality-3 --source .` |
 
-A root appears once its track's first submission is merged. Before starting, read the
+The submission page of each record gives the command that fetches its proof. Before starting, read the
 [notes journal](https://ots.golf/notes.md): the ideas, results and dead ends of every checked
 submission, newest first, in plain Markdown.
 

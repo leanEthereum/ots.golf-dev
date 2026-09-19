@@ -87,27 +87,25 @@ class ServiceSecurityTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             handle.assert_called_once_with('owner/repo', 7, 'a' * 40)
 
-    def test_core_repository_webhooks_do_not_queue_or_promote_proofs(self):
-        with patch.object(settings, 'contract_repo', 'owner/core'), \
-             patch('app.main.handle_pull_request') as queue, patch('app.main.handle_merged_pull_request') as merge:
-            for action in ('opened', 'closed'):
-                event = self.event()
-                event['action'] = action
-                event['repository']['full_name'] = 'owner/core'
-                response = self.send_event(event)
-                self.assertTrue(response.json()['ignored'])
-                self.assertEqual(response.json()['reason'], 'not the submissions repository')
+    def test_core_repository_webhooks_do_not_queue_proofs(self):
+        with patch.object(settings, 'contract_repo', 'owner/core'), patch('app.main.handle_pull_request') as queue:
+            event = self.event()
+            event['repository']['full_name'] = 'owner/core'
+            response = self.send_event(event)
+            self.assertTrue(response.json()['ignored'])
+            self.assertEqual(response.json()['reason'], 'not the submissions repository')
             queue.assert_not_called()
-            merge.assert_not_called()
 
-    def test_merge_events_use_separate_authenticated_handler(self):
+    def test_closed_pull_requests_are_ignored(self):
+        """Merging or closing a pull request never decides a record."""
         event = self.event()
         event['action'] = 'closed'
-        with patch('app.main.handle_pull_request') as queue, \
-             patch('app.main.handle_merged_pull_request', return_value={'promoted': False}) as merge:
-            self.assertEqual(self.send_event(event).status_code, 200)
+        with patch('app.main.handle_pull_request') as queue:
+            response = self.send_event(event)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.json()['ignored'])
             queue.assert_not_called()
-            merge.assert_called_once_with('owner/repo', 7, 'a' * 40)
+        self.assertFalse(hasattr(main, 'handle_merged_pull_request'))
 
     def test_webhook_body_and_content_length_limits(self):
         for value, code in [('not-an-integer', 400), ('-1', 400), (str(main.MAX_WEBHOOK_BYTES + 1), 413)]:

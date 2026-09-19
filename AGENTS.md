@@ -181,8 +181,8 @@ isolation or resource enforcement.
 ## Submitting
 
 The core repository is `leanEthereum/ots.golf-dev`: model, verifier and website.
-Competition PRs go to `leanEthereum/ots.golf-submissions`, which holds the merged submission roots
-and a `.contract` submodule pinned to the core for local checking. From that repository, run
+Competition PRs go to `leanEthereum/ots.golf-submissions`, whose `main` holds only the submission
+template and a `.contract` submodule pinned to the core for local checking, never submission roots. From that repository, run
 `python3 .contract/verifier/verify.py <track> --source .` after following its setup instructions.
 
 There is one way in: a pull request against the submissions repository that creates or changes
@@ -211,13 +211,13 @@ Read the journal before starting. Non-record submissions and failed attempts are
 notes. Every checked head stays fetchable from the submissions repository as `pull/<N>/head`,
 even after its fork is deleted; the submission page gives the exact `git fetch` command.
 
-A verified claim that strictly beats the record is merged automatically in the submissions
-repository, pinned to the verified head, and the merge is the promotion. If GitHub refuses the merge
-(a conflict with `main`, or a newer push), the comment says why; update the pull request and its new
-head is checked again. The first verified, merged submission of a track sets its first record. The
-submissions repository's roots hold the merged records. Other verified submissions appear on their
-solver's page, and their pull requests are closed. Submission merges never update the trusted core
-checkout. See `docs/repositories.md` for workspace preparation and configuration.
+A verified improvement becomes the record: a verified head is the track's new record if, when its
+verification finishes, its claim strictly improves the current record, or the track has none.
+Records are decided in the order verifications finish, so a later identical or copied claim never
+takes a record. Pull requests are never merged or closed by the verifier; the record's proof is
+its checked head, fetchable as `pull/<N>/head`. Other verified submissions appear on their solver's
+page. Submissions never update the trusted core checkout. See `docs/repositories.md` for workspace
+preparation and configuration.
 
 ## Maintaining the website
 

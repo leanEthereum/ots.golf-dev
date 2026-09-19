@@ -25,8 +25,6 @@ class Settings:
     github_token: str = os.environ.get("GITHUB_TOKEN", "")
     contract_repo: str = os.environ.get("OTS_CONTRACT_REPO", DEFAULT_CONTRACT_REPO)
     submissions_repo: str = os.environ.get("OTS_SUBMISSIONS_REPO", "")  # empty keeps webhook admission closed
-    # Merge a verified pull request automatically when it beats the record (needs contents write).
-    auto_merge: bool = os.environ.get("OTS_AUTO_MERGE", "1") == "1"
     # The account whose pull-request comments carry verdicts; by default the token's own login.
     bot_login: str = os.environ.get("OTS_BOT_LOGIN", "")
     # Show the invented demo submissions (re-seeded from service/demo/submissions.json at every start)

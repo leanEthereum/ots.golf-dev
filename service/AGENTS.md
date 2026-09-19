@@ -7,7 +7,7 @@ Do not replace the demo board with an empty board unless the user explicitly req
 demo record equals a claim proven in the reference proofs (older rows may be worse). When a
 reference proof changes, update that track's best demo claim. Show results as ordinary submissions
 with solver attribution. The contract holds no scores: with `OTS_PHONY=0` every board starts
-empty, shows "No record yet", and the first verified, merged submission becomes the record.
+empty, shows "No record yet", and the first verified submission becomes the record.
 The reference proofs live outside the core and reach the site as ordinary pull requests.
 
 Always refresh localhost after committing. This checkout's Git `post-commit` hook runs
@@ -71,8 +71,9 @@ demo rows like DAG lower. Do not leave the old 46-origin rule on the site.
 After editing worker code, restart the local worker as well as refreshing the web process;
 `uvicorn --reload` does not reload the worker. Keep one worker per data directory. Production web
 and worker run as different Unix users; only the web process receives GitHub credentials.
-Records require verification plus an API-confirmed merge of that exact head. Preserve reporting
-retries and merge-before-verification handling. Never bypass Linux isolation or bounded-storage
+A verified improvement becomes the record, decided under the results lock in verification-finish
+order; the bot writes only statuses and comments and never merges or closes pull requests.
+Preserve reporting retries. Never bypass Linux isolation or bounded-storage
 checks to make a host pass. See `deploy/README.md` for the launch gates.
 
 Use `browser_check.py` for repeatable Firefox checks of the seeded local preview. Keep demo labels

@@ -16,7 +16,7 @@ uv sync --frozen
 
 Open `http://localhost:8000`. Startup refreshes the fictional [demo fixtures](demo/README.md),
 preserving their IDs and dates; each row carries a demo label, and real submissions are left alone.
-Set `OTS_PHONY=0` to show real submissions only: a track without a merged record shows
+Set `OTS_PHONY=0` to show real submissions only: a track without a verified record shows
 "No record yet".
 
 **Refreshing.** This checkout's `post-commit` hook runs `refresh-local.sh`, which re-seeds the
@@ -54,13 +54,15 @@ lock files enforce this across processes on the same host.
   `#upper` select the direction.
 - **Admission.** A pull request must change exactly one submission root. The authenticated webhook
   checks the repository, files and head; the worker verifies that exact commit on the trusted tree.
-- **Records.** A verified strict improvement is merged automatically, pinned to the verified head,
-  and becomes the record; `OTS_AUTO_MERGE=0` leaves merges to maintainers. A track's first
-  verified, merged submission becomes its record. Merges received before verification are
-  remembered. Record decisions ignore demo rows, and merges never change the trusted checkout.
+- **Records.** A verified improvement becomes the record. When the worker stores a verified
+  result it decides, under the results lock, whether the claim strictly improves the track's
+  current record (or the track has none); records therefore follow the order verifications finish,
+  and a later identical claim never takes one. Record decisions ignore demo rows. The bot never
+  merges or closes pull requests: it writes only commit statuses and comments.
 - **Reporting.** Commit statuses and result comments go through a durable outbox, so a reporting
   outage retries delivery without repeating the proof. Result reports keep their PR's repository.
-- **Database.** A disposable cache: the website rebuilds it from GitHub at startup (`app.resync`);
+- **Database.** A disposable cache: the website rebuilds it from GitHub at startup (`app.resync`),
+  replaying verified verdicts in finish order to decide records;
   see [rebuilding the server](deploy/README.md#rebuilding-the-server-from-nothing).
 
 Whenever the contract or an admission status changes, update the metadata, charts, leaderboards,
@@ -81,7 +83,6 @@ rules and documentation together, then refresh and inspect localhost.
 | `OTS_SUBMISSIONS_REPO` | empty | proof PR repository; set to `leanEthereum/ots.golf-submissions` to configure intake |
 | `GITHUB_WEBHOOK_SECRET` | empty | webhook authentication; web process only |
 | `GITHUB_TOKEN` | empty | GitHub API access and reporting; web process only |
-| `OTS_AUTO_MERGE` | `1` | merge a verified record-breaking PR automatically; needs contents write |
 | `OTS_PHONY` | `1` | re-seed the invented demo rows at every start; `0` shows real submissions only |
 | `OTS_RESYNC_ON_START` | `1` | rebuild missing submissions from GitHub when the website starts |
 | `OTS_BOT_LOGIN` | token's login | account whose PR comments carry verdicts |

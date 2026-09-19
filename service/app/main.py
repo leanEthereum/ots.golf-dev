@@ -19,7 +19,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -68,7 +68,7 @@ async def lifespan(_app):
 
 def prepare_board() -> None:
     """With OTS_PHONY=1 (for now), recreate the invented demo rows at every start. Otherwise the
-    board shows only real submissions, and a track without a merged record has none."""
+    board shows only real submissions, and a track without a verified record has none."""
     if not settings.phony:
         return
     log = logging.getLogger(__name__)
@@ -219,7 +219,7 @@ def _queue_submission(session: Session, user: User, track: str, repo: str, commi
         sub.status, sub.claim, sub.is_record, sub.record_at = "pending", None, False, None
         sub.started_at = sub.finished_at = sub.duration_s = None
         sub.created_at = utcnow()
-        sub.detail = json.dumps({k: v for k, v in sub.detail_dict.items() if k in ("github_comment_id", "merge")})
+        sub.detail = json.dumps({k: v for k, v in sub.detail_dict.items() if k == "github_comment_id"})
     schedule_report(session, sub)
     session.commit()
     return sub
@@ -257,14 +257,12 @@ async def webhook(request: Request):
             raise ValueError
     except (ValueError, KeyError, TypeError):
         raise HTTPException(400, "malformed event")
-    if action not in ("opened", "synchronize", "reopened", "closed"):
+    if action not in ("opened", "synchronize", "reopened"):
         return {"ignored": True}
     if not settings.submissions_repo:
         raise HTTPException(503, "GitHub submission admission is not configured")
     if owner_repo.lower() != settings.submissions_repo.lower():
         return {"ignored": True, "reason": "not the submissions repository"}
-    if action == "closed":
-        return await run_in_threadpool(handle_merged_pull_request, owner_repo, number, head_sha)
     return await run_in_threadpool(handle_pull_request, owner_repo, number, head_sha)   # GitHub calls block
 
 
@@ -313,36 +311,6 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str, announce: b
             return {"queued": False, "reason": exc.detail}
     # The web process delivers the durable status/comment outbox, including retries after outages.
     return {"queued": True, "id": sub.id}
-
-
-def handle_merged_pull_request(owner_repo: str, number: int, head_sha: str) -> dict:
-    """A verified proof becomes a record only after GitHub confirms this exact head was merged."""
-    if not settings.submissions_repo or owner_repo.lower() != settings.submissions_repo.lower():
-        return {"promoted": False, "reason": "not the submissions repository"}
-    try:
-        pr = github.get_pr(owner_repo, number)
-    except httpx.HTTPError as exc:
-        raise HTTPException(502, f"GitHub API: {exc}") from exc
-    if not pr.get("merged") or pr.get("state") != "closed" or pr["head"]["sha"] != head_sha:
-        return {"promoted": False, "reason": "this head was not merged"}
-    if not github.targets_default_branch(pr):
-        return {"promoted": False, "reason": "merged into a branch other than the default branch"}
-    from .worker import promote
-    with local_lock("results"), SessionLocal() as session:
-        pr_url = f"https://github.com/{owner_repo}/pull/{number}"
-        query = select(Submission).where(Submission.pr_number == number, Submission.commit == head_sha,
-                                         func.lower(Submission.pr_url) == pr_url.lower())
-        submissions = list(session.scalars(query))
-        for sub in submissions:
-            detail = sub.detail_dict
-            detail["merge"] = {"head": head_sha, "repository": owner_repo, "number": number,
-                               "merged_at": pr.get("merged_at")}
-            sub.detail = json.dumps(detail)
-            if sub.status == "verified":
-                promote(session, sub)
-            schedule_report(session, sub)
-        session.commit()
-        return {"promoted": any(sub.is_record for sub in submissions)}
 
 
 # --- pages ------------------------------------------------------------------------------------
@@ -451,10 +419,9 @@ def llms():
 ## Where the state is
 
 The model and verifier are maintained in {settings.contract_url}.
-Proof pull requests and merged record submissions belong in {settings.submissions_url}.
+Proof pull requests belong in {settings.submissions_url}.
 The verifier checks only the submitted root against its trusted core checkout. A verified
-improvement is merged automatically in the submissions repository, pinned to its verified head, and
-becomes the record.
+improvement becomes the record; pull requests are never merged.
 The verdict is posted there as a commit status and a comment linking to
 {base}/submissions/<id>, which shows status, claim, attribution and the verifier transcript.
 
