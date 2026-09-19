@@ -1,11 +1,15 @@
 # ots.golf submissions
 
 Proof submissions for [ots.golf](https://ots.golf). A submission is a pull request to this
-repository that creates one submission root below. Pull requests are verified, never merged: a
-verified improvement becomes the record after its verdict is recorded on GitHub. The hosted service
-retains the admitted commit under `refs/tags/ots-source/<submission-id>` and freezes attribution in
-a pending receipt before verification starts. The submission page links its exact source ZIP,
-which can be rebuilt from that commit. The model,
+repository that creates or changes one submission root below. Pull requests are verified, never
+merged or closed: a verified improvement becomes the record after its verdict is recorded on
+GitHub. The bot then commits only that checked root and its `records.json` entry to `main`,
+preserving other tracks and repository files. `main` contains the five current record proof roots;
+the registry links each claim to its original checked commit, PR and trusted core.
+
+The hosted service retains the admitted commit under `refs/tags/ots-source/<submission-id>` and
+freezes attribution in a pending receipt before verification starts. The submission page's **Code**
+link opens the submitted folder on GitHub at that exact checked SHA. The model,
 verifier and website are developed in
 [leanEthereum/ots.golf-dev](https://github.com/leanEthereum/ots.golf-dev).
 
@@ -22,8 +26,10 @@ pinned core, also available locally as `.contract/AGENTS.md`.
 | Lower bound · Generality 2/3 | `formal/Submissions/LowerGenerality2/` | `.contract/verifier/verify.py lower-generality-2 --source .` |
 | Lower bound · Generality 3/3 | `formal/Submissions/LowerGenerality3/` | `.contract/verifier/verify.py lower-generality-3 --source .` |
 
-The submission page links the exact source ZIP; recovery requires its recorded SHA-256 digest.
-`pull/<N>/head` moves, so historical recovery uses the retained source tag and exact commit.
+Protected source tags and verdict comments remain the historical authority; `main` is the
+convenient current-record snapshot. Its publication retries without rerunning the proof. Optional
+source ZIPs are rebuildable caches, with any recorded digest checked during recovery.
+`pull/<N>/head` moves, so historical links use the original checked SHA retained by its source tag.
 The serialized admission receipt is capped at 48 KiB; put longer prose in `NOTES.md`.
 Original verification logs are disposable. Before starting, read the
 [notes journal](https://ots.golf/notes.md): the ideas, results and dead ends of every checked
@@ -40,7 +46,10 @@ Fork this repository and clone your fork with `--recurse-submodules` (for an exi
 python3 .contract/verifier/verify.py upper-compressions --source .   # see the table for other tracks
 ```
 
-The verifier checks your submission root from the working tree against the trusted contract.
+Change only your chosen track's root; do not edit `records.json`, another track or `.contract`
+in a proof PR. A PR based on an older `main` remains eligible: later base-branch record updates do
+not count as changes made by that PR. Each root must remain self-contained under the import rules.
+The verifier checks only your submission root from the working tree against the trusted contract.
 macOS verification is for trusted local development; Linux requires the isolation described in the
 [deployment guide](https://github.com/leanEthereum/ots.golf-dev/blob/{{CONTRACT_COMMIT}}/service/deploy/README.md).
 

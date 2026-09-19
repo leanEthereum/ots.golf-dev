@@ -17,7 +17,7 @@ from sqlalchemy.pool import StaticPool
 
 from app import contract, github, rebuild, resync, source_archive
 from app.config import settings
-from app.db import Base, Submission, User
+from app.db import Base, GithubReport, Submission, User
 
 
 class RecoveryTests(unittest.TestCase):
@@ -132,6 +132,20 @@ class RecoveryTests(unittest.TestCase):
             self.assertEqual(sub.status, "verified")
             self.assertTrue(sub.is_record)
             self.assertIsNone(sub.log_path)
+
+    def test_restored_record_requeues_missing_main_snapshot_publication(self):
+        value = self.entry(status="verified", claim=19, finished_at="2026-09-01T11:00:00Z")
+        self.restore([value])
+        with self.sessions() as session:
+            self.assertIsNotNone(session.get(GithubReport, self.sid))
+            current = session.get(Submission, self.sid)
+            current.detail = json.dumps(current.detail_dict | {"record_snapshot":
+                {"commit": "e" * 40, "published": True, "reason": "published"}})
+            session.delete(session.get(GithubReport, self.sid))
+            session.commit()
+        self.restore([value])
+        with self.sessions() as session:
+            self.assertIsNone(session.get(GithubReport, self.sid))
 
     def test_failure_summary_is_bounded_and_survives_without_original_logs(self):
         value = self.entry(status="failed", finished_at="2026-09-01T11:00:00Z",

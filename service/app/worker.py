@@ -18,7 +18,7 @@ from datetime import timedelta
 
 from sqlalchemy import func, select
 
-from . import contract, github, source_archive
+from . import contract, github, record_snapshot, source_archive
 from .config import settings
 from .db import GithubReport, SessionLocal, Submission, init_db, local_lock, schedule_report, utcnow
 
@@ -177,7 +177,7 @@ def verdict_entry(sub: Submission) -> dict:
 
 
 class CommentPublishedError(Exception):
-    """The durable comment succeeded, but its supplementary commit status needs retrying."""
+    """The comment is durable; its record snapshot or supplementary status needs retrying."""
     def __init__(self, comment_id: int, error: Exception):
         self.comment_id = comment_id
         self.error = error
@@ -196,10 +196,11 @@ def publish_comment(sub: Submission, body: str) -> int | None:
     return github.post_comment(sub.pr_repository, sub.pr_number, body)
 
 
-def report(sub: Submission, history: list[dict] | None = None) -> int | None:
+def report(sub: Submission, history: list[dict] | None = None, *, publish_snapshot: bool = False) -> int | None:
     """New retained-source heads publish their own durable comment before a commit status.
 
     Preserve legacy aggregate comments: several historical rows may share their comment ID.
+    Snapshot publication requires eligibility computed by the caller under the results lock.
     """
     repo = sub.pr_repository
     if not repo or not settings.submissions_repo or repo.lower() != settings.submissions_repo.lower():
@@ -234,8 +235,15 @@ def report(sub: Submission, history: list[dict] | None = None) -> int | None:
             raise ValueError("GitHub did not confirm a durable comment identity")
         if sub.current_contract:
             try:
+                if publish_snapshot and status == "verified" and sub.is_record:
+                    snapshot = record_snapshot.publish_record(sub)
+                    detail = sub.detail_dict
+                    detail["record_snapshot"] = snapshot
+                    sub.detail = json.dumps(detail)
                 github.post_status(repo, sub.commit, state, what, url)
             except Exception as exc:
+                # The result is already durable. Retry publishing the record snapshot or
+                # status through the outbox without repeating the proof.
                 raise CommentPublishedError(comment_id, exc) from exc
     return comment_id
 
@@ -264,7 +272,12 @@ def deliver_durable_report(sub_id: str) -> None:
                 snapshot.status = reported_status(current)
                 snapshot.is_record, snapshot.record_at = False, None
                 promote(session, snapshot)
-            comment_id = report(snapshot)
+            # Historical improvements retain is_record for their verdict and chart. Only
+            # the local frontier may update main, even if its newer snapshot is still pending.
+            # beats_record excludes this row, so it also handles a detached new improvement.
+            publish_snapshot = (snapshot.status == "verified" and snapshot.is_record
+                                and snapshot.current_contract and beats_record(session, snapshot))
+            comment_id = report(snapshot, publish_snapshot=publish_snapshot)
         except CommentPublishedError as exc:
             comment_id, error = exc.comment_id, exc.error
         except Exception as exc:
@@ -282,6 +295,8 @@ def deliver_durable_report(sub_id: str) -> None:
         if published:
             detail["github_comment_id"] = comment_id
         if pending.version == version:
+            if snapshot.detail_dict.get("record_snapshot") is not None:
+                detail["record_snapshot"] = snapshot.detail_dict["record_snapshot"]
             if published and current.status == original_status:
                 if original_status == "admitting":
                     current.status = "pending"

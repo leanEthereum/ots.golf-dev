@@ -58,11 +58,19 @@ lock files enforce this across processes on the same host.
   is capped at 48 KiB; longer prose belongs in `NOTES.md`.
 - **Records.** A verified improvement becomes the record only after its verdict comment is durable.
   Decisions follow verification-finish order under the results lock, so a later identical claim
-  never takes a record. Demo rows cannot affect records. The bot never merges or closes PRs.
+  never takes a record. Demo rows cannot affect records. After the verdict is durable, the bot
+  commits only the checked root and its `records.json` entry to submissions `main`, preserving
+  other tracks and repository files. The bot never merges or closes PRs. PRs opened from an older
+  base remain eligible when their own changes stay inside one admitted root.
 - **Reporting.** The local outbox retries GitHub delivery without repeating a finished proof. A
   result awaiting its comment stays `publishing`; later jobs wait. Commit-status updates may retry
-  after the durable comment succeeds. Reports retain the submission's original PR repository.
-- **Recovery.** GitHub source tags and bot comments are durable state. SQLite and deterministic
+  after the durable comment succeeds. Record-snapshot commits also retry through the outbox
+  without rerunning a finished proof. Reports retain the submission's original PR repository.
+- **Code.** Submission pages link directly to the submitted GitHub folder at the original checked
+  SHA. Later record commits on `main` do not move that link. Exact source ZIPs remain optional
+  compatibility artifacts, independently reconstructible from the retained commit.
+- **Recovery.** GitHub source tags and bot comments are durable state; submissions `main` and
+  `records.json` provide the current-record snapshot. SQLite and deterministic
   source ZIPs are rebuildable caches; original logs are disposable. `python -m app.rebuild`
   restores metadata and queued receipts; `--sources` also fetches exact commits and requires any
   recorded archive digest. `--queue-open-heads` additionally admits unseen open heads. Rebuild

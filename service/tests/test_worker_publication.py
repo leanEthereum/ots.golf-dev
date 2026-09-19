@@ -28,9 +28,14 @@ class WorkerPublicationTests(unittest.TestCase):
             patcher = patch.object(settings, setting, value)
             patcher.start()
             self.addCleanup(patcher.stop)
-        patcher = patch.object(worker, 'SessionLocal', self.sessions)
-        patcher.start()
-        self.addCleanup(patcher.stop)
+        for module in (worker, resync):
+            patcher = patch.object(module, 'SessionLocal', self.sessions)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        snapshot = patch.object(worker.record_snapshot, 'publish_record',
+                                return_value={'commit': 'e' * 40, 'published': True, 'reason': 'published'})
+        self.publish_snapshot = snapshot.start()
+        self.addCleanup(snapshot.stop)
         with self.sessions() as session:
             user = User(login='alice')
             session.add(user)
@@ -105,6 +110,110 @@ class WorkerPublicationTests(unittest.TestCase):
         with self.sessions() as session:
             self.assertIsNone(session.get(GithubReport, sub.id))
 
+    def test_record_snapshot_follows_durable_verdict_and_precedes_commit_status(self):
+        sub = self.submission(status='publishing', publication_status='verified')
+        events = []
+        def snapshot(checked):
+            self.assertEqual(events, ['comment'])
+            self.assertEqual(checked.status, 'verified')
+            self.assertTrue(checked.is_record)
+            events.append('snapshot')
+            return {'commit': 'e' * 40, 'published': True, 'reason': 'published'}
+        self.publish_snapshot.side_effect = snapshot
+        with patch.object(worker.github, 'post_comment', side_effect=lambda *_: events.append('comment') or 41), \
+                patch.object(worker.github, 'post_status', side_effect=lambda *_: events.append('status')):
+            worker.deliver_report(sub.id)
+        self.assertEqual(events, ['comment', 'snapshot', 'status'])
+        self.assertEqual(self.load(sub.id).detail_dict['record_snapshot']['commit'], 'e' * 40)
+
+    def test_snapshot_failure_retries_automatically_without_rechecking_proof(self):
+        sub = self.submission(status='publishing', publication_status='verified')
+        self.publish_snapshot.side_effect = RuntimeError('main temporarily unavailable')
+        with patch.object(worker.github, 'post_comment', return_value=41), \
+                patch.object(worker.github, 'post_status') as status:
+            worker.deliver_report(sub.id)
+        status.assert_not_called()
+        self.assertEqual(self.load(sub.id).status, 'verified')
+        self.assertNotIn('record_snapshot', self.load(sub.id).detail_dict)
+        with self.sessions() as session:
+            self.assertEqual(session.get(GithubReport, sub.id).attempts, 1)
+        self.due(sub.id)
+        self.publish_snapshot.side_effect = None
+        with patch.object(worker.github, 'update_comment'), patch.object(worker.github, 'post_status'), \
+                patch.object(worker, 'run_pipeline') as verify:
+            worker.deliver_report(sub.id)
+        verify.assert_not_called()
+        self.assertEqual(self.load(sub.id).detail_dict['record_snapshot']['commit'], 'e' * 40)
+        with self.sessions() as session:
+            self.assertIsNone(session.get(GithubReport, sub.id))
+
+    def test_delayed_historical_report_cannot_publish_before_unsnapshotted_new_frontier(self):
+        older = self.submission(status='verified')
+        newer = self.submission('b', status='verified')
+        with self.sessions() as session:
+            for sub, claim in ((older, 19), (newer, 20)):
+                current = session.get(Submission, sub.id)
+                current.claim, current.is_record = claim, True
+                current.finished_at = utcnow()
+            session.commit()
+        self.assertNotIn('record_snapshot', self.load(newer.id).detail_dict)
+        with patch.object(worker.github, 'post_comment', return_value=41) as comment, \
+                patch.object(worker.github, 'post_status') as status:
+            worker.deliver_report(older.id)
+        self.publish_snapshot.assert_not_called()
+        status.assert_called_once()
+        entry, = github.parse_verdicts(comment.call_args.args[2])
+        self.assertTrue(entry['record'])  # the old improvement remains part of the public history
+        self.assertTrue(self.load(older.id).is_record)
+        with self.sessions() as session:
+            self.assertIsNone(session.get(GithubReport, older.id))
+            self.assertIsNotNone(session.get(GithubReport, newer.id))
+        with patch.object(worker.github, 'post_comment', return_value=42), \
+                patch.object(worker.github, 'post_status'):
+            worker.deliver_report(newer.id)
+        self.publish_snapshot.assert_called_once()
+        self.assertEqual(self.publish_snapshot.call_args.args[0].id, newer.id)
+
+    def test_detached_new_improvement_is_eligible_while_results_lock_is_held(self):
+        older = self.submission(status='verified')
+        with self.sessions() as session:
+            current = session.get(Submission, older.id)
+            current.claim, current.is_record, current.finished_at = 18, True, utcnow()
+            session.commit()
+        newer = self.submission('b', status='publishing', publication_status='verified')
+        def publish(checked):
+            self.assertEqual(checked.id, newer.id)
+            self.assertEqual(self.load(newer.id).status, 'publishing')
+            self.assertEqual(checked.status, 'verified')
+            self.assertTrue(checked.is_record)
+            with self.assertRaises(BlockingIOError):
+                with local_lock('results', blocking=False):
+                    self.fail('publication must hold the results lock')
+            return {'commit': 'e' * 40, 'published': True, 'reason': 'published'}
+        self.publish_snapshot.side_effect = publish
+        with patch.object(worker.github, 'post_comment', return_value=42), \
+                patch.object(worker.github, 'post_status'):
+            worker.deliver_report(newer.id)
+        self.publish_snapshot.assert_called_once()
+        self.assertTrue(self.load(newer.id).is_record)
+        self.assertEqual(self.load(newer.id).status, 'verified')
+
+    def test_nonrecord_never_updates_main(self):
+        sub = self.submission(status='verified')
+        with patch.object(worker.github, 'post_comment', return_value=41), patch.object(worker.github, 'post_status'):
+            worker.deliver_report(sub.id)
+        self.publish_snapshot.assert_not_called()
+
+    def test_source_link_is_exact_and_does_not_require_a_local_zip(self):
+        sub = self.submission()
+        self.assertEqual(sub.source_url, 'https://github.com/owner/repo/tree/' + sub.commit +
+                         '/formal/Submissions/LowerGenerality2')
+        self.assertIsNone(sub.archive_url)
+        detail = sub.detail_dict
+        detail['receipt']['submission_root'] = '../../other'
+        sub.detail = json.dumps(detail)
+        self.assertIsNone(sub.source_url)
+
     def test_completed_proof_waits_for_publication_and_blocks_the_next_job(self):
         first = self.submission(status='pending')
         second = self.submission('b', status='pending')
@@ -168,7 +277,7 @@ class WorkerPublicationTests(unittest.TestCase):
 
     def test_newer_outbox_version_is_not_released_by_an_older_receipt(self):
         sub = self.submission()
-        def changed_while_reporting(_sub):
+        def changed_while_reporting(_sub, **_kwargs):
             with self.sessions() as session:
                 schedule_report(session, session.get(Submission, sub.id))
                 session.commit()

@@ -13,7 +13,7 @@ from sqlalchemy import select
 
 from . import auth, contract, github, source_archive
 from .config import settings
-from .db import SessionLocal, Submission, init_db, local_lock, legacy_pr_submission_id
+from .db import SessionLocal, Submission, init_db, local_lock, legacy_pr_submission_id, schedule_report
 
 FINISHED = {"verified", "rejected", "policy_rejected", "timeout", "failed"}
 RECEIPT_KEYS = ("created_at", "author", "description", "co_authors", "assisted_by",
@@ -96,8 +96,21 @@ def resync(queue_open_heads: bool = True) -> dict:
         marker.touch()
         result = _resync(queue_open_heads=queue_open_heads)
         if not result.get("errors") and not result.get("skipped"):
+            reconcile_record_snapshots()
             marker.unlink()
         return result
+
+
+def reconcile_record_snapshots() -> None:
+    """Rebuild the optional main-branch publication outbox from durable record verdicts."""
+    from . import records
+    with local_lock("results"), SessionLocal() as session:
+        for track in contract.tracks():
+            sub = records.current_record(session, track["slug"])
+            if (sub is not None and sub.current_contract and sub.detail_dict.get("source_ref")
+                    and not sub.detail_dict.get("record_snapshot")):
+                schedule_report(session, sub)
+        session.commit()
 
 
 def _resync(queue_open_heads: bool = True) -> dict:

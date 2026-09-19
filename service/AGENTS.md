@@ -19,11 +19,19 @@ a claim proven in the reference proofs, and older rows may be worse. Keep fixtur
 admission status, charts, leaderboards and rules aligned.
 
 GitHub holds durable source tags `refs/tags/ots-source/<submission-id>` and the bot's frozen
-receipt/verdict comments. The server needs no backups: the database and exact source ZIPs are
+receipt/verdict comments. After a new verified record's verdict is durable, the bot commits only
+its checked root and the corresponding root `records.json` entry to submissions `main`. Preserve
+other tracks and repository files. This is a current-record snapshot, never a PR merge; source tags
+and comments remain the historical authority. Keep snapshot publication retryable through the
+outbox without rerunning verification. Older-base PRs remain eligible when they change only their
+own admitted root. The server needs no backups: the database and exact source ZIPs are
 rebuildable caches; original logs are disposable. Preserve the admission and verdict publication
 gates, reporting retries, immutable source identity and digest checks. `python -m app.rebuild`
 restores metadata; `--sources` also reconstructs ZIPs, without compiling historical submissions.
-Never create replacement logs by rerunning an already published verdict. See `deploy/README.md`.
+The primary Code link opens the submitted folder on GitHub at its original checked SHA. Do not
+replace it with a moving `main` link, a ZIP download or a shell fetch command. ZIPs remain optional
+compatibility artifacts. Never create replacement logs by rerunning an already published verdict.
+See `deploy/README.md`.
 
 The three frameworks apply only to lower bounds. All three lower tracks are open, and the homepage
 plots three certified lower series from their normal `challenges.json` metadata. Generic lower uses
@@ -44,7 +52,7 @@ has an independent cycle axis: never combine cycles with compression bounds. The
 compression upper line remains solid. Both upper leaderboards stay outside the lower-framework
 filter. The lower-bound witnesses (`formal/Witnesses/`, checked with `lake build Witnesses`) are an
 internal maintainer check, not tracks: they have no slug, submission root, demo rows or leaderboard.
-The lower demo rows remain visible by default.
+When demos are explicitly enabled, include the lower demo rows.
 Preserve every fixture row with its ID and dates. A track's card, chart point, leaderboard,
 submission page and solver profile refer to the same record row. Demo rows are clearly marked and
 never receive verified badges or fabricated commit links.
@@ -70,8 +78,10 @@ demo rows like DAG lower. Do not leave the old 46-origin rule on the site.
 
 After deploying worker code, restart the live worker as well as the web service. Keep one worker
 per data directory. Production web and worker run as different Unix users; only the web process
-receives GitHub credentials. The bot creates retention tags and writes receipt/verdict comments and
-commit statuses; it never merges or closes pull requests or changes an existing source tag.
+receives GitHub credentials. The bot creates retention tags, writes receipt/verdict comments and
+commit statuses, and commits new record snapshots to submissions `main`. It never merges or closes
+pull requests or changes an existing source tag. The bot's authorized `main` ruleset bypass must
+not grant bypass of source-tag update/deletion protection.
 A verified improvement becomes public only after the verdict comment is durable, with record
 ordering determined by verification-finish time under the results lock. Preserve reporting retries. Never bypass Linux isolation or bounded-storage
 checks to make a host pass. See `deploy/README.md` for the launch gates.

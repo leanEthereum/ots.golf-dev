@@ -114,6 +114,20 @@ class Submission(Base):
         return f"{settings.base_url}/submissions/{self.id}/source.zip"
 
     @property
+    def source_url(self) -> str | None:
+        """Browse the retained, exact submitted root even if the local ZIP cache is absent."""
+        from . import github, source_archive
+        detail = self.detail_dict
+        receipt = detail.get("receipt") or {}
+        root = receipt.get("submission_root") if isinstance(receipt, dict) else None
+        repo = self.pr_repository
+        if (detail.get("demo") or not repo or not github.SHA_RE.fullmatch(self.commit or "")
+                or detail.get("source_ref") != f"refs/tags/ots-source/{self.id}"
+                or not isinstance(root, str) or not source_archive.archives.ROOT.fullmatch(root)):
+            return None
+        return f"https://github.com/{repo}/tree/{self.commit}/{root}"
+
+    @property
     def fetch_command(self) -> str | None:
         """Retrieve exact admitted files; no moving pull-request ref is involved."""
         url = self.archive_url

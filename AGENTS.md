@@ -193,15 +193,19 @@ isolation or resource enforcement.
 ## Submitting
 
 The core repository is `leanEthereum/ots.golf-dev`: model, verifier and website.
-Competition PRs go to `leanEthereum/ots.golf-submissions`, whose `main` holds only the submission
-template and a `.contract` submodule pinned to the core for local checking, never submission roots. From that repository, run
+Competition PRs go to `leanEthereum/ots.golf-submissions`. Its `main` holds the current record proof
+root for each of the five tracks, a root `records.json` registry linking each claim to its checked
+source commit, PR and trusted core, and a `.contract` submodule for local checking. From that
+repository, run
 `python3 .contract/verifier/verify.py <track> --source .` after following its setup instructions.
 
 There is one way in: a pull request against the submissions repository that creates or changes
 only your admitted track's submission root. The verifier fetches the head commit, keeps only that
 root, verifies it on the trusted core checkout, and answers on the pull request with a commit
 status and a comment linking to the submission page. Pushing to the pull request re-queues its new
-head.
+head. A PR opened from an older `main` remains eligible: later bot updates to `main` do not count as
+changes made by that PR. Your PR must still change only its own admitted root; do not edit
+`records.json`, other tracks or `.contract` as part of a proof submission.
 
 Attribution comes from the pull request: its author, plus two optional lines in the body (the
 template has them):
@@ -224,11 +228,12 @@ check (format or infrastructure) are not listed.
 Read the journal before starting. Non-record submissions and failed attempts are welcome for their
 notes. Before verification starts, the service retains the exact head in the submissions
 repository under `refs/tags/ots-source/<submission-id>` and publishes its pending receipt. Those
-creation-only tags and the bot's receipt/verdict comments are the durable record. Before compiling,
-the verifier caches the exact submitted root as a deterministic, SHA-256-addressed ZIP linked from
-the submission page. The ZIP can be rebuilt from the retained commit and must match any recorded
-digest. `pull/<N>/head` moves and is never a historical source reference. Missing source caches
-are marked unavailable until rebuilt; older entries without retention tags may be unrecoverable.
+creation-only tags and the bot's receipt/verdict comments are the durable record. The submission
+page's **Code** link opens the submitted folder on GitHub at its exact original checked SHA.
+Before compiling, the verifier also caches the exact root as a deterministic, SHA-256-addressed
+ZIP. That optional artifact can be rebuilt from the retained commit and must match any recorded
+digest; code browsing does not require it. `pull/<N>/head` moves and is never a historical source
+reference. Older entries without retention tags may be unrecoverable.
 Original verifier logs are disposable and are never recreated by replaying a historical verdict.
 
 A verified improvement becomes the record: a verified head is the track's new record if, when its
@@ -236,8 +241,13 @@ verification finishes, its claim strictly improves the current record, or the tr
 Records are decided in the order verifications finish, so a later identical or copied claim never
 takes a record. A result becomes public as verified only after its verdict comment is durable on
 GitHub; later jobs wait while publication retries. Pull requests are never merged or closed by
-the verifier; a record identifies its exact retained source commit and checked root. Other verified submissions appear on their solver's
-page. Submissions never update the trusted core checkout. See `docs/repositories.md` for workspace
+the verifier; a record identifies its exact retained source commit and checked root. After the
+verdict is durable, the bot commits that checked root and its registry entry to submissions `main`.
+It copies only the checked root, preserving other tracks and repository files; it does not merge
+the submitter's branch. GitHub publication failures retry through the outbox without rerunning the
+proof. The retained source tags and bot comments remain the authority for historical results;
+`main` is the convenient current-record snapshot. Other verified submissions appear on their
+solver's page. Submissions never update the trusted core checkout. See `docs/repositories.md` for workspace
 preparation and configuration.
 
 ## Maintaining the website

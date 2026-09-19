@@ -40,15 +40,20 @@ before public launch, and day-to-day operations. For local development see the
 2. Add a fine-grained token for a dedicated bot account to `/etc/ots/secrets.env`, scoped to
    `leanEthereum/ots.golf-submissions` only. Grant commit statuses read/write, pull requests
    read/write for the receipt/verdict comments, and **Contents read/write** to create source
-   retention tags. Metadata read-only is implied. The bot never merges or closes PRs and never
+   retention tags and commit current record snapshots to submissions `main`. Metadata read-only is implied. The bot never merges or closes PRs and never
    updates a source tag; it creates `refs/tags/ots-source/<submission-id>` pointing at the exact
    admitted commit before verification can start. No core-repository write access is needed.
 
    Configure repository rulesets for `ots-source/**`: allow tag creation by the bot, and prohibit
    tag updates and deletion. Use separate creation and update/deletion rules so the bot's creation
-   bypass does not also permit mutation or deletion. A Contents-write token alone does not express
-   this creation-only policy. Protect `main` from direct updates, force pushes and deletion; the
-   bot should not bypass its rules. Retain the bot's PR comments as the durable result history.
+   bypass does not also permit mutation or deletion. Keep source-tag update/deletion rules without
+   a bot bypass. A Contents-write token alone does not express this creation-only tag policy.
+   Protect `main` from unauthorized updates, force pushes and deletion, but explicitly authorize
+   the publishing bot through the branch-update/PR ruleset bypass needed for record commits.
+   Scope that bypass to `main`; it must not apply to source tags. Keep force-push/deletion restrictions
+   in a separate ruleset without that bypass. The bot publishes a fast-forward commit containing
+   only the checked record root and its `records.json` update, preserving every unrelated path.
+   Retain the bot's PR comments as the durable result history.
 
    Keep `/etc/ots/secrets.env` `root:root 0600`; the installer generates its webhook secret.
    Do not put credentials in `/etc/ots/public.env`, the checkout, Git configuration, the `ots`
@@ -151,7 +156,10 @@ Run these with the public webhook disconnected and the production configuration 
    Confirm a retained source tag and frozen pending receipt exist before compilation, and that
    a result remains `publishing` until GitHub confirms its verdict comment. An outage must pause
    subsequent verification while that result awaits publication; delivery retries do not repeat
-   a finished proof. Also force-push or close the staging PR, reconstruct its old pending receipt
+   a finished proof. Confirm each new record reaches `main` as the exact checked root with a
+   matching `records.json` entry, preserving other roots and repository files. Test snapshot
+   publication retry after an API failure and admit a one-root PR based on the previous `main`.
+   Also force-push or close the staging PR, reconstruct its old pending receipt
    and exact source with `app.rebuild --sources`, and compare the recovered archive digest. These
    GitHub mutations are staging tests, never part of local repository tests.
 
@@ -190,7 +198,12 @@ promotion, until its verdict comment is durable; later jobs wait behind that pub
 reports retry with backoff up to an hour. A confirmed comment suffices even if its supplementary
 commit-status update must retry. A crash after comment creation but before the local ID is saved
 can produce a duplicate comment; rebuild merges the bot's history by receipt/finish time.
-Proof verification is not repeated for an ordinary reporting outage.
+Record-snapshot publication uses the outbox too: after the verdict is durable, the bot copies the
+checked root into submissions `main` and updates `records.json`. The registry links its claim to the
+original checked source commit, PR and trusted core; the publication commit has its own identity.
+A GitHub failure retries publication without rerunning the proof. Monitor outbox age for snapshots
+that have not yet reached `main`. Retained source tags and verdict comments remain authoritative
+while a current-record snapshot is delayed.
 
 ### Worker
 
@@ -210,14 +223,19 @@ description, co-authors, assistance, submission root and trusted contract commit
 receipt is capped at 48 KiB; long prose belongs in the submitted `NOTES.md`. The terminal comment
 adds the verdict, claim, finish time, record flag, archive descriptor and bounded failure summary.
 Do not delete the retention tags or bot comments. Moving `refs/pull/<N>/head` is never used to
-reconstruct an old revision.
+reconstruct an old revision. The five current proof roots and `records.json` on submissions
+`main` are a published snapshot of those records, not the source of historical verdicts. The
+initial five verified records may be seeded manually from their checked sources; future records
+are committed automatically after their verdicts are durable.
 
 The verifier retains a deterministic, uncompressed source ZIP under `OTS_DATA_DIR/sources/` before
-running candidate code. ZIPs and their sidecars are local caches. Recovery fetches the full exact
+running candidate code. ZIPs and their sidecars are local caches. The primary **Code** link opens
+the submitted folder on GitHub at its exact original checked SHA, so browsing checked code does
+not depend on the ZIP cache. ZIP downloads remain optional compatibility artifacts. Recovery fetches the full exact
 commit from the base submissions repository with a credential-free bounded exporter, recreates the
 historical manifest and requires the original digest when recorded. It never compiles a historical
-proof to recover its source. A missing or mismatched source is reported unavailable without changing
-the historical verdict. Legacy entries without a retention tag are recoverable only while GitHub
+proof to recover its source. A missing or mismatched ZIP cache does not change the historical
+verdict or replace its exact GitHub source link. Legacy entries without a retention tag are recoverable only while GitHub
 still has their exact commit. Missing original logs remain unavailable; they are not recreated by
 rechecking a completed proof.
 

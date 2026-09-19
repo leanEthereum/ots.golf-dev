@@ -21,7 +21,11 @@ precise specification: exact exports, submission-root rules, limits and the subm
 | Lower bound · Generality 3/3 | `formal/Submissions/LowerGenerality3/` | `verify.py lower-generality-3` |
 
 Roots live at `formal/Submissions/<Root>/` in the submissions repository. Current records are
-on [ots.golf](https://ots.golf).
+on [ots.golf](https://ots.golf). The submissions repository's `main` carries the five current record
+roots and `records.json`, which links each claim to its original checked commit, PR and trusted
+core. After publishing a new record's verdict, the bot copies its checked root into `main` with a
+separate commit; proof PRs are never merged or closed. Each submission's **Code** link opens its
+folder on GitHub at the original checked SHA, independent of later `main` updates.
 
 ## Quick start
 
@@ -50,8 +54,10 @@ OTS_PHONY=1 ./run-local.sh        # http://localhost:8000
 Maintainer updates follow commit, push, then deployment to `h2`; no localhost preview is required.
 Production shows real submissions only (`OTS_PHONY=0`). GitHub retains each admitted commit under
 `refs/tags/ots-source/<submission-id>` and stores frozen receipt/verdict comments. The server is
-disposable: `python -m app.rebuild` restores metadata; `--sources` also rebuilds exact source ZIPs
-without rechecking historical proofs. Original logs are disposable. See the
+disposable: `python -m app.rebuild` restores metadata; `--sources` also rebuilds optional source ZIPs
+without rechecking historical proofs. Retained tags and verdict comments remain the history
+authority; the current-record snapshot on submissions `main` can be republished from checked
+sources. GitHub retries do not rerun a finished proof. Original logs are disposable. See the
 [deployment guide](service/deploy/README.md#rebuilding-the-server-from-nothing) for the credentialed
 rebuild command, source-tag protection and launch checks.
 

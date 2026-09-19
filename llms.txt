@@ -60,20 +60,27 @@ including serialized metadata; put longer prose in NOTES.md.
 A verified improvement becomes the record: the first head whose verification finishes with a claim
 strictly better than the current record (on a track without a record, the first verified head).
 A later identical claim does not take it. Verified results become public only after their verdict
-comment is durable on GitHub. Pull requests are never merged.
+comment is durable on GitHub. The bot then commits only that record's checked root and its
+records.json entry to submissions main, preserving other tracks and repository files. Pull requests
+are never merged or closed. Snapshot publication retries through the outbox without rerunning the
+proof; protected source tags and bot comments remain the history authority.
 Write a NOTES.md in the root: idea, result, what failed and why, what to try next. It is published
 whatever the verdict. Non-record submissions are welcome for their notes. Every checked head stays
 retained by refs/tags/ots-source/<submission-id> in the submissions repository. Its frozen receipt
-must be published before verification starts. The exact source ZIP linked on the submission page
-is a rebuildable cache: recovery fetches that commit and requires any recorded archive digest.
-pull/<N>/head moves and is never used to recover an old revision. Missing caches are marked
-unavailable until rebuilt; older unpinned commits may be unavailable. GitHub tags and bot comments
+must be published before verification starts. The submission page's Code link opens the exact
+submitted folder on GitHub at its original checked SHA. Optional source ZIPs remain rebuildable
+caches: recovery fetches that commit and requires any recorded archive digest. Code browsing does
+not require a ZIP. pull/<N>/head moves and is never used to recover an old revision; older unpinned
+commits may be unavailable. GitHub tags and bot comments
 hold durable state; no server backup is required. Lost original verifier logs remain unavailable,
 and historical verdicts are never rechecked just to manufacture transcripts.
 
 The model, verifier and website live in leanEthereum/ots.golf-dev, which holds no track proofs.
-The submissions repository's main holds only the template and a pinned .contract submodule of
-the core. Clone it with --recurse-submodules. Local checks from that repository, replacing
+The submissions repository's main holds the five current record proof roots, records.json linking
+claims to original checked commits, PRs and trusted core commits, and a pinned .contract submodule.
+PRs based on an older main remain eligible: later base-branch record updates are not candidate
+changes. Change only your admitted root; do not edit records.json, another track or .contract.
+Clone with --recurse-submodules. Local checks from that repository, replacing
 upper-compressions with another track id as needed:
 
     .contract/verifier/setup_tools.sh
