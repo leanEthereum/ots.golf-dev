@@ -5,7 +5,7 @@ semantics, the internal lower-bound witnesses kept in this core (`formal/Witness
 reference proofs (submission roots kept in the submissions repository). The lower bounds are
 generic **1**, unrestricted DAG **18**, and whole-word DAG **90**. Generic upper has a complete
 **106** certificate, including perfect correctness, deterministic verification and signing failure
-at most `2^-128`; RISC-V upper has a **1628**-cycle certificate. Both witnesses are secure schemes
+at most `2^-128`; RISC-V upper has a **702**-cycle certificate. Both witnesses are secure schemes
 at **106**. This
 document covers mathematical scope; operational launch gates are in
 [the deployment guide](../service/deploy/README.md). The archived

@@ -63,127 +63,84 @@ Code is immutable. Parsing, arithmetic, copying and comparison run inside the ma
 
 The reference proof, a `UpperRiscv` submission root in the submissions repository, contains the
 checked certificate
-`OptimalOTS.Challenge.UpperRiscv.certificate : submission.Certificate 1628`, exported from
-`Solution.lean` with `claim.txt` at 1628. It uses only `propext`, `Classical.choice` and
+`OptimalOTS.Challenge.UpperRiscv.certificate : submission.Certificate 702`, exported from
+`Solution.lean` with `claim.txt` at 702. It uses only `propext`, `Classical.choice` and
 `Quot.sound`; no `native_decide`, `bv_decide` or added axiom appears anywhere in the root.
 
-The OTS keeps the forest graph and the fixed disclosure layout (two subtree digests, three group
-digests and 36 chain values), but reads its chain positions directly from the index. The index is
-the low 128 bits of `H(message ‖ nonce)`; it is **accepted** when its 32 nibbles are all at most
-14 and sum to `target = 166` (`Valid.lean`). Chain `k < 32` is then disclosed at position
-`14 - nibble k` and chains 32 to 35 at position 14 (`FixedChoice.lean`), so every disclosure set
-is a cut of the same cost and distinct indices give distinct cuts. The kernel checks that exactly
+The OTS is a flat forest: 32 hash chains of length 15 under one root, with no group or subtree
+digests. The index is the low 128 bits of `H(message ‖ nonce)`; it is **accepted** when its 32
+nibbles sum to `target = 160`, every nibble value being allowed (`Valid.lean`). Chain `k` is
+disclosed at position `15 - nibble k` (`FixedChoice.lean`), so every disclosure set is a cut of
+the same cost, distinct indices give distinct cuts, and a signature is the nonce and 32 words,
+4224 bits. The kernel checks that exactly
 
 ```
-comp 32 166 = 42088166900081964050093337199455360 ≥ 2^115
+comp 32 160 = 44383521204130784290044027201113527 ≥ 2^115
 ```
 
 indices are accepted (`Valid.card_validSet`), so signing succeeds within the `2^20` trials with
-failure below `2^-128` as before.
+failure below `2^-128`.
 
-The DAG scheme of the contract accepts an index when it is below `Dag.numCuts`; this root therefore
-carries `GScheme.lean`, the same graph scheme with the acceptance predicate `i ∈ validSet`, and the
-security proof of the forest ported to it (`SignIdx`, `EncCharges`, `SignRho`, `Rows`,
-`RowPotential`, `Potentials`, `StageB`, `Assembly`, `Main`). The RISC-V contract itself (`OptimalOTS.Riscv.Submission`) takes any
-`OracleAlgorithm.Scheme`. `ForestAlgorithm.certificate` proves all OTS requirements and a
-186-compression bound for the typed-signature scheme of `TypedScheme.lean` (internal to this
-root); `Wire.certificate` transfers them, through `WireAdapter.lean`, to `Wire.scheme` on raw
-signature bits. `Candidate.lean` builds the submission `{ scheme := Wire.scheme, image, fuel }`.
+The oracle has no labels, so the inputs separate the hash nodes. A chain input is the chain's
+128-bit value above a 64-bit header: the address of the chain's slot in the machine and a level
+tag, which the machine keeps in registers (`Constants.lean`). The root input is the 32 chain tops
+with the headers between them, 6080 bits, exactly as the slots lie in memory. The three input
+lengths (192, 6080 and the 384-bit index query) are distinct, so every query belongs to at most
+one hash node. Key generation costs 492 compressions and verification 173. The security proof is
+the forest proof of the compressions track, ported to this graph and to the header tags.
 
-The implementation, `CompactProgram.lean`, keeps one 32-byte slot per chain, group and subtree and
-hashes in place: after the index query, a straight-line sweep over the 32 nibbles accumulates
-their sum, clears a flag when a nibble exceeds 14 and stores the 36 chain positions
-(`Program.nibbleChecks`). Each active chain then runs as one 55-instruction block. Its 13-instruction
-prologue copies the chain's disclosed word from the payload into its slot, loads the chain's
-position `p`, and jumps with `AUIPC`/`JALR` to entry `p` of a table of 14 hash steps; each step
-stores the level's tag and hashes the slot in place in three instructions. The tree inputs are
-assembled in a 160-byte scratch buffer. The image has **2647 RV64IM instructions** and no table
-data, with kernel-checked validity. The fuel witness is the instruction count.
+The implementation, `Program.lean`, has **1337 RV64IM instructions** and a 64-byte data image
+holding four lane constants:
 
-Because `Riscv.Refines` (defined in the submission root's `Refines.lean`, not in the contract)
-requires the machine's oracle computation to equal the specification's,
-the machine must issue its hash queries in the specification's node order. The forest nodes are
-therefore numbered chain-major (`Names.lean`): `src k` is node `43k`, and `ci k t`, `ch k t`,
-`cv k t` are nodes `43k + 1 + 3t`, `43k + 2 + 3t` and `43k + 3 + 3t`; the tree nodes keep their
-indices from 2709. `ForestVerifier.order` lists each chain completely before the next, so the
-specification's reader visits the nodes in the order the blocks execute them, and the payload
-holds chain `k`'s disclosed word at bit `128k`.
+- **Index.** Save the public key in two registers, copy the nonce below the message so that
+  `nonce ‖ message` is contiguous, hash it into the data area, and reject any length other than
+  4224 bits. Eight lane words hold `8 · nibble` in 16-bit lanes (one shift and one mask each);
+  their sum, multiplied by `0x0001000100010001`, has `8 · Σ nibbles` in its top lane, and the
+  machine rejects unless it is `1280`. Each lane word is subtracted from a broadcast jump base
+  and stored, giving every chain its jump target (`IndexPhase.lean`, `IndexArith.lean`).
+- **Chains.** Chain `k`'s value lives at `slotAddr k`, 24 bytes after chain `k - 1`'s, after an
+  8-byte header. Its block copies the disclosed word, writes the slot address as the header,
+  loads its jump target and jumps into a table of 15 two-instruction steps: store the level tag
+  in the header's top halfword, hash the 192-bit header and value in place (`ChainPhase.lean`).
+  The last step's tag is zero, so after every chain the header is the root's.
+- **Root.** The slots from chain 0 to chain 31 are the root input; its answer overwrites the last
+  slot and its low 128 bits are compared with the saved key (`RootPhase.lean`).
+
+Nodes are numbered chain-major, so the specification's sequential reader visits each chain's
+nodes in the order the blocks run.
 
 ### Cycle accounting
 
-Every ordinary instruction costs one cycle and every hash call costs `max(1, ⌈bits / 512⌉)`, so
-the certificate charges each block by the instructions it executes plus one for each 512-bit
-block of hash input beyond the first. All 186 hash inputs fit one block except the 912-bit root
-input, which costs two. The index phase is straight-line code: 23 instructions prepare the query
-(one 16-byte nonce copy and two message copies),
-the HASH costs one cycle, the nibble sweep and its checks cost 238 instructions, and the two
-rejection branches, each skipped, cost one cycle each around the three-instruction length check,
-267 cycles in all (`IndexRefines.indexAndChecks_refines`). A chain block costs 13 cycles for its
-prologue and 3 for each of its `14 - position` hash steps. The nibbles of an accepted index sum to
-166, so the 36 blocks, the six setup instructions and the one-instruction epilogue cost
-`7 + 36 · 13 + 3 · 166 = 973` cycles on every accepted index (`CompactLevels.chainsCost_le`). The
-remaining gap between 1628 and the 186 hash compressions is the prologues, the tag stores and the
-tree-input copies.
+Every ordinary instruction costs one cycle and every hash call `max(1, ⌈bits / 512⌉)`: one for the
+index query and the chain steps, twelve for the root.
 
 | Region | Instructions | Certified cycles |
 |---|---:|---:|
-| Index query, nibble checks and position stores | 273 | 267 |
-| Chain setup, 36 chain blocks and epilogue | 1987 | 973 |
-| Group inputs, hashes and reads | 240 | 240 |
-| Subtree hashes and reads | 100 | 100 |
-| Root input and 912-bit hash | 35 | 36 |
-| Decision | 12 | 12 |
-| Total | 2647 | 1628 |
+| Index query, length check, lanes, sum check, level tags | 77 | 71 |
+| 32 chain blocks: `9 + 2 · nibble` each | 1248 | 608 |
+| Root input and 6080-bit hash | 4 | 15 |
+| Decision | 8 | 8 |
+| Total | 1337 | 702 |
 
-The table follows an accepted index. Rejecting executions stop at one of the index checks or at
-the final decision, and the same certified bound of 1628 covers them.
+The nibbles of an accepted index sum to 160, so the chains cost `32 · 9 + 2 · 160 = 608` cycles on
+every accepted index (`ChainPhase.costFrom_zero`). Rejecting executions stop at one of the two
+index checks or at the final decision, within the same bound.
 
 ### Proof structure
 
-The certificate bundles four facts about `RiscvUpperForest.submission`:
+The certificate bundles four facts about `RiscvUpperForest.submission`: admissibility and
+security (`Wire.admissible`, `Wire.secure`), and exact refinement with the cycle bound, both read
+off `Verifier.image_refines`, which proves
+`Riscv.Refines 1337 (initialState image pk m bits) (some <$> directVerify pk m bits) 702`.
+`ForestVerifierProof.directVerify_eq` identifies the explicit interpreter with the certified
+verifier. The refinement composes `IndexPhase.indexPhase_refines` (the query, the two rejections
+and the context left for the chains), `ChainPhase.chainsFrom_refines` (by induction over the
+chains; each chain is its prologue, `ChainBlock.prologue_refines`, and its steps from the disclosed
+position, `ChainBlock.steps_refines`) and `RootPhase.rootDecision_refines`.
 
-- **Admissibility and security** are `Wire.admissible` and `Wire.secure`, inherited by
-  `Submission.scheme` definitionally.
-- **Exact refinement and cycle cost** are both read off `CompactVerifier.image_refines`, which
-  proves `Riscv.Refines 2647 (initialState image pk m bits) (some <$> directVerify pk m bits) 1628`.
-  `Riscv.Refines fuel s q c` states that the observed oracle computation of `s` under `fuel` equals `q` and that every
-  terminating execution, accepting or rejecting, costs at most `c` cycles.
-  `ForestVerifierProof.directVerify_eq` identifies the explicit forest interpreter with the certified
-  verifier. Because the result is `some` on every path, no execution traps or exhausts fuel, so
-  every input terminates, including every rejection.
-
-The refinement composes the straight-line image with continuation lemmas that quantify over the
-remaining fuel and add the cycle costs of each block:
-
-1. `IndexRefines.indexAndChecks_refines`: the 384-bit message-and-nonce query, the nibble
-   acceptance test and the exact 5376-bit length check, rejecting exactly as specified, at 267
-   cycles. `IndexChecks` proves the sweep invariant (`Swept`): after `n` steps the sum register
-   holds the first `n` nibbles' sum, the flag register records whether they are all at most 14, and
-   the position array holds `14 - nibble` for each processed chain; `DecodedInput` turns the final
-   memory into `PositionMemory (fixedPositions index)`.
-2. `CompactLevels.chains_refines`: the chain phase, matching the specification's sequential
-   reader `runNodes'` over `order`. In `CompactChains`, `prefix_run` shows that a chain's nodes
-   before its disclosed level are pure and end with the disclosed word; `prologue_refines` covers
-   the copy, the position load and the jump, using the word alignment of the block start;
-   `step_refines` and `steps_refines` issue each remaining level's hash on the same tagged 144-bit
-   input as the specification; `chain_refines` joins them and `inactive_refines` covers the 27
-   chains without code. `CompactLevels.chainsFrom_refines` composes the 63 chains by induction.
-3. `CompactTree.groups_refines`, `CompactSubtrees.subtrees_refines` and `CompactRoot.rootDecision_refines`: the tagged
-   400-bit group and subtree inputs assembled in scratch by `tripleInput_effect`, the 912-bit
-   root input by `rootLin_effect`, in-place hash outputs in the 32-byte slots, and the final
-   128-bit comparison with the public key (`decision_refines`) ending in HALT.
-
-`ForestVerifierProof` proves that the cursor consumes exactly the 5248 payload bits, and
-`ForestVerifierProof.directReconstruct_eq` shows that reading disclosures sequentially agrees
-with the graph's offset-addressed decoding.
-
-`SweepRefines` keeps the per-node segment framework that the tree phase uses. The earlier images
-(229113 and 59393 cycles), the composition-unranking decoder (24053, 19627 and 9041 cycles) and
-the level-major guarded sweeps (5513 cycles) and the 1632-cycle image for the 256-bit nonce live
-in the git history.
-
-The official verifier accepts this root through the RISC-V challenge stub. The same root is the
-initial record in `ots.golf-submissions`.
+The official verifier accepts this root through the RISC-V challenge stub. Earlier images (the
+1628-cycle forest with 63 chains, 21 groups and 7 subtrees, and before it 1632, 5513 and more
+cycles) live in the git history.
 
 ## Attribution
 
