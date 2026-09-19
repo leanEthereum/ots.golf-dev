@@ -155,9 +155,9 @@ prove 19. Conditional numerical searches do not establish a stronger bound.
   used. Sampling is free.
 - Index and public-key truncation use the low bits, matching `setWidth`.
 - The adversary's other computation and private randomness are unbounded and free.
-- The secure DAG upper certificate establishes non-vacuity of the DAG strong and weak security
-  classes. Its generic adapter separately proves admissibility, including correctness and signing
-  availability. No whole-word upper construction is claimed.
+- The internal 106-compression DAG and whole-word witnesses establish non-vacuity of both DAG
+  classes under strong (and hence weak) security. The separate 104-compression generic upper
+  certificate also proves admissibility, including correctness and signing availability.
 
 ## Contract changes and verification
 

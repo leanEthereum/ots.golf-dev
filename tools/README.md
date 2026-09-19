@@ -12,7 +12,9 @@ preparation script. Numerical results are exploration only: every claim requires
 
 ## Numerical tools
 
-`tune_lower_bound.py` uses exact integers and fractions:
+`tune_lower_bound.py` uses exact integers and fractions. Its exact modes use `2^20` signing
+trials and the reciprocal success lower bound `128/129`, matching the current DAG contract
+and proofs:
 
 ```sh
 python3 tools/tune_lower_bound.py --method words --claims 90,91     # whole-word attack

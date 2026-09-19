@@ -1,7 +1,11 @@
 """Regression checks for numerical tools; these never replace the Lean certificates."""
+import math
+import re
+import runpy
 import subprocess
 import sys
 import unittest
+from fractions import Fraction
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -11,6 +15,47 @@ class NumericalToolTests(unittest.TestCase):
     def run_tool(self, tool, *args):
         return subprocess.run([sys.executable, str(ROOT / 'tools' / tool), *args],
                               capture_output=True, text=True, timeout=30)
+
+    def contract_nat(self, module, name):
+        source = (ROOT / 'formal' / 'OptimalOTS' / module).read_text()
+        match = re.search(rf'^def {name}\s*:\s*ℕ\s*:=\s*(\d+)(?:\s*\^\s*(\d+))?\s*$',
+                          source, re.MULTILINE)
+        self.assertIsNotNone(match, f'{module}.{name}: expected a literal or power')
+        base, exponent = match.groups()
+        return int(base) ** int(exponent) if exponent else int(base)
+
+    def test_lower_bound_parameters_match_the_protected_contract(self):
+        tool = runpy.run_path(str(ROOT / 'tools' / 'tune_lower_bound.py'))
+        message_bits = self.contract_nat('Model.lean', 'msgBits')
+        nonce_bits = self.contract_nat('Dag.lean', 'nonceBits')
+        block_bits = self.contract_nat('Model.lean', 'blockBits')
+        index_cost = max(1, (message_bits + nonce_bits + block_bits - 1) // block_bits)
+        trials = self.contract_nat('Model.lean', 'signBudget') // index_cost
+        cuts = self.contract_nat('Dag.lean', 'numCuts')
+        indices = 2 ** self.contract_nat('Dag.lean', 'idxBits')
+        self.assertEqual((tool['M'], tool['N'], tool['L']), (cuts, indices, trials))
+        self.assertEqual(tool['SIGN_SUCCESS_LOWER_BOUND'],
+                         Fraction(trials * cuts, indices + trials * cuts))
+        self.assertEqual(tool['PAYLOAD_BITS'],
+                         self.contract_nat('Model.lean', 'maxSignatureBits') - nonce_bits)
+
+    def test_forest_index_width_matches_the_protected_contract(self):
+        tool = runpy.run_path(str(ROOT / 'tools' / 'search_forest.py'))
+        self.assertEqual(tool['INDEX_BITS'], self.contract_nat('Model.lean', 'msgBits')
+                         + self.contract_nat('Dag.lean', 'nonceBits'))
+
+    def test_whole_word_output_uses_current_budget_and_reciprocal_bound(self):
+        result = self.run_tool('tune_lower_bound.py', '--method', 'words', '--claims', '90')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        trials = self.contract_nat('Model.lean', 'signBudget')  # index cost is one
+        cuts = self.contract_nat('Dag.lean', 'numCuts')
+        indices = 2 ** self.contract_nat('Dag.lean', 'idxBits')
+        budget = self.contract_nat('Model.lean', 'keygenBudget') + trials + 2 ** 122 + 2 * 88 + 2
+        signing_success = Fraction(trials * cuts, indices + trials * cuts)
+        search_success = Fraction(cuts, 64 * math.comb(87 + 42, 42) + cuts)
+        success = Fraction(99, 100) ** 2 * signing_success * search_success
+        self.assertIn(f'exact total budget = {budget};', result.stdout)
+        self.assertIn(f'exact success lower bound = {success}\n', result.stdout)
 
     def test_tagged_forest_keeps_the_index_at_one_compression(self):
         result = self.run_tool('search_forest.py', '--check', '14,3,3,7', '--overhead', '16')

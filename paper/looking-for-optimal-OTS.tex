@@ -85,7 +85,7 @@ An attacker receives the public key, requests one signature, and outputs a messa
 \begin{equation}\label{eq:security}
 \Pr[\mathrm{Forge}]<B/2^{127}.
 \end{equation}
-The cost includes key generation, signing, all attacker queries, and final verification. The lower track assumes weak security; the upper track proves strong security, which implies weak security.
+The cost includes key generation, signing, all attacker queries, and final verification. The public challenge statements use strong security. The lower-bound theorem below also covers weakly secure schemes because its forgery changes the message.
 
 \begin{theorem}[Verification lower bound]\label{thm:main}
 Every weakly secure scheme with these parameters has $\max_i C_i\ge18$. The same conclusion holds for every strongly secure scheme.
@@ -138,7 +138,7 @@ Construction of the new disclosure makes no oracle queries. Final verification s
 
 \section{Fresh messages, signing, and nonce search}\label{sec:fresh}
 
-A message $m$ is \emph{fresh for a cache} $c$ if every input $m\Vert\eta$ is absent from $c$. These message domains are disjoint. A cache supported on a set $D$ of queries can therefore make at most $|D|$ messages nonfresh: assign each offending message the high 256 bits of a cached 512-bit string. Queries of other lengths cannot witness an intersection.
+A message $m$ is \emph{fresh for a cache} $c$ if every input $m\Vert\eta$ is absent from $c$. These message domains are disjoint. A cache supported on a set $D$ of queries can therefore make at most $|D|$ messages nonfresh: assign each offending message the high 256 bits of a cached 384-bit string. Queries of other lengths cannot witness an intersection.
 
 \begin{lemma}[Fresh message mass]\label{lem:fresh}
 A uniformly sampled message is fresh with probability at least $1-|D|/2^{256}$. Requiring it also to differ from one specified message lowers this bound by at most $2^{-256}$. In particular both bounds exceed $9/10$ when $|D|\le2^{22}$.
@@ -235,7 +235,7 @@ H(t_{k,t}\Vert c_{k,t-1}).
 \]
 For $j=1,\dots,21$ the node $g_j$ holds the low 128 bits of $H(t_{g_j}\Vert c_{3j-2,14}\Vert c_{3j-1,14}\Vert c_{3j,14})$, and for $l=1,\dots,7$ the node $e_l$ holds the low 128 bits of $H(t_{e_l}\Vert g_{3l-2}\Vert g_{3l-1}\Vert g_{3l})$. The root is $r=H(t_r\Vert e_1\Vert\cdots\Vert e_7)$, and the public key is its low 128 bits. Each $t_v$ is a distinct 16-bit constant identifying its hash node; the formal scheme uses its graph index. These tweaks are actual input bits produced by deterministic nodes. All prefixes mentioned in this section are the low 128 bits, as in the contract.
 
-Figure~\ref{fig:scheme} shows the shape of the computation and of one signature. Each node of the tree therefore has three children, except the root, which has seven. Including the tweak, a chain hash absorbs 144 bits and a grouping hash 400 bits, so both cost one compression; the root absorbs 912 bits and costs two compressions. None has the 512-bit input length used for index queries. This separation is a property of this particular construction, not a condition in the model or in the lower bound.
+Figure~\ref{fig:scheme} shows the shape of the computation and of one signature. Each node of the tree therefore has three children, except the root, which has seven. Including the tweak, a chain hash absorbs 144 bits and a grouping hash 400 bits, so both cost one compression; the root absorbs 912 bits and costs two compressions. None has the 384-bit input length used for index queries. This separation is a property of this particular construction, not a condition in the model or in the lower bound.
 
 
 \begin{figure}[t]
@@ -348,7 +348,7 @@ The explicitly tweaked forest scheme satisfies strong security~\eqref{eq:securit
 where any such execution has $B\ge912$.
 \end{theorem}
 
-The theorem is kernel-checked in the \texttt{ReferenceGenerality2} submission root. Its exported declarations are \texttt{scheme}, \texttt{secure}, and \texttt{cost}, in namespace \texttt{OptimalOTS.}\allowbreak\texttt{Challenge.ReferenceGenerality2}.
+The 106-compression theorem is kernel-checked in the internal witness \path{formal/Witnesses/Generality2.lean}, which exports \texttt{OptimalOTS.}\allowbreak\texttt{Witnesses.generality2}. It packages the construction \texttt{forestScheme} and its proofs \path{forestScheme_secure} and \path{forestScheme_verifyCost} in namespace \texttt{OptimalOTS.Forest}, under \path{formal/Witnesses/Generality2/}. The separate 104-compression public certificate lives in the submissions repository's \texttt{UpperCompressions} root and exports \texttt{scheme}, \texttt{admissible}, \texttt{secure}, and \texttt{cost}, in namespace \texttt{OptimalOTS.}\allowbreak\texttt{Challenge.UpperCompressions}.
 
 The only axioms in their closure are \texttt{propext}, \texttt{Quot.sound}, and \texttt{Classical.choice}. Budgets above $2^{127}$ satisfy the security inequality trivially because its right-hand side exceeds one.
 

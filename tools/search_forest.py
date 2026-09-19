@@ -13,7 +13,7 @@ at most 42 nodes (42 · 128 = 5376 revealed bits). We want the least c whose fam
 The search reported in the paper: --max-levels 4 --max-branch 41 --digest-chains 3. Needs numpy.
 
 Cost of a graph hash on `bits` input bits: ceil((bits + overhead) / 512), at least 1.
-The overhead represents explicit node tweaks. The separate 512-bit message-and-nonce query
+The overhead represents explicit node tweaks. The separate 384-bit message-and-nonce query
 has no node tweak and always costs one compression. This search counts cuts, not security.
 Counts are computed as 2-variable polynomials (cost, nodes) in float64 and the winner is recounted
 exactly with Python integers.
@@ -27,7 +27,7 @@ import sys
 
 import numpy as np
 
-VALUE_BITS, BLOCK, MAX_NODES, KEYGEN_BUDGET, INDEX_BITS = 128, 512, 42, 1024, 512
+VALUE_BITS, BLOCK, MAX_NODES, KEYGEN_BUDGET, INDEX_BITS = 128, 512, 42, 1024, 384
 NEED = 2 ** 115
 
 

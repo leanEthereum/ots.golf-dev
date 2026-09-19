@@ -35,7 +35,9 @@ import argparse
 from fractions import Fraction
 import math
 
-M, N, L = 2 ** 115, 2 ** 128, 2 ** 21
+M, N, L = 2 ** 115, 2 ** 128, 2 ** 20
+# (1 - p)^L <= 1 / (1 + L*p), with p = M/N.
+SIGN_SUCCESS_LOWER_BOUND = Fraction(L * M, N + L * M)  # 128/129
 PAYLOAD_BITS = 5376  # maxSignatureBits 5504 minus the 128-bit nonce
 WORD_ORIGINS = PAYLOAD_BITS // 128
 EPS = 1 / 512
@@ -126,7 +128,7 @@ def print_disclosure_point(c: int, origins: int, freshness: Fraction = Fraction(
     a, v, trials = c - 3, c - 2, 2 ** 122
     count = math.comb(a + origins, origins)
     averaged_search = Fraction(M, 64 * count + M)
-    lower = freshness ** 2 * Fraction(256, 257) * averaged_search
+    lower = freshness ** 2 * SIGN_SUCCESS_LOWER_BOUND * averaged_search
     budget = 1024 + L + trials + 2 * v + 2
     ratio = Fraction(budget, 2 ** 127)
     margin = lower - ratio
@@ -184,7 +186,7 @@ def main() -> int:
             a, v = c - 3, c - 2
             count = sum(math.comb(1023, k) for k in range(a + 1))
             good = max(Fraction(0), 1 - Fraction(8 * count, M))
-            sign_success = Fraction(256, 257)
+            sign_success = SIGN_SUCCESS_LOWER_BOUND
             fresh1 = 1 - Fraction(1024, 2 ** 256)
             fresh2 = 1 - Fraction(1024 + L + 1, 2 ** 256)
             search_success = Fraction(1, 9)
