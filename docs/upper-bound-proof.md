@@ -1,8 +1,8 @@
 # The upper-bound proof: architecture
 
-The forest proof (the core's internal Generality 2/3 witness, `formal/Witnesses/Generality2/`, also
-wrapped by the `UpperCompressions` reference root) proves, for `forestScheme : Dag.Scheme` (Section 7 of the paper: 63 chains of length 14,
-21 group digests, 7 subtree digests, one root) with
+The forest proof (the core's internal Generality 2/3 witness, `formal/Witnesses/Generality2/`) proves,
+for `forestScheme : Dag.Scheme` (Section 7 of the paper: 63 chains of length 14, 21 group digests,
+7 subtree digests, one root) with
 
 ```
 theorem forestScheme_secure : forestScheme.Secure
@@ -10,6 +10,22 @@ theorem forestScheme_verifyCost (i) : forestScheme.verifyCost i = 106
 ```
 
 (combined into `OptimalOTS.Witnesses.generality2` in `formal/Witnesses/Generality2.lean`).
+
+The `UpperCompressions` reference root runs the same proof on a smaller forest: 54 chains of length
+14, 18 group digests, 6 subtree digests and a root of six (2396 nodes, root input 784 bits at two
+compressions, key generation 782). With the 5504-bit signature limit a cut may reveal 42 values,
+and three shapes of reconstruction cost 103 give more than `2^115` cuts, so it verifies in
+`1 + 103 = 104` compressions with `Pr[forge] ≤ (B − 782)/2^127`:
+
+| e revealed | g revealed | active chains | chain cost | nodes | count |
+|---|---|---|---|---|---|
+| 1 | 2 | 39 | 83 | 42 | C(6,1)·C(15,2)·comp(39,83) |
+| 0 | 6 | 36 | 83 | 42 | C(6,0)·C(18,6)·comp(36,83) |
+| 1 | 3 | 36 | 84 | 40 | C(6,1)·C(15,3)·comp(36,84) |
+
+Only the shape-specific modules differ (`Names`, `Cuts`, the index types elsewhere, the keygen
+constant); the potentials, the signing lemma and the row inequality are unchanged. The numbers
+below are those of the 63-chain witness.
 
 The contract offers a single random oracle on bit strings: no labels, no tweaks. The scheme therefore
 prepends a 16-bit tweak `tw h` (the index of the hash node `h`) to every hash input, through one extra
