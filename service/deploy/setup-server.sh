@@ -58,7 +58,10 @@ if ! mountpoint -q /srv/ots-work; then
   if [[ ! -f "${work_image}" ]]; then
     fallocate -l 48G "${work_image}"
     chmod 600 "${work_image}"
-    mkfs.ext4 -q -m 0 -E nodiscard "${work_image}"   # discard would punch holes into the image
+    # Initialize everything now: discard, or a lazy background zeroing through the loop device,
+    # would punch holes into the image. The second fallocate fills any hole left by mkfs.
+    mkfs.ext4 -q -m 0 -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 "${work_image}"
+    fallocate -l 48G "${work_image}"
   fi
   grep -q "^${work_image} " /etc/fstab || echo "${work_image} /srv/ots-work ext4 loop,nosuid,nodev 0 2" >> /etc/fstab
   mount /srv/ots-work

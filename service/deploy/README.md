@@ -52,7 +52,7 @@ before public launch, and day-to-day operations. For local development see the
 
 3. Job storage at `/srv/ots-work`, at most 64 GiB. The installer creates it: a fully allocated
    48 GiB image, `/var/lib/ots-work.img` (root only, made with `fallocate`, formatted with
-   `mkfs.ext4 -E nodiscard` so it stays unsparse), mounted through `/etc/fstab` at every boot, root owned by `ots:ots-state` with mode
+   `mkfs.ext4 -E nodiscard,lazy_itable_init=0,lazy_journal_init=0` so no hole is punched into it), mounted through `/etc/fstab` at every boot, root owned by `ots:ots-state` with mode
    `2770`. The verifier accepts a loop-backed volume only when its image is fully allocated, so the
    volume cannot outgrow the space reserved on the system disk. A dedicated block volume or a
    bounded tmpfs also works. Do not put the database, logs, trusted checkout or warm cache on it.
