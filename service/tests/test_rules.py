@@ -25,7 +25,7 @@ class RulesTests(unittest.TestCase):
 
     def test_rules_do_not_publish_scores_or_candidate_history(self):
         html = self.rules_body()
-        self.assertNotRegex(re.sub(r'<[^>]*>', ' ', html), r'\b(?:18|80|93|106|987654|876543|765432)\b')
+        self.assertNotRegex(re.sub(r'<[^>]*>', ' ', html), r'\b(?:18|80|93|104|106|987654|876543|765432)\b')
         self.assertNotIn('Certified lower baselines', html)
         self.assertNotIn('Current candidate', html)
         self.assertNotIn('baseline', html)

@@ -154,18 +154,18 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(len(uppers), 1)
         self.assertEqual(uppers[0].get('data-series'), 'upper-compressions')
         self.assertEqual(uppers[0].get('data-status'), 'certified')
-        self.assertEqual(''.join(uppers[0].find("text[@class='label']").itertext()), 'Upper bound · 106')
+        self.assertEqual(''.join(uppers[0].find("text[@class='label']").itertext()), 'Upper bound · 104')
         self.assertEqual(len(uppers[0].findall(".//a[@class='chart-record']")), 15)
         self.assertNotIn('admission pending', html.lower())
         self.assertNotIn('candidate', html.lower())
         self.assertFalse('data-track="disclosure-upper"' in html)
         points = [p for p in self.chart(html) if p['kind'] == 'upper']
         self.assertEqual([(p['claim'], p['login']) for p in points],
-                         [(130, 'hal-finney'), (127, 'hal-finney'), (124, 'vitalik-buterin'),
-                          (121, 'vitalik-buterin'), (119, 'satoshi-nakamoto'), (117, 'satoshi-nakamoto'),
-                          (115, 'hal-finney'), (114, 'hal-finney'), (112, 'vitalik-buterin'),
-                          (111, 'satoshi-nakamoto'), (110, 'hal-finney'), (109, 'vitalik-buterin'),
-                          (108, 'satoshi-nakamoto'), (107, 'vitalik-buterin'), (106, 'satoshi-nakamoto')])
+                         [(128, 'hal-finney'), (125, 'hal-finney'), (122, 'vitalik-buterin'),
+                          (119, 'vitalik-buterin'), (117, 'satoshi-nakamoto'), (115, 'satoshi-nakamoto'),
+                          (113, 'hal-finney'), (112, 'hal-finney'), (110, 'vitalik-buterin'),
+                          (109, 'satoshi-nakamoto'), (108, 'hal-finney'), (107, 'vitalik-buterin'),
+                          (106, 'satoshi-nakamoto'), (105, 'vitalik-buterin'), (104, 'satoshi-nakamoto')])
         for point in points:
             sub = self.session.get(Submission, point['id'])
             self.assertEqual(sub.track, 'upper-compressions')
@@ -261,7 +261,7 @@ class FrameworkTests(unittest.TestCase):
         self.session.commit()
         html = self.client.get('/rules').text
         body = re.search(r'<main\b[^>]*>(.*?)</main>', html, re.S).group(1)
-        self.assertNotRegex(re.sub(r'<[^>]*>', ' ', body), r'\b(?:18|80|93|106)\b')
+        self.assertNotRegex(re.sub(r'<[^>]*>', ' ', body), r'\b(?:18|80|93|104|106)\b')
         self.assertFalse('framework-comparison' in body)
         self.assertTrue('whole 128-bit words' in body)
         self.assertTrue('id="generic-algorithms"' in body)
