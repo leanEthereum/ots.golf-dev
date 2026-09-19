@@ -259,8 +259,10 @@ def linux_command(cmd: list[str], cwd: Path, sandbox_env: dict, limits: dict, un
              # config). A read-only mount also blocks chmod/xattr/utime metadata changes
              # that Landlock's file-content permissions do not comprehensively cover.
              "ProtectSystem=strict", f"ReadWritePaths={cwd / '.lake'}",
-             # Read-only /proc exposes other same-UID processes' environment and descriptors.
-             "InaccessiblePaths=/proc /sys",
+             # A private PID namespace: /proc shows only the job's own processes, never another
+             # same-UID process's environment or descriptors. (Hiding /proc entirely breaks the
+             # dynamic loader's $ORIGIN lookup, which Lean's binaries need.)
+             "PrivatePIDs=yes", "ProcSubset=pid", "InaccessiblePaths=/sys",
              # Repeated assignments accumulate; "-" ignores paths that do not exist.
              "InaccessiblePaths=" + " ".join(f"-{p}" for p in ["/etc/ots", *hidden]),
              # PrivateDevices keeps the host's /dev/shm; give the job its own.
@@ -269,6 +271,8 @@ def linux_command(cmd: list[str], cwd: Path, sandbox_env: dict, limits: dict, un
              "pidfd_getfd kill tkill tgkill pidfd_send_signal"]
     launch = [sys.executable, str(HERE / "linux_exec.py")] + cmd
     launch_env = {"OTS_VERIFIER_HOST_DEV": str(Path("/dev").stat().st_dev),
+                  "OTS_VERIFIER_HOST_PIDNS": (str(Path("/proc/self/ns/pid").stat().st_ino)
+                                              if Path("/proc/self/ns/pid").exists() else ""),
                   "OTS_VERIFIER_HOST_SHM_DEV": (str(Path("/dev/shm").stat().st_dev)
                                                 if Path("/dev/shm").exists() else ""), **sandbox_env}
     clean_cmd = ["/usr/bin/env", "-i"] + [f"{k}={v}" for k, v in launch_env.items()] + launch

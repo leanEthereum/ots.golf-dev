@@ -25,7 +25,7 @@ PROBE = r'''
 import ctypes, errno, json, os, pathlib, socket, sys
 work, parent_pid = pathlib.Path(sys.argv[1]), sys.argv[2]
 assert "OTS_SANDBOX_CANARY" not in os.environ, "inherited environment leaked"
-for name in (f"/proc/{parent_pid}/environ", "/proc/self/environ", str(work / "readonly")):
+for name in (f"/proc/{parent_pid}/environ", str(work / "readonly")):
     try:
         if name.startswith("/proc/"):
             pathlib.Path(name).read_bytes()

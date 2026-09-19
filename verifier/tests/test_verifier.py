@@ -24,9 +24,12 @@ from verify import (PolicyReject, bounded_output, export_submission, linux_comma
 
 class VerifierTests(unittest.TestCase):
     def setUp(self):
-        self.env = patch.dict(os.environ, {"OTS_VERIFIER_HOST_DEV": "-1", "OTS_VERIFIER_HOST_SHM_DEV": ""})
+        self.env = patch.dict(os.environ, {"OTS_VERIFIER_HOST_DEV": "-1", "OTS_VERIFIER_HOST_SHM_DEV": "", "OTS_VERIFIER_HOST_PIDNS": "-1"})
         self.env.start()
         self.addCleanup(self.env.stop)
+        self.own_pid_namespace = patch("linux_exec.pid_namespace", return_value="7")
+        self.own_pid_namespace.start()
+        self.addCleanup(self.own_pid_namespace.stop)
         self.readonly_mounts = patch("linux_exec.os.statvfs", return_value=SimpleNamespace(f_flag=os.ST_RDONLY))
         self.readonly_mounts.start()
         self.addCleanup(self.readonly_mounts.stop)
@@ -334,7 +337,7 @@ class VerifierTests(unittest.TestCase):
                             {"memory_bytes": 1234, "wall_clock_seconds": 56}, "test-unit",
                             [Path("/srv/ots/data/ots.db")])
         for required in ("InaccessiblePaths=-/etc/ots -/srv/ots/data/ots.db", "MemoryMax=1234", "MemorySwapMax=0", "RuntimeMaxSec=56", "KillMode=control-group",
-                         "TasksMax=512", "InaccessiblePaths=/proc /sys", "PrivateDevices=yes", "PrivateIPC=yes",
+                         "TasksMax=512", "PrivatePIDs=yes", "ProcSubset=pid", "InaccessiblePaths=/sys", "PrivateDevices=yes", "PrivateIPC=yes",
                          "ProtectSystem=strict", f"ReadWritePaths={self.root / '.lake'}",
                          "SystemCallErrorNumber=EPERM",
                          "SystemCallFilter=~@network-io @debug ptrace process_vm_readv process_vm_writev "
@@ -345,10 +348,10 @@ class VerifierTests(unittest.TestCase):
         self.assertEqual(cmd[-6:], ["PATH=/usr/bin", "HOME=/empty", sys.executable,
                                    str(VERIFIER / "linux_exec.py"), "comparator", "config.json"])
 
-    def test_linux_launcher_refuses_readable_proc(self):
+    def test_linux_launcher_refuses_the_host_pid_namespace(self):
         with patch("linux_exec.sys.platform", "linux"), patch("linux_exec.os.geteuid", return_value=1000), \
-             patch("linux_exec.Path.read_bytes", return_value=b"secrets"):
-            with self.assertRaisesRegex(RuntimeError, "failed to hide"):
+             patch("linux_exec.pid_namespace", return_value="-1"):
+            with self.assertRaisesRegex(RuntimeError, "PID namespace"):
                 isolation_check()
 
     def test_linux_launcher_refuses_permitted_sockets(self):

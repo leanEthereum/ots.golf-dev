@@ -8,6 +8,14 @@ import socket
 import sys
 
 
+def pid_namespace() -> str | None:
+    """This process's PID namespace, or None when /proc cannot tell."""
+    try:
+        return str(os.stat("/proc/self/ns/pid").st_ino)
+    except OSError:
+        return None
+
+
 def isolation_check() -> None:
     if sys.platform != "linux" or os.geteuid() == 0:
         raise RuntimeError("sandbox launcher requires an unprivileged Linux process")
@@ -20,15 +28,15 @@ def isolation_check() -> None:
     for path in (Path.cwd(), Path(__file__).resolve(), Path.home()):
         if not os.statvfs(path).f_flag & os.ST_RDONLY:
             raise RuntimeError(f"systemd failed to mount {path} read-only; refusing to compile")
-    for path in ("/proc/self/environ", "/proc/self/fd", "/sys/kernel"):
-        try:
-            if path.endswith("environ"):
-                Path(path).read_bytes()
-            else:
-                list(Path(path).iterdir())
-        except OSError:
-            continue
-        raise RuntimeError(f"systemd failed to hide {path}; refusing to compile")
+    host_pidns = os.environ.get("OTS_VERIFIER_HOST_PIDNS")
+    if not host_pidns or pid_namespace() in (None, host_pidns):
+        raise RuntimeError("systemd failed to give the job its own PID namespace; refusing to compile")
+    try:
+        list(Path("/sys/kernel").iterdir())
+    except OSError:
+        pass
+    else:
+        raise RuntimeError("systemd failed to hide /sys/kernel; refusing to compile")
     if Path("/etc/ots").exists():
         try:
             list(Path("/etc/ots").iterdir())
