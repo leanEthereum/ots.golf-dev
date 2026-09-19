@@ -6,6 +6,7 @@ import hashlib
 import json
 import fcntl
 import re
+import shlex
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -106,19 +107,19 @@ class Submission(Base):
 
     @property
     def archive_url(self) -> str | None:
-        """The checked commit inside the submissions repository. GitHub keeps every pull-request head
-        there (`refs/pull/<N>/head`), so the code and its notes stay public after the fork is gone."""
-        if not self.pr_repository:
+        """The immutable snapshot captured before verification, when its object is retained."""
+        from . import source_archive
+        if self.detail_dict.get("demo") or not source_archive.is_available(self):
             return None
-        return f"https://github.com/{self.pr_repository}/tree/{self.commit}"
+        return f"{settings.base_url}/submissions/{self.id}/source.zip"
 
     @property
     def fetch_command(self) -> str | None:
-        """How to get the exact checked code with git."""
-        if not self.pr_repository:
+        """Retrieve exact admitted files; no moving pull-request ref is involved."""
+        url = self.archive_url
+        if not url:
             return None
-        return (f"git fetch https://github.com/{self.pr_repository}.git pull/{self.pr_number}/head"
-                f" && git checkout {self.commit}")
+        return f"curl --fail --location {shlex.quote(url)} --output source.zip && unzip source.zip"
 
     @property
     def commit_url(self) -> str | None:

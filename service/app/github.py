@@ -152,7 +152,7 @@ def targets_default_branch(pr: dict) -> bool:
 
 VERDICT_OPEN, VERDICT_CLOSE = "<!-- ots-result", "-->"
 VERDICT_RE = re.compile(r"<!-- ots-result\n(.*)\n-->\s*", re.S)
-VERDICT_KEYS = ("id", "track", "commit", "status", "claim", "duration_s", "finished_at", "contract", "record")
+VERDICT_KEYS = ("id", "track", "commit", "status", "claim", "duration_s", "finished_at", "contract", "record", "source_archive")
 
 
 def verdict_block(entries: list[dict]) -> str:

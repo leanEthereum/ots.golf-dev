@@ -18,7 +18,7 @@ from datetime import timedelta
 
 from sqlalchemy import func, select
 
-from . import contract, github
+from . import contract, github, source_archive
 from .config import settings
 from .db import GithubReport, SessionLocal, Submission, init_db, local_lock, schedule_report, utcnow
 
@@ -53,7 +53,8 @@ def run_pipeline(sub: Submission) -> tuple[dict, str | None]:
     shutil.rmtree(work, ignore_errors=True)
     cmd = [sys.executable, str(settings.repo_root / "verifier" / "verify.py"), sub.track,
            "--source", sub.source_repo, "--commit", sub.commit, "--json", "--keep", "--work", str(work),
-           "--hide", str(settings.data_dir)]
+           "--hide", str(settings.data_dir), "--archive-dir", str(source_archive.directory()),
+           "--archive-id", sub.id]
     timed_out = False
     proc = subprocess.Popen(cmd, cwd=settings.repo_root, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             text=True, start_new_session=True)
@@ -71,11 +72,19 @@ def run_pipeline(sub: Submission) -> tuple[dict, str | None]:
         shutil.copyfile(src_log, log_dst)
     else:
         log_dst.write_text(stdout + "\n" + stderr, encoding="utf-8")
+    archive, archive_error = None, None
+    try:
+        archive = source_archive.recover_metadata(sub)
+    except (source_archive.ArchiveError, OSError) as exc:
+        archive_error = str(exc)
     shutil.rmtree(work, ignore_errors=True)
+    if archive_error:
+        return {"status": "failed", "reason": "source archive integrity failure: " + archive_error}, str(log_dst)
     if timed_out:
         with log_dst.open("a", encoding="utf-8") as log:
             log.write("\n[pipeline exceeded its outer time limit]\n")
-        return {"status": "timeout", "reason": "pipeline exceeded its outer time limit"}, str(log_dst)
+        return {"status": "timeout", "reason": "pipeline exceeded its outer time limit",
+                "source_archive": archive}, str(log_dst)
     try:
         result = json.loads(stdout)
         if not isinstance(result, dict) or not isinstance(result.get("status"), str):
@@ -87,6 +96,10 @@ def run_pipeline(sub: Submission) -> tuple[dict, str | None]:
             raise ValueError("verified result does not match the queued head or claim limits")
     except (ValueError, TypeError):
         result = {"status": "failed", "reason": f"verify.py exited {proc.returncode} without a valid matching result"}
+    if result["status"] == "verified" and archive is None:
+        result = {"status": "failed", "reason": "verified result has no retained source archive"}
+    # Only trusted durable metadata, never the subprocess's claimed archive descriptor.
+    result["source_archive"] = archive
     return result, str(log_dst)
 
 
@@ -129,7 +142,8 @@ def verdict_entry(sub: Submission) -> dict:
     return {"id": sub.id, "track": sub.track, "commit": sub.commit, "status": sub.status, "claim": sub.claim,
             "duration_s": sub.duration_s,
             "finished_at": sub.finished_at.isoformat(timespec="microseconds") + "Z" if sub.finished_at else None,
-            "contract": sub.detail_dict.get("contract"), "record": bool(sub.is_record)}
+            "contract": sub.detail_dict.get("contract"), "record": bool(sub.is_record),
+            "source_archive": sub.detail_dict.get("source_archive")}
 
 
 def report(sub: Submission, history: list[dict] | None = None) -> int | None:
@@ -271,6 +285,12 @@ def process(sub_id: str) -> None:
             detail["notes"] = notes[:64 * 1024]
         else:
             detail.pop("notes", None)
+        if result.get("source_archive") is not None:
+            try:
+                detail["source_archive"] = source_archive.validate_metadata(result["source_archive"], sub)
+            except source_archive.ArchiveError:
+                sub.status = "failed"
+                detail["failure"] = {"code": "failed", "message": "invalid source archive metadata"}
         sub.detail = json.dumps(detail)
         promote(session, sub)
         schedule_report(session, sub)

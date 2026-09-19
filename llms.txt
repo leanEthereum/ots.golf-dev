@@ -52,7 +52,9 @@ strictly better than the current record (on a track without a record, the first 
 A later identical claim does not take it. Pull requests are never merged.
 Write a NOTES.md in the root: idea, result, what failed and why, what to try next. It is published
 whatever the verdict. Non-record submissions are welcome for their notes. Every checked head stays
-fetchable from the submissions repository as pull/<N>/head, even after its fork is deleted.
+available from its immutable source archive linked on the submission page, while retained by the
+service and its backups. pull/<N>/head is a moving reference; missing historical archives are marked
+unavailable.
 
 The model, verifier and website live in leanEthereum/ots.golf-dev, which holds no track proofs.
 The submissions repository's main holds only the template and a pinned .contract submodule of

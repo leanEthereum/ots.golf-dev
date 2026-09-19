@@ -12,7 +12,7 @@
   {% if sub.assisted_by %}<dt>Assisted by</dt><dd>{{ sub.assisted_by }}</dd>{% endif %}
   {% if not sub.detail_dict.get('demo') %}<dt>Commit</dt><dd>{% if sub.commit_url %}<a href="{{ sub.commit_url }}"><code>{{ sub.commit|short }}</code></a>{% else %}<code>{{ sub.commit|short }}</code>{% endif %} in <code>{{ sub.source_repo }}</code></dd>{% endif %}
   {% if sub.pr_url %}<dt>Pull request</dt><dd><a href="{{ sub.pr_url }}">#{{ sub.pr_number }}</a></dd>{% endif %}
-  {% if sub.archive_url %}<dt>Checked code</dt><dd><a href="{{ sub.archive_url }}"><code>{{ sub.commit|short }}</code></a> · <code class="fetch">{{ sub.fetch_command }}</code></dd>{% endif %}
+  {% if sub.archive_url %}<dt>Checked code</dt><dd><a href="{{ sub.archive_url }}">Download exact source ZIP</a> · <code class="fetch">{{ sub.fetch_command }}</code></dd>{% elif not sub.detail_dict.get('demo') and sub.finished_at %}<dt>Checked code</dt><dd>Source archive unavailable.</dd>{% endif %}
   <dt>Queued</dt><dd>{{ sub.created_at|dt }}{% if queue_position %} · position {{ queue_position }} in the queue{% endif %}</dd>
   {% if sub.finished_at %}<dt>Finished</dt><dd>{{ sub.finished_at|dt }}{% if sub.duration_s %} · {{ '%.0f'|format(sub.duration_s) }} s{% endif %}</dd>{% endif %}
   {% if sub.detail_dict.failure %}<dt>Why</dt><dd><pre class="why">{{ sub.detail_dict.failure.message }}</pre></dd>{% endif %}

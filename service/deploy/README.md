@@ -177,31 +177,40 @@ service. Keep one trusted checkout per worker and update it only while that work
 
 ### Rebuilding the server from nothing
 
-The database is a cache. Everything durable lives on GitHub: pull requests (author, description,
-attribution, head commits), each checked head's code and `NOTES.md` under
-`refs/pull/<N>/head` of the submissions repository, and every verdict in a hidden
-`<!-- ots-result ... -->` block of the verifier's own comment on the pull request. Keep only
-`/etc/ots/secrets.env` (token and webhook secret) outside the server; `public.env` is regenerated
-by the installer, and the webhook needs its secret to stay the same.
+GitHub comments retain verdict metadata, including the expected source archive digest. The exact
+source bytes are retained locally under `OTS_DATA_DIR/sources/`; they are required persistent state,
+not reconstructible from a moving `refs/pull/<N>/head` after a force-push. Keep an off-host backup of
+this directory, the database, logs and `/etc/ots/secrets.env`. No additional GitHub write permission
+is needed: the bot continues to write only commit statuses and PR comments.
 
-To rebuild: run `setup-server.sh` on a fresh host, restore `secrets.env`, repeat the acceptance
-checks, and start both services. At startup the website prepares the board (phony rows or nothing, see
-step 3 above) and runs `app.resync`, which restores every checked head from GitHub,
-replays the verified verdicts in the order their verifications finished (ties by PR number, then
-commit) to decide records, which keep their original dates, and queues any open head without a
-verdict. Submission IDs are derived from the pull request and commit, so every page link survives.
-Only old verifier transcripts are lost; rerun the verifier on the checked head to regenerate one.
-`OTS_RESYNC_ON_START=0` skips the startup resync, and `.venv/bin/python -m app.resync` runs it by
-hand as the web user.
+Before compiling a submission, the trusted verifier parent writes an uncompressed ZIP of its exact
+bounded source root and a manifest recording the resolved commit, track, contract and file hashes.
+Objects are named by SHA-256 and published atomically without replacement; a separate submission
+sidecar survives timeouts and permits a retry from the same bytes if GitHub no longer has the head.
+The archive directory is outside disposable work and hidden from the proof sandbox. An archive
+failure prevents compilation. Monitor its growth: source is retained for every successfully fetched
+root, including later rejected proofs, and must not be pruned while referenced by a submission.
+The writer reserves 64 MiB of free space for reporting failures; provision and monitor adequate
+persistent capacity rather than treating that reserve as a storage quota.
+
+To rebuild: install the trusted core, restore the database, `sources/`, logs and `secrets.env`, repeat
+the Linux acceptance checks, then start the services. Restore source files before enabling downloads.
+If the database is unavailable, `app.resync` can reconstruct historical verdict metadata from bot
+comments. A missing or corrupt source archive remains explicitly unavailable; a GitHub verdict or
+digest is not a backup of its source bytes. Do not substitute the PR's current head for missing code.
+`OTS_RESYNC_ON_START=0` skips startup resync; `.venv/bin/python -m app.resync` runs it as the web user.
 
 ### Backups
 
-A backup remains useful for a quick restore. Before an upgrade, stop both services and back up the database with SQLite's backup API and the logs:
-copying `ots.db` alone while WAL writes are active is not a consistent backup. For example, after
-creating a protected backup directory, run `sqlite3 /srv/ots/data/ots.db '.backup /backup/ots.db'` as
-root and copy `data/logs/`. Keep the backup private. Restore into a staging data directory and run
-`PRAGMA integrity_check` before relying on it. The additive `github_reports` table is created at
-startup; existing submission IDs, dates and results are preserved.
+Before an upgrade, stop both services and back up the database with SQLite's backup API, `sources/`
+and `logs/`. Copying `ots.db` alone while WAL writes are active is not a consistent backup. For
+example, run `sqlite3 /srv/ots/data/ots.db '.backup /backup/ots.db'` as root, then copy the complete
+archive directory, including both `<sha256>.zip` objects and `<submission-id>.json` sidecars. Keep
+backups off-host and protect credentials separately. Test a restoration into a staging data
+directory: run `PRAGMA integrity_check`, verify archive hashes, and download an older checked head
+after updating its PR. Historical verdicts must remain visible when an archive is unavailable,
+without claiming that its source is still downloadable. Restoring only GitHub metadata cannot
+restore lost archives or verifier transcripts.
 
 ### Upgrading from the single-user setup
 

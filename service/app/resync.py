@@ -1,12 +1,11 @@
-"""Rebuild the database from GitHub, so the server holds nothing that cannot be recreated.
+"""Rebuild verdict metadata from GitHub and reconnect retained source archives.
 
     .venv/bin/python -m app.resync
 
-GitHub keeps everything durable: pull requests (author, description, attribution, head commits),
-each head's code and NOTES.md under refs/pull/<N>/head, and every verdict in the hidden block of the
-verifier's own comment. A rebuild reads them back, decides records by replaying the verified verdicts
-in the order their verifications finished, and queues any open head that has no verdict yet. It only
-adds what is missing, so running it on a live database is harmless.
+GitHub comments preserve checked verdicts and expected archive digests. Exact historical source
+bytes require the separately backed-up data/sources store: moving pull-request refs cannot restore
+all earlier heads. Missing objects stay unavailable without changing historical proof verdicts.
+Replay recomputes the current record frontier; newer terminal verdicts reconcile older results.
 """
 from __future__ import annotations
 
@@ -16,7 +15,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
-from . import auth, contract, github
+from . import auth, contract, github, source_archive
 from .config import settings
 from .db import SessionLocal, Submission, init_db, local_lock, pr_submission_id, legacy_pr_submission_id
 
@@ -99,7 +98,16 @@ def resync(queue_open_heads: bool = True) -> dict:
                 detail = {"contract": v.get("contract"), "restored": True, "recorded_record": v.get("record") is True}
                 if type(comment_id) is int:
                     detail["github_comment_id"] = comment_id
-                notes = github.read_file(repo, f'{t["submission_root"]}/NOTES.md', v["commit"])
+                if v.get("source_archive") is not None:
+                    probe = Submission(track=v["track"], commit=v["commit"], detail=json.dumps(detail))
+                    try:
+                        detail["source_archive"] = source_archive.validate_metadata(v["source_archive"], probe)
+                    except source_archive.ArchiveError:
+                        pass  # malformed archive metadata never fabricates availability
+                probe = Submission(track=v["track"], commit=v["commit"], detail=json.dumps(detail))
+                notes = source_archive.read_notes(probe)
+                if notes is None:
+                    notes = github.read_file(repo, f'{t["submission_root"]}/NOTES.md', v["commit"])
                 if notes and notes.strip():
                     detail["notes"] = notes.strip()
                 values = dict(

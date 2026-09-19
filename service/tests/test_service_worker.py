@@ -60,6 +60,16 @@ class ServiceWorkerTests(unittest.TestCase):
             session.commit()
             return sub
 
+    def retain_source(self, sub):
+        from app import source_archive
+        root = self.data / ('input-' + sub.id)
+        root.mkdir(exist_ok=True)
+        (root / 'Solution.lean').write_text('-- original checked source\n')
+        (root / 'claim.txt').write_text('19\n')
+        return source_archive.archives.save_source(source_archive.directory(), sub.id, root,
+            source_repo=sub.source_repo, commit=sub.commit, track=sub.track,
+            submission_root=contract.track(sub.track)['submission_root'], contract=sub.detail_dict['contract'])
+
     def verify(self, sub, claim=19, status='verified'):
         """Let the worker finish checking `sub` with the given verdict."""
         result = {'status': status, 'claim': claim, 'commit': sub.commit, 'tail': 'bad proof'}
@@ -184,6 +194,7 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertEqual(sub.source_repo, 'https://github.com/alice/entries.git')
             self.assertEqual(sub.commit, 'b' * 40)
             result = {'status': 'verified', 'track': sub.track, 'commit': sub.commit, 'claim': 1}
+            self.retain_source(sub)
             proc = Mock(returncode=0)
             proc.communicate.return_value = (json.dumps(result), '')
             with patch('app.worker.subprocess.Popen', return_value=proc) as launch:
@@ -680,6 +691,9 @@ class ServiceWorkerTests(unittest.TestCase):
     def test_pipeline_rejects_forged_or_inconsistent_success_metadata(self):
         sub = self.submission()
         valid = {'status': 'verified', 'track': 'lower-generality-2', 'claim': 19, 'commit': sub.commit}
+        self.assertEqual(self.pipeline(sub, valid)['status'], 'failed')  # no durable source
+        metadata = self.retain_source(sub)
+        self.assertEqual(self.pipeline(sub, valid)['source_archive'], metadata)
         self.assertEqual(self.pipeline(sub, valid)['status'], 'verified')
         for changes in ({'track': 'no-such-track'}, {'claim': True}, {'claim': -1}, {'claim': 1000001},
                         {'commit': 'b' * 40}, {'claim': None}):
@@ -689,14 +703,70 @@ class ServiceWorkerTests(unittest.TestCase):
 
     def test_pipeline_outer_timeout_stops_group_and_preserves_log(self):
         sub = self.submission()
+        metadata = self.retain_source(sub)
         proc = Mock(pid=12345, returncode=-15)
         proc.communicate.side_effect = [subprocess.TimeoutExpired('verify', 1), ('partial output', '')]
         with patch('app.worker.subprocess.Popen', return_value=proc), patch('app.worker.os.killpg') as kill:
             result, log_path = worker.run_pipeline(sub)
         kill.assert_called_once_with(12345, worker.signal.SIGTERM)
         self.assertEqual(result['status'], 'timeout')
+        self.assertEqual(result['source_archive'], metadata)
         self.assertIn('partial output', Path(log_path).read_text())
         self.assertIn('outer time limit', Path(log_path).read_text())
+
+    def test_source_archive_survives_source_changes_and_missing_archive_is_explicit(self):
+        import hashlib
+        from app import source_archive
+        sub = self.submission(claim=None, status='pending')
+        metadata = self.retain_source(sub)
+        with patch('app.worker.run_pipeline', return_value=({'status': 'verified', 'claim': 19,
+                  'commit': sub.commit, 'source_archive': metadata}, None)):
+            worker.process(sub.id)
+        # Moving/deleting the original source cannot change this download.
+        (self.data / ('input-' + sub.id) / 'Solution.lean').write_text('-- replaced after force-push')
+        with self.sessions() as session:
+            checked = session.get(Submission, sub.id)
+            self.assertEqual(worker.verdict_entry(checked)['source_archive'], metadata)
+            self.assertNotIn('pull/7/head', checked.fetch_command)
+            main.app.dependency_overrides[main.get_session] = lambda: session
+            try:
+                with TestClient(main.app) as client:
+                    response = client.get(f'/submissions/{sub.id}/source.zip')
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(hashlib.sha256(response.content).hexdigest(), metadata['sha256'])
+                    self.assertIn('Download exact source ZIP', client.get(f'/submissions/{sub.id}').text)
+                    source_archive.validated_path(checked).unlink()
+                    self.assertEqual(client.get(f'/submissions/{sub.id}/source.zip').status_code, 404)
+                    self.assertIn('Source archive unavailable.', client.get(f'/submissions/{sub.id}').text)
+                    self.assertEqual(checked.status, 'verified')
+            finally:
+                main.app.dependency_overrides.clear()
+
+    def test_resync_retains_archive_identity_even_when_archive_bytes_are_missing(self):
+        from app import github, resync, source_archive
+        sub = self.submission()
+        meta = self.retain_source(sub)
+        sub.finished_at = utcnow()
+        sub.detail = json.dumps({'contract': contract.contract_id(), 'source_archive': meta})
+        result = worker.verdict_entry(sub)
+        source_archive.validated_path(sub).unlink()
+        with self.sessions() as session:
+            session.delete(session.get(Submission, sub.id))
+            session.commit()
+        pulls = [{'number': 7, 'state': 'closed', 'user': {'login': 'proof-author'},
+                  'head': {'sha': sub.commit, 'repo': None}}]
+        comments = [{'id': 1, 'user': {'login': 'ots-bot'}, 'body': github.verdict_block([result])}]
+        with patch.object(settings, 'github_token', 'test'), patch.object(settings, 'bot_login', 'ots-bot'), \
+             patch('app.resync.SessionLocal', self.sessions), \
+             patch('app.resync.github.list_pulls', return_value=pulls), \
+             patch('app.resync.github.list_comments', return_value=comments), \
+             patch('app.resync.github.read_file', return_value=None):
+            self.assertEqual(resync.resync()['restored'], 1)
+        with self.sessions() as session:
+            restored = session.get(Submission, sub.id)
+            self.assertEqual(restored.detail_dict['source_archive'], meta)
+            self.assertEqual(restored.status, 'verified')
+            self.assertIsNone(restored.archive_url)
 
     def test_pipeline_termination_escalates_if_graceful_shutdown_stalls(self):
         proc = Mock(pid=12345)

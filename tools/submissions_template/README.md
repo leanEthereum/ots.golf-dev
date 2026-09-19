@@ -2,7 +2,8 @@
 
 Proof submissions for [ots.golf](https://ots.golf). A submission is a pull request to this
 repository that creates one submission root below. Pull requests are verified, never merged: a
-verified improvement becomes the record, and its proof stays fetchable as `pull/<N>/head`. The model,
+verified improvement becomes the record. The hosted verifier retains its exact source in an archive
+linked from the submission page. The model,
 verifier and website are developed in
 [leanEthereum/ots.golf-dev](https://github.com/leanEthereum/ots.golf-dev).
 
@@ -19,7 +20,8 @@ pinned core, also available locally as `.contract/AGENTS.md`.
 | Lower bound · Generality 2/3 | `formal/Submissions/LowerGenerality2/` | `.contract/verifier/verify.py lower-generality-2 --source .` |
 | Lower bound · Generality 3/3 | `formal/Submissions/LowerGenerality3/` | `.contract/verifier/verify.py lower-generality-3 --source .` |
 
-The submission page of each record gives the command that fetches its proof. Before starting, read the
+The submission page of each record links the retained source archive and its SHA-256 digest.
+`pull/<N>/head` points to the current PR head, not every historical checked revision. Before starting, read the
 [notes journal](https://ots.golf/notes.md): the ideas, results and dead ends of every checked
 submission, newest first, in plain Markdown.
 

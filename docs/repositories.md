@@ -26,8 +26,10 @@ head, using its own core checkout for every protected file and verification tool
 Verification results are reported to the PR in the submissions repository as a commit status and
 a comment. A verified improvement becomes the record: the first verified head whose claim strictly
 improves the track's record when its verification finishes; on a track without a record, the first
-verified head. Pull requests are never merged; each record's proof stays fetchable as
-`pull/<N>/head`. Submissions never change the model, website, or trusted checkout. Repository
+verified head. Pull requests are never merged. Before compilation, the hosted verifier retains
+the exact root in a source archive linked from the submission page; operators back up these archives.
+The GitHub reference `pull/<N>/head` moves on later pushes and is not a historical archive.
+Submissions never change the model, website, or trusted checkout. Repository
 identity is retained in each PR URL, so moving intake does not send old result comments to an
 unrelated PR with the same number.
 

@@ -499,6 +499,10 @@ before. Nothing was pushed or deployed.
 
 ## Stateless server: the database is a cache of GitHub (2026-09-19)
 
+**Superseded:** the retention claim in this historical section was incorrect: PR head references
+move on later pushes. The current verifier retains exact source archives locally, and operators
+must back them up. See the [current recovery procedure](../../service/deploy/README.md#rebuilding-the-server-from-nothing).
+
 The server no longer holds anything that cannot be recreated. Verdicts are written into a hidden,
 machine-readable block of the verifier's own pull-request comment (every checked head of that PR:
 track, commit, status, claim, duration, finish time, contract id, record flag), submission IDs are

@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+import hashlib
 import json
 import os
 import platform
@@ -45,6 +46,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from contract import LEAN_FILE_RE, ContractError, load_challenges, repo_root, track  # noqa: E402
 from linux_storage import linux_work_preflight  # noqa: E402
+from source_archive import ArchiveError, read_metadata, restore_source, save_source  # noqa: E402
 
 
 LOG_CAP = 4 * 1024 * 1024        # bytes of comparator output kept; the rest is read and dropped
@@ -298,9 +300,13 @@ def main() -> int:
     ap.add_argument("--hide", type=Path, action="append", default=[],
                     help="Linux: make every entry of this directory inaccessible to the proof, "
                          "except the one containing the work directory")
+    ap.add_argument("--archive-dir", type=Path, help="durable source store, outside disposable work")
+    ap.add_argument("--archive-id", help="32-digit submission id; required with --archive-dir")
     ap.add_argument("--keep", action="store_true", help="keep the work directory")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
+    if bool(a.archive_dir) != bool(a.archive_id) or (a.archive_dir and not a.commit):
+        ap.error("--archive-dir and --archive-id require each other and an exact --commit")
 
     trusted = (a.trusted or repo_root()).resolve()
     cfg = load_challenges(trusted)
@@ -309,6 +315,10 @@ def main() -> int:
     lean_root = cfg.get("lean_root", ".")
     warm_lake = (a.lake or trusted / lean_root / ".lake").resolve()
     work = (a.work or Path(tempfile.mkdtemp(prefix="ots-verify-"))).absolute()
+    if a.archive_dir:
+        a.archive_dir = a.archive_dir.resolve()
+        if a.archive_dir.is_relative_to(work.resolve()) or work.resolve().is_relative_to(a.archive_dir):
+            ap.error("source archive storage must be separate from disposable work")
     if a.work:
         # This directory is removed after successful runs; never adopt an existing path.
         try:
@@ -364,9 +374,24 @@ def main() -> int:
             linux_work_preflight(work, trusted, warm_lake)
         # 1. submission root only
         staged = work / "staged"
-        result["commit"] = export_submission(a.source, a.commit, t["submission_root"], staged,
-                                              max_files=lim["max_files"], max_file_bytes=lim["max_file_bytes"],
-                                              max_total_bytes=lim["max_total_bytes"])
+        archive_contract = hashlib.sha256((trusted / cfg["contract"]["pin_file"]).read_bytes()).hexdigest() if a.archive_dir else None
+        retained = read_metadata(a.archive_dir, a.archive_id) if a.archive_dir else None
+        if retained is not None:
+            result["commit"] = restore_source(a.archive_dir, retained, staged, commit=a.commit,
+                                               track=a.track, contract=archive_contract,
+                                               submission_root=t["submission_root"])
+            result["source_archive"] = retained
+        else:
+            result["commit"] = export_submission(a.source, a.commit, t["submission_root"], staged,
+                                                  max_files=lim["max_files"], max_file_bytes=lim["max_file_bytes"],
+                                                  max_total_bytes=lim["max_total_bytes"])
+            if a.archive_dir:
+                if result["commit"] != a.commit:
+                    raise ArchiveError("archive retention requires the exact resolved commit")
+                # The trusted parent publishes durable bytes before any candidate code executes.
+                result["source_archive"] = save_source(a.archive_dir, a.archive_id,
+                    staged / t["submission_root"], source_repo=a.source, commit=result["commit"],
+                    track=a.track, submission_root=t["submission_root"], contract=archive_contract)
         notes = read_notes(staged / t["submission_root"])
         if notes:
             result["notes"] = notes
@@ -431,6 +456,8 @@ def main() -> int:
             unit = f"ots-verify-{uuid.uuid4().hex[:12]}"
             hidden = [entry for d in a.hide if d.is_dir() for entry in sorted(d.resolve().iterdir())
                       if entry not in work.resolve().parents and entry != work.resolve()]
+            if a.archive_dir:
+                hidden.append(a.archive_dir)
             cmd = linux_command(cmd, project / lean_root, sandbox_env, lim, unit, hidden)
             runtime = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
             cenv = {"PATH": path, "HOME": home, "XDG_RUNTIME_DIR": runtime,
@@ -472,7 +499,7 @@ def main() -> int:
     except PolicyReject as exc:
         log_path.write_text(str(exc) + "\n")
         return finish("policy_rejected", errors=[str(exc)])
-    except (ContractError, OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+    except (ArchiveError, ContractError, OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         detail = getattr(exc, "stderr", "") or str(exc)
         log_path.write_text(str(detail))
         return finish("failed", reason=str(detail)[-2000:])
