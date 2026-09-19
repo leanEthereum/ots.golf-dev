@@ -4,7 +4,7 @@ Scope: the pinned DAG, generic-algorithm, whole-word and RISC-V contracts, their
 semantics, the internal lower-bound witnesses kept in this core (`formal/Witnesses/`), and the
 reference proofs (submission roots kept in the submissions repository). The lower bounds are
 generic **1**, unrestricted DAG **18**, and whole-word DAG **90**. Generic upper has a complete
-**106** certificate, including perfect correctness, deterministic verification and signing failure
+**104** certificate, including perfect correctness, deterministic verification and signing failure
 at most `2^-128`; RISC-V upper has a **1628**-cycle certificate. Both witnesses are secure schemes
 at **106**. This
 document covers mathematical scope; operational launch gates are in
@@ -76,10 +76,11 @@ The generic upper challenge fixes signing failure at most `2^-128` and requires 
 of admissibility, strong security, and pathwise verification cost. Its forest certificate uses the
 same programs and exact security experiment as the historical DAG construction. Correctness is
 proved for every DAG adapter via cache consistency and reconstruction. Availability is proved for
-the forest: its key-generation inputs have lengths 144, 400, or 912, so all distinct 384-bit signing
+the forest: its key-generation inputs have lengths 144, 400, or 784, so all distinct 384-bit signing
 inputs are fresh. Failure is `(8191/8192)^(2^20) ≤ 2^-128`, for every message chosen as a
 function of the public key. Its proofs form an independent `UpperCompressions` submission
-root; the internal Generality 2/3 witness proves the same forest separately. See [the proof map](upper-compressions.md).
+root, for a 54-chain forest with six subtrees (104); the internal Generality 2/3 witness proves
+the original 63-chain forest (106) separately. See [the proof map](upper-compressions.md).
 
 `WholeWords.lean` restricts the existing DAG syntax: independent 128-bit sources, fixed public 128-bit
 words, 256-bit hashes, fixed low/high output halves, and concatenation of earlier complete values. Repetition, reordering,
@@ -121,9 +122,9 @@ This contradicts weak security. No assumption about distinct hash inputs or
 independent node outputs is used. The elementary index-plus-root bound 2 remains
 available as a separate lemma.
 
-The upper certificate remains 106. Its concrete scheme prepends a 16-bit tweak
+The upper certificate is 104. Its concrete scheme prepends a 16-bit tweak
 to every node input; those bits are included in the charged input lengths (144,
-400 and 912 bits). This is a choice made by that scheme, not a restriction on
+400 and 784 bits). This is a choice made by that scheme, not a restriction on
 schemes considered by the lower theorem.
 
 The former lower bound 25 relied on distinct oracle labels. Two proposed

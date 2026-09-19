@@ -1,10 +1,10 @@
 """The forest scheme, drawn as the iris of an eye.
 
-Root at the center; 7 subtree digests around it; 3 group digests under each; 3 hash chains of 14
-beads under each group, radiating outward to their 63 secret sources. One real signature is lit on
+Root at the center; 6 subtree digests around it; 3 group digests under each; 3 hash chains of 14
+beads under each group, radiating outward to their 54 secret sources. One real signature is lit on
 it (revealed values, recomputed nodes, untouched beads), drawn uniformly from the disclosure family
-of `Cuts.lean`: the cuts of reconstruction cost 105 with at most 41 revealed values, of the three
-shapes (revealed subtrees, revealed groups, chain cost) = (2, 3, 86), (1, 7, 86), (2, 4, 87).
+of `Cuts.lean`: the cuts of reconstruction cost 103 with at most 42 revealed values, of the three
+shapes (revealed subtrees, revealed groups, chain cost) = (1, 2, 83), (0, 6, 83), (1, 3, 84).
 Every element carries its role and indices as data attributes, so the page's script can light a
 fresh uniform signature while the eye is closed and draw its verification as current flowing from
 the revealed values to the root; the server-rendered signature, fully lit, is the frame without script.
@@ -16,8 +16,8 @@ from __future__ import annotations
 import math
 from functools import lru_cache
 
-CHAINS, LEN, PER_G, PER_E, NUM_E = 63, 14, 3, 3, 7
-SHAPES = ((2, 3, 86), (1, 7, 86), (2, 4, 87))        # (|E|, |G|, chain cost); root 2 + digests + chains = 105
+CHAINS, LEN, PER_G, PER_E, NUM_E = 54, 14, 3, 3, 6
+SHAPES = ((1, 2, 83), (0, 6, 83), (1, 3, 84))        # (|E|, |G|, chain cost); root 2 + digests + chains = 103
 CX, CY = 430, 280
 # Leave space for the pupil while retaining the scheme's radial ordering.
 R_E, R_G, R_TIP, STEP = 73.64, 97.2, 120, 5.89
@@ -48,7 +48,7 @@ def active_chains(e: int, g: int) -> int:
 
 
 def shape_weights() -> list[int]:
-    """The number of disclosure sets of each shape: C(7, e) · C(21 - 3e, g) · ways."""
+    """The number of disclosure sets of each shape: C(6, e) · C(18 - 3e, g) · ways."""
     return [math.comb(NUM_E, e) * math.comb(NUM_E * PER_E - PER_E * e, g) * ways()[active_chains(e, g)][c]
             for e, g, c in SHAPES]
 
@@ -76,8 +76,8 @@ def signature_cut(seed: int = 0x6f74732e676f6c66) -> dict:
         t_by_chain[k] = LEN - c
         budget -= c
     total = 2 + len(open_e) + len(open_g) + sum(LEN - t for t in t_by_chain.values())
-    assert budget == 0 and total == 105, (budget, total)
-    assert len(revealed_e) + len(revealed_g) + len(t_by_chain) <= 41
+    assert budget == 0 and total == 103, (budget, total)
+    assert len(revealed_e) + len(revealed_g) + len(t_by_chain) <= 42
     return {"open_e": open_e, "open_g": open_g, "revealed_e": revealed_e, "revealed_g": revealed_g,
             "t": t_by_chain}
 

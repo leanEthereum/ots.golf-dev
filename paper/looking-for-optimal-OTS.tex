@@ -22,7 +22,7 @@
 \maketitle
 
 \begin{abstract}
-We study the verification cost of graph-based hash-based one-time signatures with one bare random oracle on bit strings. The model provides no labels, tweaks, or domain separation. With a 128-bit public key, signatures of at most 5504 bits, a 1024-compression key-generation budget, and the stated 127-bit security requirement, every weakly secure scheme has a signature costing at least 18 compressions to verify. A concrete strongly secure scheme verifies every signature in 106. Both bounds are proved in Lean and accepted by the official verifier. The lower proof uses repeated reconstruction patterns and fresh message domains in the actual oracle cache. We also exhibit counterexamples to the proposed fresh-coordinate entropy lemmas used to suggest a bare-oracle lower bound of 24.
+We study the verification cost of graph-based hash-based one-time signatures with one bare random oracle on bit strings. The model provides no labels, tweaks, or domain separation. With a 128-bit public key, signatures of at most 5504 bits, a 1024-compression key-generation budget, and the stated 127-bit security requirement, every weakly secure scheme has a signature costing at least 18 compressions to verify. A concrete strongly secure scheme verifies every signature in 104. Both bounds are proved in Lean and accepted by the official verifier. The lower proof uses repeated reconstruction patterns and fresh message domains in the actual oracle cache. We also exhibit counterexamples to the proposed fresh-coordinate entropy lemmas used to suggest a bare-oracle lower bound of 24.
 \end{abstract}
 
 \setcounter{tocdepth}{2}
@@ -35,7 +35,7 @@ A graph-based one-time signature reveals values of a fixed computation on secret
 The oracle accepts only a bit string, including its length. Equal strings at different graph nodes receive the same answer. A graph query can also equal the message-and-nonce query that chooses the disclosure index. A lower bound must cover these cases without imposing any separation condition on the scheme.
 
 \paragraph{Verified bounds.}
-The lower certificate establishes 18 compressions for every weakly secure scheme, without any condition on its hash inputs. The strongly secure upper certificate establishes 106. Sections~\ref{sec:patterns}--\ref{sec:attack} prove the lower bound using reconstruction patterns and the bare oracle's cache. No lower bound of 24 or 25 is claimed for this model.
+The lower certificate establishes 18 compressions for every weakly secure scheme, without any condition on its hash inputs. The strongly secure upper certificate establishes 104 (Section~\ref{sec:scheme} describes the 106-compression forest and its six-subtree variant at 104). Sections~\ref{sec:patterns}--\ref{sec:attack} prove the lower bound using reconstruction patterns and the bare oracle's cache. No lower bound of 24 or 25 is claimed for this model.
 
 \paragraph{Proof idea for 18.}
 If every verification costs at most 17, it evaluates at most 15 nonroot hash nodes. Key generation evaluates at most 1024 hash nodes, giving fewer than $2^{110}$ possible reconstruction patterns. There are $2^{115}$ disclosure indices, so at least three quarters of the indices share their pattern with at least seven other indices. An honest signature can be converted to any disclosure with the same pattern without another node query: an algebraic candidate consistent with the observations makes exactly the already checked queries.
@@ -332,6 +332,9 @@ A cut in $D$ has at most 41 values of 128 bits, so it reveals at most 5248 bits 
 \]
 one compression for the index and 105 for reconstruction.
 
+\paragraph{Six subtrees: 104 compressions.}
+With the signature limit of 5504 bits, a signature carries a 128-bit nonce and up to 42 values. The same construction with 54 chains of length 14, 18 group digests, 6 subtree digests and a root of six children then verifies in 104 compressions. The root absorbs $16+6\cdot128=784$ bits and still costs two compressions, and key generation costs $54\cdot14+18+6+2=782$. The disclosure family takes the cuts of reconstruction cost 103 of the three shapes $(a,b,s)\in\{(1,2,83),(0,6,83),(1,3,84)\}$, with $\binom6a\binom{18-3a}b\,c(3(18-3a-b),s)$ cuts each and at most 42 values; together they contain $45248337822211545881075429737370574>2^{115}$ cuts. Every signature verifies in $1+103=104$ compressions, and the proof below applies unchanged with $912$ replaced by $782$: $\Pr[\mathrm{Forge}]\le(B-782)/2^{127}$. This is the certificate of the \texttt{UpperCompressions} submission root.
+
 \paragraph{Why equal cost.}
 If one cut evaluates a strict subset of the nodes evaluated by another, it costs strictly less, because every hash node costs at least one compression. Two distinct cuts of equal cost are therefore incomparable: each one reveals a node that the other evaluates. This is what the security proof uses, and it is the only property of $D$ that it needs.
 
@@ -445,6 +448,6 @@ The main modules of the \texttt{LowerGenerality2} submission root are:
 \end{center}
 The exported theorem depends only on \texttt{propext}, \texttt{Quot.sound}, and \texttt{Classical.choice}.
 
-It uses no \texttt{sorry} or \texttt{native\_decide}. The accepted upper certificate remains 106 and was not modified by the lower-bound work.
+It uses no \texttt{sorry} or \texttt{native\_decide}. The accepted upper certificate is 104 (the six-subtree forest); the lower-bound work did not modify it.
 
 \end{document}
