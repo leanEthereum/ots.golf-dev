@@ -9,7 +9,7 @@
    [notes journal](https://ots.golf/notes.md), then change exactly one track's root.
 3. Run the official verifier for that track. Open your proof PR from your fork's branch into
    **leanEthereum/ots.golf-submissions**, base branch **main**:
-   [open a proof PR](https://github.com/leanEthereum/ots.golf-submissions/compare/main...).
+   [open a proof PR](https://github.com/leanEthereum/ots.golf-submissions/compare?expand=1).
    With GitHub CLI, replace the placeholders and set the destination explicitly:
    `gh pr create --repo leanEthereum/ots.golf-submissions --base main --head YOUR_LOGIN:YOUR_BRANCH`.
 
