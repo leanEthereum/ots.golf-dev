@@ -15,6 +15,22 @@ def mount_path(value: str) -> Path:
     return Path(re.sub(r"\\([0-7]{3})", lambda match: chr(int(match[1], 8)), value))
 
 
+def loop_backing_file(loop: Path) -> Path | None:
+    """The image file behind a loop device, from sysfs; None if unreadable or deleted."""
+    try:
+        with open(loop / "backing_file", encoding="utf-8") as handle:
+            name = handle.read().strip()
+    except OSError:
+        return None
+    return Path(name) if name and not name.endswith("(deleted)") else None
+
+
+def image_allocation(image: Path) -> tuple[int, int]:
+    """The image's apparent size and the bytes actually allocated to it on disk."""
+    info = os.stat(image)
+    return info.st_size, info.st_blocks * 512
+
+
 def linux_work_preflight(work: Path, trusted: Path, warm_lake: Path | None = None) -> None:
     configured = os.environ.get("OTS_WORK_DIR")
     if not configured:
@@ -38,10 +54,16 @@ def linux_work_preflight(work: Path, trusted: Path, warm_lake: Path | None = Non
         raise ContractError("work storage must be a dedicated ext4, xfs or bounded tmpfs filesystem")
     if any(mount != volume and mount.is_relative_to(volume) for mount, *_ in mounts):
         raise ContractError("nested mounts inside OTS_WORK_DIR are not allowed")
-    if Path(f"/sys/dev/block/{os.major(device)}:{os.minor(device)}/loop").exists():
-        # A sparse loop image can exhaust its host filesystem before the inner volume fills.
-        # Determining reserved extents across CoW filesystems is not a reliable unprivileged check.
-        raise ContractError("loop-backed work storage is not supported; use a dedicated block filesystem or bounded tmpfs")
+    loop = Path(f"/sys/dev/block/{os.major(device)}:{os.minor(device)}/loop")
+    if loop.exists():
+        # A sparse image could exhaust its host filesystem before the inner volume fills, so a
+        # loop-backed volume is accepted only when every byte of its image is already allocated.
+        backing = loop_backing_file(loop)
+        if backing is None:
+            raise ContractError("cannot read the backing file of the loop-backed work volume")
+        size, allocated = image_allocation(backing)
+        if allocated < size:
+            raise ContractError("the loop-backed work volume's image must be fully allocated (fallocate), not sparse")
 
     size = os.statvfs(volume)
     capacity = size.f_blocks * size.f_frsize

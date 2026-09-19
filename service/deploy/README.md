@@ -50,12 +50,12 @@ before public launch, and day-to-day operations. For local development see the
    including reads of another process's environment. Production worker startup refuses GitHub
    credentials. Do not run both services as the same user.
 
-3. Provision a dedicated ext4 or xfs volume at `/srv/ots-work`, at most 64 GiB, and persist its mount
-   through `/etc/fstab`. The installer creates only the mountpoint; it does not repartition or mount
-   disks. After mounting, give its root to `ots:ots-state` with mode `2770`. Loop-backed filesystems
-   are refused: checking their capacity does not establish reserved physical space on the host.
-   A bounded tmpfs is also supported, but its pages consume RAM; size it within the host memory
-   budget. Do not put the database, logs, trusted checkout or warm cache on this volume.
+3. Job storage at `/srv/ots-work`, at most 64 GiB. The installer creates it: a fully allocated
+   48 GiB image, `/var/lib/ots-work.img` (root only, made with `fallocate`, never sparse), formatted
+   ext4 and mounted through `/etc/fstab` at every boot, root owned by `ots:ots-state` with mode
+   `2770`. The verifier accepts a loop-backed volume only when its image is fully allocated, so the
+   volume cannot outgrow the space reserved on the system disk. A dedicated block volume or a
+   bounded tmpfs also works. Do not put the database, logs, trusted checkout or warm cache on it.
 
    `OTS_WORK_DIR=/srv/ots-work` and `TMPDIR=/srv/ots-work` in `public.env` put both job directories and
    temporary Git clones on the bounded volume. Each verification checks the mount, filesystem type,

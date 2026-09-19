@@ -461,11 +461,28 @@ class LinuxStorageTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "cache"):
             linux_work_preflight(self.work, self.trusted, cache)
 
-    def test_loop_backed_volume_is_rejected(self):
+    def loop_volume(self, allocated_blocks):
         original_exists = Path.exists
-        with patch("linux_storage.Path.exists", lambda path: str(path) == "/sys/dev/block/0:2/loop" or original_exists(path)):
-            with self.assertRaisesRegex(ContractError, "loop-backed"):
-                linux_work_preflight(self.work, self.trusted)
+        return (patch("linux_storage.Path.exists",
+                      lambda path: str(path) == "/sys/dev/block/0:2/loop" or original_exists(path)),
+                patch("linux_storage.loop_backing_file", return_value=Path("/var/lib/ots-work.img")),
+                patch("linux_storage.image_allocation", return_value=(4096 * 8, allocated_blocks * 512)))
+
+    def test_fully_allocated_loop_volume_is_allowed(self):
+        exists, backing, stat = self.loop_volume(allocated_blocks=8 * 8)
+        with exists, backing, stat:
+            linux_work_preflight(self.work, self.trusted)
+
+    def test_sparse_loop_volume_is_rejected(self):
+        exists, backing, stat = self.loop_volume(allocated_blocks=8)
+        with exists, backing, stat, self.assertRaisesRegex(ContractError, "fully allocated"):
+            linux_work_preflight(self.work, self.trusted)
+
+    def test_loop_volume_with_unreadable_backing_file_is_rejected(self):
+        exists, _, stat = self.loop_volume(allocated_blocks=64)
+        with exists, stat, patch("linux_storage.loop_backing_file", return_value=None), \
+                self.assertRaisesRegex(ContractError, "backing file"):
+            linux_work_preflight(self.work, self.trusted)
 
     def test_bounded_tmpfs_is_allowed(self):
         self.fs = "tmpfs"

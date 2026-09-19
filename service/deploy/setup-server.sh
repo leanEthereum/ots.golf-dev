@@ -51,6 +51,20 @@ usermod -aG ots-state ots
 id -u ots-web >/dev/null 2>&1 || useradd --system --create-home --home-dir /var/lib/ots-web --gid ots-state --shell /usr/sbin/nologin ots-web
 install -d -o ots -g ots-state -m 2770 "${OTS_HOME}/data" "${OTS_HOME}/data/logs" /srv/ots-work
 chmod o+x "${OTS_HOME}"
+# Bounded job storage: a fully allocated (not sparse) 48 GiB image on the system disk, mounted at
+# /srv/ots-work at every boot. A runaway proof can fill only this volume.
+work_image=/var/lib/ots-work.img
+if ! mountpoint -q /srv/ots-work; then
+  if [[ ! -f "${work_image}" ]]; then
+    fallocate -l 48G "${work_image}"
+    chmod 600 "${work_image}"
+    mkfs.ext4 -q -m 0 "${work_image}"
+  fi
+  grep -q "^${work_image} " /etc/fstab || echo "${work_image} /srv/ots-work ext4 loop,nosuid,nodev 0 2" >> /etc/fstab
+  mount /srv/ots-work
+fi
+chown ots:ots-state /srv/ots-work
+chmod 2770 /srv/ots-work
 loginctl enable-linger ots   # systemd --user for the sandbox scope of the worker
 # Only ots-web receives secrets. The verifier's different Unix identity must never receive them,
 # including through /proc/<pid>/environ. The shared group grants database/log access, not credentials.
@@ -95,4 +109,4 @@ sed -i "s/^MemoryMax=.*/MemoryMax=${cap}G/" /etc/systemd/system/ots-worker.servi
 sed "s/{{DOMAIN}}/${OTS_DOMAIN}/" "${OTS_HOME}/repo/service/deploy/Caddyfile" > /etc/caddy/Caddyfile
 systemctl daemon-reload
 systemctl enable ots-web ots-worker caddy
-echo "installed, not started. Mount bounded job storage at /srv/ots-work, configure /etc/ots/secrets.env and complete deploy/README.md's Linux acceptance checks before public admission."
+echo "installed, not started. Configure /etc/ots/secrets.env and complete deploy/README.md's Linux acceptance checks before public admission."
