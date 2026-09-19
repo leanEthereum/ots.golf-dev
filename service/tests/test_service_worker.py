@@ -465,10 +465,10 @@ class ServiceWorkerTests(unittest.TestCase):
     def test_resync_decides_records_in_verification_finish_order(self):
         from app import github, resync
         from app.db import pr_submission_id
-        # (PR, commit, claim, finished_at, record flag in the comment: ignored by the rebuild)
+        # (PR, commit, claim, finished_at, original bot record flag for legacy timestamp ties)
         heads = [(5, 'e' * 40, 20, '2026-09-12T00:00:00Z', True),    # a later copy of the record
                  (6, 'a' * 40, 19, '2026-09-10T00:00:00Z', False),   # improves 18
-                 (8, 'c' * 40, 20, '2026-09-11T00:00:00Z', True),    # same second as #7: #7 wins the tie
+                 (8, 'c' * 40, 20, '2026-09-11T00:00:00Z', True),    # same second as #7: preserve the bot's recorded winner
                  (7, 'b' * 40, 20, '2026-09-11T00:00:00Z', False),   # improves 19 (listed after #8)
                  (9, 'd' * 40, 18, '2026-09-09T00:00:00Z', True)]    # the track's first verified head
         pulls, comments = [], {}
@@ -489,9 +489,55 @@ class ServiceWorkerTests(unittest.TestCase):
         with self.sessions() as session:
             record = {n: session.get(Submission, legacy_pr_submission_id('owner/repo', n, c)).is_record
                       for n, c, *_ in heads}
-            self.assertEqual(record, {5: False, 6: True, 7: True, 8: False, 9: True})
-            self.assertEqual(records.current_record(session, 'lower-generality-2').pr_number, 7)
-            self.assertEqual([s.pr_number for s in records.frontier(session, 'lower-generality-2')], [7, 6, 9])
+            self.assertEqual(record, {5: False, 6: True, 7: False, 8: True, 9: True})
+            self.assertEqual(records.current_record(session, 'lower-generality-2').pr_number, 8)
+            self.assertEqual([s.pr_number for s in records.frontier(session, 'lower-generality-2')], [8, 6, 9])
+
+    def test_replay_preserves_multiple_legacy_improvements_in_one_second(self):
+        from app import resync
+        at = utcnow().replace(microsecond=0)
+        for track, claims in [('lower-generality-2', (19, 20)), ('upper-compressions', (106, 104))]:
+            ids = []
+            with self.sessions() as session:
+                for pr, claim in zip((9, 7), claims):
+                    sub = Submission(user_id=self.user_id, track=track, claim=claim, status='verified',
+                        source_repo='https://github.com/a/b.git', commit=str(pr) * 40,
+                        pr_number=pr, pr_url=f'https://github.com/owner/repo/pull/{pr}', finished_at=at,
+                        detail=json.dumps({'contract': contract.contract_id(), 'recorded_record': True}))
+                    session.add(sub)
+                    session.flush()
+                    ids.append(sub.id)
+                session.commit()
+            with patch('app.resync.SessionLocal', self.sessions):
+                self.assertEqual(resync.replay_records(), 2)
+                self.assertEqual(resync.replay_records(), 0)
+            with self.sessions() as session:
+                self.assertTrue(all(session.get(Submission, sid).is_record for sid in ids))
+                self.assertEqual(records.current_record(session, track).claim, claims[-1])
+                self.assertEqual([s.claim for s in records.frontier(session, track)], list(reversed(claims)))
+                self.assertEqual([p['claim'] for p in records.curve(session, track)], list(claims))
+
+    def test_replay_retains_subsecond_winner_and_restores_missing_older_record(self):
+        from app import resync
+        # Smaller PR number finishes later, so it must not win a same-second tie.
+        early = self.submission(status='pending', claim=None, pr=20, commit='a' * 40)
+        late = self.submission(status='pending', claim=None, pr=10, commit='b' * 40)
+        at = utcnow().replace(microsecond=100)
+        with patch('app.worker.utcnow', return_value=at):
+            first, second = self.verify(early, 20), self.verify(late, 20)
+        self.assertLess(first.finished_at, second.finished_at)
+        self.assertEqual(resync._time(worker.verdict_entry(first)['finished_at']), first.finished_at)
+        self.assertEqual(resync._time(worker.verdict_entry(second)['finished_at']), second.finished_at)
+        older = self.submission(claim=19, pr=30, commit='c' * 40)
+        with self.sessions() as session:
+            session.get(Submission, older.id).finished_at = at - timedelta(seconds=1)
+            session.commit()
+        with patch('app.resync.SessionLocal', self.sessions):
+            self.assertEqual(resync.replay_records(), 1)
+            self.assertEqual(resync.replay_records(), 0)
+        with self.sessions() as session:
+            self.assertEqual([s.id for s in records.frontier(session, 'lower-generality-2')], [first.id, older.id])
+            self.assertFalse(session.get(Submission, second.id).is_record)
 
     def test_github_receives_only_statuses_and_comments(self):
         """Queue, verify, report, re-report and rebuild through the real GitHub client: nothing but commit

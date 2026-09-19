@@ -26,9 +26,10 @@ def current_record(session: Session, slug: str) -> Submission | None:
 
 
 def frontier(session: Session, slug: str) -> list[Submission]:
+    progress = Submission.claim.desc() if contract.track(slug)["direction"] == "+" else Submission.claim.asc()
     return [s for s in session.scalars(_verified(slug).where(
         Submission.is_record.is_(True), Submission.claim.is_not(None))
-        .order_by(Submission.record_at.desc())) if eligible(s)]
+        .order_by(Submission.record_at.desc(), progress)) if eligible(s)]
 
 
 def in_flight(session: Session, slug: str | None = None) -> list[Submission]:
@@ -70,9 +71,10 @@ def interval(session: Session, framework: str = "generality-2") -> dict:
 
 def curve(session: Session, slug: str) -> list[dict]:
     """Every record of a track in the order it was set: the step curve of the record over time."""
+    progress = Submission.claim.asc() if contract.track(slug)["direction"] == "+" else Submission.claim.desc()
     recs = list(session.scalars(_verified(slug).where(Submission.is_record.is_(True), Submission.claim.is_not(None),
                                                    Submission.record_at.is_not(None))
-                                .order_by(Submission.record_at.asc())))
+                                .order_by(Submission.record_at.asc(), progress)))
     return [{"t": s.record_at, "claim": s.claim, "id": s.id, "login": s.user.login,
              "demo": bool(s.detail_dict.get("demo"))} for s in recs if eligible(s)]
 

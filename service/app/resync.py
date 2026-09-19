@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 
@@ -27,7 +27,10 @@ def _time(value) -> datetime | None:
     if not isinstance(value, str):
         return None
     try:
-        return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            return None
+        return parsed.astimezone(timezone.utc).replace(tzinfo=None)
     except ValueError:
         return None
 
@@ -93,7 +96,7 @@ def resync(queue_open_heads: bool = True) -> dict:
                             or existing.commit != v["commit"] or existing.pr_url != pr_url
                             or not finished or (existing.finished_at and finished <= existing.finished_at)):
                         continue
-                detail = {"contract": v.get("contract"), "restored": True}
+                detail = {"contract": v.get("contract"), "restored": True, "recorded_record": v.get("record") is True}
                 if type(comment_id) is int:
                     detail["github_comment_id"] = comment_id
                 notes = github.read_file(repo, f'{t["submission_root"]}/NOTES.md', v["commit"])
@@ -131,21 +134,33 @@ def resync(queue_open_heads: bool = True) -> dict:
 
 
 def replay_records() -> int:
-    """Decide records as the live worker would have: verified heads in the order their verifications
-    finished (ties by pull request, then commit), each one a record if it strictly improves the record
-    at that moment. Records already held are kept; demo rows never count."""
+    """Recompute the complete current frontier, including older verdicts found on a later sync.
+
+    New verdicts retain unique microsecond completion times. For legacy second-resolution ties,
+    keep the bot's recorded winner where available; PR/commit order is only a final fallback.
+    """
     from .worker import promote
-    count = 0
     with local_lock("results"), SessionLocal() as session:
-        candidates = session.scalars(select(Submission).where(
-            Submission.status == "verified", Submission.is_record.is_(False), Submission.claim.is_not(None),
+        candidates = [s for s in session.scalars(select(Submission).where(
+            Submission.status == "verified", Submission.claim.is_not(None),
             Submission.finished_at.is_not(None), Submission.pr_number.is_not(None)))
-        for sub in sorted(candidates, key=lambda s: (s.finished_at, s.pr_number, s.commit)):
-            if sub.detail_dict.get("demo"):
-                continue
+            if s.current_contract and not s.detail_dict.get("demo")
+            and (s.pr_repository or "").lower() == settings.submissions_repo.lower()]
+        previous = {s.id for s in candidates if s.is_record}
+        def order(sub):
+            known_record = sub.detail_dict.get("recorded_record") or sub.is_record
+            # Several original improvements can share a legacy rounded timestamp. Their
+            # strict improvement order is recoverable from scores even when PR order differs.
+            progress = sub.claim if contract.track(sub.track)["direction"] == "+" else -sub.claim
+            return sub.finished_at, not known_record, progress if known_record else 0, sub.pr_number, sub.commit
+        candidates.sort(key=order)
+        for sub in candidates:
+            sub.is_record, sub.record_at = False, None
+        session.flush()
+        for sub in candidates:
             promote(session, sub, at=sub.finished_at)
             session.flush()
-            count += sub.is_record
+        count = sum(s.is_record and s.id not in previous for s in candidates)
         session.commit()
     return count
 

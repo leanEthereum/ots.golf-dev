@@ -128,7 +128,7 @@ def verdict_entry(sub: Submission) -> dict:
     """What a rebuild needs to restore one checked head."""
     return {"id": sub.id, "track": sub.track, "commit": sub.commit, "status": sub.status, "claim": sub.claim,
             "duration_s": sub.duration_s,
-            "finished_at": sub.finished_at.strftime("%Y-%m-%dT%H:%M:%SZ") if sub.finished_at else None,
+            "finished_at": sub.finished_at.isoformat(timespec="microseconds") + "Z" if sub.finished_at else None,
             "contract": sub.detail_dict.get("contract"), "record": bool(sub.is_record)}
 
 
@@ -225,6 +225,14 @@ def retry_reports() -> None:
         return
 
 
+def next_finish_time(session):
+    """Serialize completion timestamps as well as record decisions, including clock rollback."""
+    now = utcnow()
+    prior = max((s.finished_at for s in session.scalars(select(Submission).where(
+        Submission.finished_at.is_not(None))) if not s.detail_dict.get("demo")), default=None)
+    return max(now, prior + timedelta(microseconds=1)) if prior else now
+
+
 def process(sub_id: str) -> None:
     with SessionLocal() as session:
         sub = session.get(Submission, sub_id)
@@ -250,7 +258,7 @@ def process(sub_id: str) -> None:
             result = {"status": "failed", "reason": "contract changed during verification; resubmit"}
         sub.status = result["status"] if result["status"] in ("verified", "rejected", "policy_rejected", "timeout") else "failed"
         sub.claim = result.get("claim", sub.claim)
-        sub.finished_at, sub.duration_s, sub.log_path = utcnow(), result.get("duration_s"), log_path
+        sub.finished_at, sub.duration_s, sub.log_path = next_finish_time(session), result.get("duration_s"), log_path
         failure = None
         if sub.status != "verified":
             msg = result.get("reason") or "; ".join(result.get("errors", [])) or result.get("tail", "")[-600:]
