@@ -261,7 +261,8 @@ def linux_command(cmd: list[str], cwd: Path, sandbox_env: dict, limits: dict, un
              "InaccessiblePaths=/proc /sys",
              # Repeated assignments accumulate; "-" ignores paths that do not exist.
              "InaccessiblePaths=" + " ".join(f"-{p}" for p in ["/etc/ots", *hidden]),
-             "PrivateDevices=yes", "PrivateIPC=yes", "SystemCallErrorNumber=EPERM",
+             # PrivateDevices keeps the host's /dev/shm; give the job its own.
+             "PrivateDevices=yes", "TemporaryFileSystem=/dev/shm", "PrivateIPC=yes", "SystemCallErrorNumber=EPERM",
              "SystemCallFilter=~@network-io @debug ptrace process_vm_readv process_vm_writev "
              "pidfd_getfd kill tkill tgkill pidfd_send_signal"]
     launch = [sys.executable, str(HERE / "linux_exec.py")] + cmd
