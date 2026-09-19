@@ -137,6 +137,10 @@ execution.
 
 ## Maintainer workflow
 
+Ask the user before making substantial visible website changes. Permission to improve documentation
+or agent discovery does not authorize changing navigation or the visible page layout. Explicitly
+requested feature previews stay local and uncommitted until the user validates them.
+
 For the authorized live-maintenance workflow, commit, push and update `h2`; do not start or refresh
 localhost. Other publication actions still require the user's authorization. Commits changing RISC-V formal verification credit
 `Derek Sorensen <d@dhsorens.com>` as co-author.
