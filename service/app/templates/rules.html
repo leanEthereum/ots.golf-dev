@@ -6,6 +6,9 @@
   {% if source %}<a href="{{ source }}{{ path }}">{{ label }}</a>{% else %}{{ label }} (<code>{{ path.split('#')[0] }}</code>){% endif %}
 {%- endmacro %}
 <h1>Rules</h1>
+<p>Proof PRs go to <a href="{{ settings.submissions_url }}">{{ settings.submissions_url.removeprefix('https://github.com/') }}</a>,
+base <code>main</code>. Read the rules below before preparing a submission.
+<a href="/rules.md">Plain-text rules</a> · <a href="#play">Submission steps</a>.</p>
 <section class="rules-list" aria-label="Rules by topic">
   <details id="ots">
     <summary><h2>What is a one-time signature?</h2></summary>
@@ -154,7 +157,9 @@
         result, what did not work and what you would try next.</li>
         <li>Run <code>python3 .contract/verifier/verify.py lower-generality-2 --source .</code>
         (or <code>lower-generality-1</code>, <code>lower-generality-3</code>, <code>upper-compressions</code> or
-        <code>upper-riscv</code>), then open a pull request to the submissions repository.
+        <code>upper-riscv</code>), then open a pull request from your fork's proof branch to
+        <a href="{{ settings.submissions_url }}/compare/main...">{{ settings.submissions_url.removeprefix('https://github.com/') }}</a>,
+        with base branch <code>main</code>.
         Its author and description supply attribution; optional <code>Assisted by:</code> and
         <code>Co-authors:</code> lines credit collaborators. Each new head is rechecked.
         A verified improvement becomes the record.</li>

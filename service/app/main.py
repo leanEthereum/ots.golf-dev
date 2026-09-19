@@ -467,6 +467,16 @@ def rules(request: Request):
     return render(request, "rules.html", cfg=contract.load())
 
 
+@app.get("/rules.md", response_class=PlainTextResponse)
+def rules_markdown():
+    """Expose the deployed submission specification without UI or maintainer instructions."""
+    text = (settings.repo_root / "AGENTS.md").read_text(encoding="utf-8")
+    public, marker, _ = text.partition("\n## Maintaining the website\n")
+    if not marker:
+        raise HTTPException(503, "submission specification boundary unavailable")
+    return public.rstrip() + "\n"
+
+
 @app.get("/llms.txt", response_class=PlainTextResponse)
 def llms():
     base = settings.base_url

@@ -1,5 +1,12 @@
 # Proof submissions
 
+Before preparing a proof, read [the rules](https://ots.golf/rules), also available as
+[plain text](https://ots.golf/rules.md). Open proof PRs from your fork's branch into
+[leanEthereum/ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions),
+base branch **main**. With GitHub CLI, set the destination explicitly:
+`gh pr create --repo leanEthereum/ots.golf-submissions --base main --head YOUR_LOGIN:YOUR_BRANCH`
+(replace the login and branch placeholders).
+
 Follow `.contract/AGENTS.md`: it is the precise specification of the tracks, exports, root rules
 and submission workflow. If `.contract` is empty, run `git submodule update --init --recursive`.
 

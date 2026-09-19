@@ -57,6 +57,11 @@ Preserve every fixture row with its ID and dates. A track's card, chart point, l
 submission page and solver profile refer to the same record row. Demo rows are clearly marked and
 never receive verified badges or fabricated commit links.
 
+Keep the rules and exact proof PR destination visible on the homepage, at the top of `/llms.txt`,
+and above the rules page's collapsed sections. `/rules.md` serves the submission specification
+from the deployed root `AGENTS.md`, ending before its maintainer section. Keep that boundary and
+its regression check aligned; do not duplicate the specification in a second hand-maintained file.
+
 Keep the rules concise and independent of current scores, candidate results and proof history.
 Keep all key admissibility, cost, security and submission requirements available on the rules page;
 use titled sections that are all collapsed on a fresh visit, beginning with “What is a one-time

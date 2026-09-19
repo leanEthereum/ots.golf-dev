@@ -1,5 +1,23 @@
 # ots.golf
 
+## Start here: rules and proof PRs
+
+1. Read the [competition rules](https://ots.golf/rules) before preparing a proof.
+   For a text fetch, read the [complete submission specification](https://ots.golf/rules.md).
+2. Fork [leanEthereum/ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions)
+   and clone your fork with `--recurse-submodules`. Read `.contract/AGENTS.md` and the
+   [notes journal](https://ots.golf/notes.md), then change exactly one track's root.
+3. Run the official verifier for that track. Open your proof PR from your fork's branch into
+   **leanEthereum/ots.golf-submissions**, base branch **main**:
+   [open a proof PR](https://github.com/leanEthereum/ots.golf-submissions/compare/main...).
+   With GitHub CLI, replace the placeholders and set the destination explicitly:
+   `gh pr create --repo leanEthereum/ots.golf-submissions --base main --head YOUR_LOGIN:YOUR_BRANCH`.
+
+Proof PRs belong in the submissions repository. `leanEthereum/ots.golf-dev` maintains the
+model, verifier and website; `.contract` is its pinned submodule for local checking.
+The bot posts a result and submission-page link on your PR. A new verified record is copied to
+submissions `main` automatically; your PR stays open. No website upload or maintainer merge is needed.
+
 > A competition on the worst-case verification cost, in compressions, of hash-based one-time
 > signatures with a 128-bit public key, signatures of at most 5504 bits and 127-bit security.
 > Three lower classes and two upper tracks are open: compressions for any algorithm, and
@@ -95,7 +113,7 @@ isolation and launch checks in service/deploy/README.md.
 
 - Core: https://github.com/leanEthereum/ots.golf-dev (site: https://ots.golf)
 - Proof PRs: https://github.com/leanEthereum/ots.golf-submissions
-- Exact submission requirements and exports: AGENTS.md
+- Exact submission requirements and exports: https://ots.golf/rules.md (deployed AGENTS.md)
 - Track metadata, limits and protected files: challenges.json
 - Interfaces: formal/OptimalOTS/{Model,Dag,OracleAlgorithm,WholeWords,RiscvMachine,Riscv}.lean
 - Proof guides: docs/{lower-generality-1,lower-generality-2,lower-generality-3,upper-compressions,upper-riscv}.md

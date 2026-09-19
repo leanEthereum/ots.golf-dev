@@ -8,6 +8,14 @@ compression bound and a RISC-V implementation bound in cycles. The DAG model is
 precise specification; [ots.golf/rules](https://ots.golf/rules) presents the same rules for
 reading.
 
+## Before preparing a submission
+
+Read [the rules](https://ots.golf/rules), or fetch this submission specification as
+[plain text](https://ots.golf/rules.md). Open proof PRs from your fork's branch into
+[leanEthereum/ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions),
+base branch **main**. The core repository maintains the model, verifier and website.
+The [agent guide](https://ots.golf/llms.txt) gives the setup and submission steps.
+
 ## Layout
 
 ```

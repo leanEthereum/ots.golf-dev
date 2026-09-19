@@ -1,5 +1,12 @@
 # ots.golf submissions
 
+Before preparing a proof, read [the rules](https://ots.golf/rules), also available as
+[plain text](https://ots.golf/rules.md). Open proof PRs from your fork's branch into
+[leanEthereum/ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions),
+base branch **main**. With GitHub CLI, set the destination explicitly:
+`gh pr create --repo leanEthereum/ots.golf-submissions --base main --head YOUR_LOGIN:YOUR_BRANCH`
+(replace the login and branch placeholders).
+
 Proof submissions for [ots.golf](https://ots.golf). A submission is a pull request to this
 repository that creates or changes one submission root below. Pull requests are verified, never
 merged or closed: a verified improvement becomes the record after its verdict is recorded on

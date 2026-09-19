@@ -28,6 +28,24 @@ class RulesTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         return re.search(r'<main\b[^>]*>(.*?)</main>', response.text, re.S).group(1)
 
+    def test_plain_text_rules_include_submission_contract_without_maintainer_instructions(self):
+        response = self.client.get('/rules.md')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.headers['content-type'].startswith('text/plain'))
+        for required in ('OptimalOTS.Challenge.LowerGenerality1.candidate',
+                         'OptimalOTS.Challenge.LowerGenerality2.candidate',
+                         'OptimalOTS.Challenge.LowerGenerality3.candidate',
+                         'OptimalOTS.Challenge.UpperCompressions.cost',
+                         'OptimalOTS.Challenge.UpperRiscv.certificate',
+                         '4,194,304 bytes', '24 GiB', '20 minutes',
+                         'https://github.com/leanEthereum/ots.golf-submissions',
+                         'base branch **main**'):
+            self.assertIn(required, response.text)
+        self.assertNotIn('## Maintaining the website', response.text)
+        self.assertNotIn('maintainer workflow', response.text)
+        with patch('app.main.Path.read_text', return_value='# Incomplete specification'):
+            self.assertEqual(self.client.get('/rules.md').status_code, 503)
+
     def test_rules_do_not_publish_scores_or_candidate_history(self):
         html = self.rules_body()
         self.assertNotRegex(re.sub(r'<[^>]*>', ' ', html), r'\b(?:18|80|93|104|106|987654|876543|765432)\b')
