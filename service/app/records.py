@@ -107,16 +107,14 @@ def journal(session: Session, track: str | None = None, limit: int = 300, per_au
     request counts, submissions refused before any proof check (format, infrastructure) are left
     out, and each author has at most `per_author` entries, so no one can flood the journal."""
     q = select(Submission).where(Submission.status.in_(("verified", "rejected", "timeout")))
-    if track:
-        q = q.where(Submission.track == track)
     items, seen_prs, by_author = [], set(), {}
     for s in session.scalars(q.order_by(func.coalesce(Submission.finished_at, Submission.created_at).desc())):
-        if not s.notes or not contract.track(s.track):
-            continue
         if s.pr_url:
             if s.pr_url in seen_prs:
                 continue
             seen_prs.add(s.pr_url)
+        if not s.notes or not contract.track(s.track) or (track and s.track != track):
+            continue
         if by_author.get(s.user_id, 0) >= per_author:
             continue
         by_author[s.user_id] = by_author.get(s.user_id, 0) + 1
