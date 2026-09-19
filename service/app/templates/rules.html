@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Rules · ots.golf{% endblock %}
 {% block content %}
-{% set source = settings.contract_url ~ '/blob/main/' %}
+{% set source = settings.contract_url ~ '/blob/' ~ contract_commit ~ '/' if contract_commit and contract_commit != 'unknown' else none %}
+{% macro source_link(path, label) -%}
+  {% if source %}<a href="{{ source }}{{ path }}">{{ label }}</a>{% else %}{{ label }} (<code>{{ path.split('#')[0] }}</code>){% endif %}
+{%- endmacro %}
 <h1>Rules</h1>
 <section class="rules-list" aria-label="Rules by topic">
   <details id="ots">
@@ -146,7 +149,7 @@
         <code>formal/Submissions/LowerGenerality3/</code>, <code>formal/Submissions/UpperCompressions/</code>
         or <code>formal/Submissions/UpperRiscv/</code>.</li>
         <li>Put your claim in <code>claim.txt</code> and export the
-        <a href="{{ source }}AGENTS.md#what-a-submission-exports">required declarations</a>
+        {{ source_link('AGENTS.md#what-a-submission-exports', 'required declarations') }}
         from <code>Solution.lean</code>. Add a <code>NOTES.md</code> beside them: the idea, the
         result, what did not work and what you would try next.</li>
         <li>Run <code>python3 .contract/verifier/verify.py lower-generality-2 --source .</code>
@@ -178,12 +181,13 @@
       {{ cfg.limits.wall_clock_seconds // 60 }} minutes,
       {{ cfg.limits.memory_bytes // 1073741824 }} GiB and no network.</p>
       <p>The <a href="{{ settings.contract_url }}">core repository</a> defines the model and verifier:
-      <a href="{{ source }}formal/OptimalOTS/Model.lean">constants and oracle</a>,
-      <a href="{{ source }}formal/OptimalOTS/OracleAlgorithm.lean">generic interface and statements</a>,
-      <a href="{{ source }}formal/OptimalOTS/Dag.lean">DAG contract</a>,
-      <a href="{{ source }}formal/OptimalOTS/WholeWords.lean">whole-word condition</a>,
-      <a href="{{ source }}challenges.json">verifier configuration</a> and
-      <a href="{{ source }}AGENTS.md#rules-for-the-submission-root">submission specification</a>.</p>
+      {{ source_link('formal/OptimalOTS/Model.lean', 'constants and oracle') }},
+      {{ source_link('formal/OptimalOTS/OracleAlgorithm.lean', 'generic interface and statements') }},
+      {{ source_link('formal/OptimalOTS/Dag.lean', 'DAG contract') }},
+      {{ source_link('formal/OptimalOTS/WholeWords.lean', 'whole-word condition') }},
+      {{ source_link('challenges.json', 'verifier configuration') }} and
+      {{ source_link('AGENTS.md#rules-for-the-submission-root', 'submission specification') }}.</p>
+      {% if not source %}<p>The Git commit of this checkout is unavailable. Read the referenced files in the local checkout.</p>{% endif %}
     </div>
   </details>
 </section>

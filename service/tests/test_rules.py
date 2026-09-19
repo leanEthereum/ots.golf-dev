@@ -12,7 +12,12 @@ from app.main import app
 
 
 class RulesTests(unittest.TestCase):
+    COMMIT = '0123456789abcdef0123456789abcdef01234567'
+
     def setUp(self):
+        commit = patch('app.contract.trusted_commit', return_value=self.COMMIT)
+        commit.start()
+        self.addCleanup(commit.stop)
         self.client = TestClient(app)
 
     def tearDown(self):
@@ -71,16 +76,40 @@ class RulesTests(unittest.TestCase):
              patch.object(settings, 'submissions_repo', 'org/entries'):
             html = self.rules_body()
         self.assertIn('href="https://github.com/org/entries">the submissions repository</a>', html)
-        self.assertIn('href="https://github.com/org/core/blob/main/formal/OptimalOTS/Dag.lean"', html)
+        self.assertIn(f'href="https://github.com/org/core/blob/{self.COMMIT}/formal/OptimalOTS/Dag.lean"', html)
         self.assertNotIn('https://github.com/org/entries/blob/', html)
         self.assertIn('python3 .contract/verifier/verify.py lower-generality-2 --source .', html)
+
+    def test_contract_source_links_pin_the_deployed_commit(self):
+        with patch.object(settings, 'contract_repo', 'org/core'):
+            html = self.rules_body()
+        source_links = {href for href in re.findall(r'href="([^"]+)"', html) if '/blob/' in href}
+        paths = {
+            'AGENTS.md#what-a-submission-exports',
+            'formal/OptimalOTS/Model.lean',
+            'formal/OptimalOTS/OracleAlgorithm.lean',
+            'formal/OptimalOTS/Dag.lean',
+            'formal/OptimalOTS/WholeWords.lean',
+            'challenges.json',
+            'AGENTS.md#rules-for-the-submission-root',
+        }
+        self.assertEqual(source_links, {f'https://github.com/org/core/blob/{self.COMMIT}/{path}'
+                                        for path in paths})
+
+    def test_unknown_commit_keeps_source_paths_without_unpinned_links(self):
+        with patch('app.contract.trusted_commit', return_value='unknown'):
+            html = self.rules_body()
+        self.assertNotIn('/blob/', html)
+        self.assertIn('<code>formal/OptimalOTS/Dag.lean</code>', html)
+        self.assertIn('<code>AGENTS.md</code>', html)
+        self.assertIn('The Git commit of this checkout is unavailable.', html)
 
     def test_localhost_links_use_the_new_repositories_without_opening_admission(self):
         with patch.object(settings, 'submissions_repo', ''):
             html = self.rules_body()
             self.assertEqual(settings.submissions_repo, '')
         self.assertIn('https://github.com/leanEthereum/ots.golf-submissions', html)
-        self.assertIn('https://github.com/leanEthereum/ots.golf-dev/blob/main/', html)
+        self.assertIn(f'https://github.com/leanEthereum/ots.golf-dev/blob/{self.COMMIT}/', html)
         self.assertNotIn('TomWambsgans', html)
 
 
