@@ -378,6 +378,54 @@ class ServiceWorkerTests(unittest.TestCase):
                          [('c' * 40, 'rejected')])
         self.assertEqual(github.parse_verdicts(forged + '\n\nDetails: https://ots.golf'), [])
 
+    def test_resync_merges_edited_comments_and_preserves_other_heads(self):
+        from app import github, resync
+        def entry(commit, status, at):
+            return {'track': 'lower-generality-2', 'commit': commit * 40, 'status': status,
+                    'claim': 19 if status == 'verified' else None, 'finished_at': at,
+                    'contract': contract.contract_id()}
+        failed = entry('a', 'failed', '2026-09-10T10:00:00Z')
+        retry = entry('a', 'verified', '2026-09-10T11:00:00Z')
+        other = entry('b', 'rejected', '2026-09-10T10:30:00Z')
+        comments = [
+            {'id': 1, 'user': {'login': 'ots-bot'}, 'updated_at': '2026-09-10T11:00:01Z',
+             'body': github.verdict_block([retry])},
+            {'id': 2, 'user': {'login': 'ots-bot'}, 'updated_at': '2026-09-10T10:30:01Z',
+             'body': github.verdict_block([failed, other])},
+            {'id': 3, 'user': {'login': 'mallory'}, 'body': github.verdict_block([failed])},
+        ]
+        for order in (comments, comments[::-1]):
+            merged = {v['commit']: (v['status'], cid) for v, cid in resync.latest_verdicts(order, 'ots-bot')}
+            self.assertEqual(merged, {'a' * 40: ('verified', 1), 'b' * 40: ('rejected', 2)})
+        # Even a newly posted stale history cannot supersede a later verdict.
+        comments[1]['updated_at'] = '2026-09-10T12:00:00Z'
+        self.assertEqual({v['commit']: v['status'] for v, _ in resync.latest_verdicts(comments, 'ots-bot')}
+                         ['a' * 40], 'verified')
+
+    def test_resync_updates_a_previously_restored_failed_retry(self):
+        from app import github, resync
+        sub = self.submission(status='failed', claim=None)
+        with self.sessions() as session:
+            session.get(Submission, sub.id).finished_at = utcnow() - timedelta(days=1)
+            session.commit()
+        now = utcnow().replace(microsecond=0)
+        result = worker.verdict_entry(sub)
+        result.update(status='verified', claim=19, finished_at=now.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        pulls = [{'number': 7, 'state': 'closed', 'user': {'login': 'proof-author'},
+                  'head': {'sha': sub.commit, 'repo': None}}]
+        comments = [{'id': 1, 'user': {'login': 'ots-bot'}, 'body': github.verdict_block([result])}]
+        with patch.object(settings, 'github_token', 'test'), patch.object(settings, 'bot_login', 'ots-bot'), \
+             patch('app.resync.SessionLocal', self.sessions), \
+             patch('app.resync.github.list_pulls', return_value=pulls), \
+             patch('app.resync.github.list_comments', return_value=comments), \
+             patch('app.resync.github.read_file', return_value=None):
+            self.assertEqual(resync.resync()['promoted'], 1)
+            self.assertEqual(resync.resync()['promoted'], 0)
+        with self.sessions() as session:
+            checked = session.get(Submission, sub.id)
+            self.assertEqual((checked.status, checked.claim, checked.finished_at), ('verified', 19, now))
+            self.assertTrue(checked.is_record)
+
     def test_resync_rebuilds_submissions_records_and_notes_from_github(self):
         from app import github, resync
         from app.db import pr_submission_id

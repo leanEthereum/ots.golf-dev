@@ -32,6 +32,32 @@ def _time(value) -> datetime | None:
         return None
 
 
+def latest_verdicts(comments: list[dict], bot: str) -> list[tuple[dict, int | None]]:
+    """Merge per-head history by verdict time, then comment edit time, never API list order.
+
+    An edited older comment can contain a newer retry; a newly created comment can carry an
+    old copy of the same history. Contract epochs are independent histories.
+    """
+    latest = {}
+    for comment in comments:
+        if ((comment.get("user") or {}).get("login") or "").lower() != bot:
+            continue
+        cid = comment.get("id")
+        cid = cid if type(cid) is int else None
+        edited = _time(comment.get("updated_at")) or _time(comment.get("created_at")) or datetime.min
+        for verdict in github.parse_verdicts(comment.get("body") or ""):
+            if verdict["status"] not in FINISHED:
+                continue
+            epoch = verdict.get("contract")
+            if epoch is not None and not isinstance(epoch, str):
+                continue
+            key = verdict["track"], verdict["commit"], epoch
+            order = (_time(verdict.get("finished_at")) or datetime.min, edited, cid or 0)
+            if key not in latest or order > latest[key][0]:
+                latest[key] = (order, verdict, cid)
+    return [(v, cid) for _, v, cid in latest.values()]
+
+
 def resync(queue_open_heads: bool = True) -> dict:
     """Restore every pull request's checked heads. Returns counts for the log."""
     if not settings.github_token or not settings.submissions_repo:
@@ -45,18 +71,14 @@ def resync(queue_open_heads: bool = True) -> dict:
         author = pr.get("user") or {}
         if not github.LOGIN_RE.fullmatch(author.get("login") or ""):
             continue
-        verdicts, comment_id = [], None
-        for c in github.list_comments(repo, number):
-            if ((c.get("user") or {}).get("login") or "").lower() == bot:
-                found = github.parse_verdicts(c.get("body") or "")
-                if found:
-                    verdicts, comment_id = found, c.get("id")
+        history = latest_verdicts(github.list_comments(repo, number), bot)
+        verdicts = [v for v, _ in history]
         fields = github.parse_pr_body(pr.get("body") or "")
         head_repo = (pr["head"].get("repo") or {}).get("clone_url") or f"https://github.com/{repo}.git"
         with local_lock("results"), SessionLocal() as session:
             user = auth.get_or_create_user(session, author["login"], github_id=author.get("id"),
                                            avatar_url=author.get("avatar_url"))
-            for v in verdicts:
+            for v, comment_id in history:
                 t = contract.track(v["track"])
                 if t is None or v["status"] not in FINISHED:
                     continue
@@ -64,22 +86,32 @@ def resync(queue_open_heads: bool = True) -> dict:
                 sid = v.get("id")
                 if not isinstance(sid, str) or not re.fullmatch(r"[0-9a-f]{32}", sid):
                     sid = legacy_pr_submission_id(repo, number, v["commit"])
-                if session.get(Submission, sid) is not None:
-                    continue
+                existing = session.get(Submission, sid)
+                finished = _time(v.get("finished_at"))
+                if existing is not None:
+                    if (existing.status not in FINISHED or existing.track != v["track"]
+                            or existing.commit != v["commit"] or existing.pr_url != pr_url
+                            or not finished or (existing.finished_at and finished <= existing.finished_at)):
+                        continue
                 detail = {"contract": v.get("contract"), "restored": True}
                 if type(comment_id) is int:
                     detail["github_comment_id"] = comment_id
                 notes = github.read_file(repo, f'{t["submission_root"]}/NOTES.md', v["commit"])
                 if notes and notes.strip():
                     detail["notes"] = notes.strip()
-                finished = _time(v.get("finished_at"))
-                session.add(Submission(
-                    id=sid, track=v["track"], user_id=user.id, source_repo=head_repo, commit=v["commit"],
+                values = dict(
+                    track=v["track"], user_id=user.id, source_repo=head_repo, commit=v["commit"],
                     claim=v.get("claim"), status=v["status"], description=fields["description"],
                     co_authors=json.dumps(fields["co_authors"]), assisted_by=fields["assisted_by"],
                     pr_number=number, pr_url=pr_url, created_at=finished or _time(pr.get("created_at")),
-                    finished_at=finished, duration_s=v.get("duration_s"), detail=json.dumps(detail)))
-                restored += 1
+                    finished_at=finished, duration_s=v.get("duration_s"), detail=json.dumps(detail))
+                if existing is None:
+                    session.add(Submission(id=sid, **values))
+                    restored += 1
+                else:
+                    for name, value in values.items():
+                        setattr(existing, name, value)
+                    existing.is_record, existing.record_at = False, None
             session.commit()
         if queue_open_heads and pr.get("state") == "open" and head not in {v["commit"] for v in verdicts if v.get("contract") == contract.contract_id()}:
             with SessionLocal() as session:
