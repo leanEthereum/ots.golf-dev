@@ -27,10 +27,8 @@ class Settings:
     submissions_repo: str = os.environ.get("OTS_SUBMISSIONS_REPO", "")  # empty keeps webhook admission closed
     # The account whose pull-request comments carry verdicts; by default the token's own login.
     bot_login: str = os.environ.get("OTS_BOT_LOGIN", "")
-    # Show the invented demo submissions (re-seeded from service/demo/submissions.json at every start)
-    # on top of real submissions. On for now; turn off with OTS_PHONY=0 at launch, when every board
-    # starts empty.
-    phony: bool = os.environ.get("OTS_PHONY", "1") == "1"
+    # Invented demo submissions are opt-in for a local preview. Production shows real rows.
+    phony: bool = os.environ.get("OTS_PHONY", "0") == "1"
     # Rebuild missing submissions from GitHub when the website starts.
     resync_on_start: bool = os.environ.get("OTS_RESYNC_ON_START", "1") == "1"
     queue_cap: int = int(os.environ.get("OTS_QUEUE_CAP", "20"))

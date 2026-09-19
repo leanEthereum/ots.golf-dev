@@ -499,9 +499,10 @@ before. Nothing was pushed or deployed.
 
 ## Stateless server: the database is a cache of GitHub (2026-09-19)
 
-**Superseded:** the retention claim in this historical section was incorrect: PR head references
-move on later pushes. The current verifier retains exact source archives locally, and operators
-must back them up. See the [current recovery procedure](../../service/deploy/README.md#rebuilding-the-server-from-nothing).
+**Superseded:** the retention claim below was incorrect: PR head references move on later pushes.
+The current protocol retains exact commits with creation-only `ots-source/` tags and frozen bot
+receipts/verdicts. Local source ZIPs are rebuildable caches; original logs are disposable. See the
+[current recovery procedure](../../service/deploy/README.md#rebuilding-the-server-from-nothing).
 
 The server no longer holds anything that cannot be recreated. Verdicts are written into a hidden,
 machine-readable block of the verifier's own pull-request comment (every checked head of that PR:

@@ -5,6 +5,7 @@
 <p class="muted"><a class="back" href="{% if legacy_upper %}/rules#legacy-certificates{% else %}/{% if t.kind == 'lower' %}?framework={{ framework.slug }}{% else %}?upper={{ t.slug }}{% endif %}#{{ t.kind }}{% endif %}">← Back to {{ 'rules' if legacy_upper else 'leaderboard' }}</a></p>
 <h1>{% if legacy_upper %}{{ framework_title }}{% elif t.kind == 'upper' %}Upper bound · {{ 'RISC-V cycles' if t.slug == 'upper-riscv' else 'compressions' }}{% else %}Lower bound · {{ framework_title }}{% endif %} {% if sub.detail_dict.get('demo') %}<span class="tag">demo</span>{% else %}<span class="status s-{{ sub.status }}">{{ sub.status.replace('_', ' ') }}</span>{% endif %}</h1>
 {% if sub.detail_dict.get('demo') %}<p class="notice">Fictional demo submission; this entry has not been verified.</p>{% endif %}
+{% if sub.status == 'admitting' %}<p class="notice">Your submission is being queued.</p>{% elif sub.status == 'publishing' %}<p class="notice">Verification has finished. The result will appear shortly.</p>{% endif %}
 {% if not sub.detail_dict.get('demo') and not sub.current_contract %}<p class="notice">Historical result: this submission was checked under a different or unknown contract and is excluded from the current leaderboard.</p>{% endif %}
 <dl class="facts">
   <dt>Claim</dt><dd>{% if sub.claim is not none %}{{ sub.claim }} {{ t|cost_unit(sub.claim) }}{% else %}–{% endif %}{% if sub.is_record %} <span class="tag">{{ 'demo record' if sub.detail_dict.get('demo') else 'record' }}</span>{% endif %}</dd>

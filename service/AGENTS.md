@@ -1,29 +1,29 @@
-# Local preview
+# Live maintenance and optional local development
 
-The user wants the invented Satoshi Nakamoto, Vitalik Buterin and Hal Finney submissions present
-on localhost by default. Preserve or restore those demo rows when updating the running local site.
-Do not replace the demo board with an empty board unless the user explicitly requests it.
-`demo/README.md` owns the fixture policy: fixtures store absolute claims, and every track's best
-demo record equals a claim proven in the reference proofs (older rows may be worse). When a
-reference proof changes, update that track's best demo claim. Show results as ordinary submissions
-with solver attribution. The contract holds no scores: with `OTS_PHONY=0` every board starts
-empty, shows "No record yet", and the first verified submission becomes the record.
-The reference proofs live outside the core and reach the site as ordinary pull requests.
+The current maintainer workflow is commit, push, then update the live deployment on `h2`.
+No localhost preview or post-commit refresh is required. Do not start local web or worker processes
+unless the user requests local development. Run isolated tests before publishing changes, stop the
+live worker before replacing its trusted checkout, and verify the deployed pages after an update.
+The deployment guide owns host prerequisites, acceptance checks and recovery.
 
-Always refresh localhost after committing. This checkout's Git `post-commit` hook runs
-`refresh-local.sh`: it re-seeds the demo rows from the fixtures and triggers the running server to reload.
-Verify the rendered homepage after a commit; do not push or deploy as part of a local refresh.
-Always synchronize the site's admission status, metadata, chart, leaderboards, rules and demo
-fixtures whenever a reference proof or contract status changes. Refresh localhost and check the rendered pages as part
-of the same change; do not wait for a separate request to update the website.
+`OTS_PHONY=0` is the default for both web and worker: show real submissions only. Existing demo
+rows keep their IDs and dates but remain hidden and cannot affect records. All five boards start
+without records when there are no real verified submissions. Reference proofs reach the site as
+ordinary pull requests; no baseline scores belong to the contract.
 
-`./run-local.sh` refreshes the demo board without replacing rows before starting the worker and web server; use this entry
-point for local development. `OTS_PHONY=0` explicitly disables startup seeding.
-`seed_demo.py` refuses production mode and non-loopback site URLs even with `--force`, and
-refuses nonlocal databases by default. Never force it against production.
+For explicitly requested local development, `./run-local.sh` starts the worker and web process.
+Set `OTS_PHONY=1` to opt into the labeled demo fixtures. Preserve fixture IDs/dates when refreshing.
+`seed_demo.py` refuses production mode and non-loopback site URLs, even with `--force`; never force
+it against production. `demo/README.md` owns the fixture policy: each track's best demo claim equals
+a claim proven in the reference proofs, and older rows may be worse. Keep fixtures, metadata,
+admission status, charts, leaderboards and rules aligned.
 
-For ordinary updates, `bash refresh-local.sh` preserves submission IDs and dates and leaves
-real submissions alone, so it is safe while the worker is running.
+GitHub holds durable source tags `refs/tags/ots-source/<submission-id>` and the bot's frozen
+receipt/verdict comments. The server needs no backups: the database and exact source ZIPs are
+rebuildable caches; original logs are disposable. Preserve the admission and verdict publication
+gates, reporting retries, immutable source identity and digest checks. `python -m app.rebuild`
+restores metadata; `--sources` also reconstructs ZIPs, without compiling historical submissions.
+Never create replacement logs by rerunning an already published verdict. See `deploy/README.md`.
 
 The three frameworks apply only to lower bounds. All three lower tracks are open, and the homepage
 plots three certified lower series from their normal `challenges.json` metadata. Generic lower uses
@@ -68,12 +68,12 @@ demo rows like DAG lower. Do not leave the old 46-origin rule on the site.
 `seed_demo.py --refresh` preserves existing rows. Run isolated checks with
 `.venv/bin/python -m unittest discover -s tests -v` from `service/` after changing this behavior.
 
-After editing worker code, restart the local worker as well as refreshing the web process;
-`uvicorn --reload` does not reload the worker. Keep one worker per data directory. Production web
-and worker run as different Unix users; only the web process receives GitHub credentials.
-A verified improvement becomes the record, decided under the results lock in verification-finish
-order; the bot writes only statuses and comments and never merges or closes pull requests.
-Preserve reporting retries. Never bypass Linux isolation or bounded-storage
+After deploying worker code, restart the live worker as well as the web service. Keep one worker
+per data directory. Production web and worker run as different Unix users; only the web process
+receives GitHub credentials. The bot creates retention tags and writes receipt/verdict comments and
+commit statuses; it never merges or closes pull requests or changes an existing source tag.
+A verified improvement becomes public only after the verdict comment is durable, with record
+ordering determined by verification-finish time under the results lock. Preserve reporting retries. Never bypass Linux isolation or bounded-storage
 checks to make a host pass. See `deploy/README.md` for the launch gates.
 
 Use `browser_check.py` for repeatable Firefox checks of the seeded local preview. Keep demo labels
@@ -122,6 +122,6 @@ execution.
 
 ## Maintainer workflow
 
-Commit locally and refresh localhost as described above; never push or deploy unless the user
-explicitly requests it. Commits changing RISC-V formal verification credit
+For the authorized live-maintenance workflow, commit, push and update `h2`; do not start or refresh
+localhost. Other publication actions still require the user's authorization. Commits changing RISC-V formal verification credit
 `Derek Sorensen <d@dhsorens.com>` as co-author.

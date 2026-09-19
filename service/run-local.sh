@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# The website re-seeds the invented demo board at every start while OTS_PHONY=1 (the default);
+# The website re-seeds the invented demo board at every start when explicitly enabled with OTS_PHONY=1;
 # OTS_PHONY=0 shows real submissions only. Nothing else needs to exist beforehand.
 env -u GITHUB_TOKEN -u GITHUB_WEBHOOK_SECRET OTS_ROLE=worker .venv/bin/python -m app.worker &
 worker=$!

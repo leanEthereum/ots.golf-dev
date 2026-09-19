@@ -211,7 +211,9 @@ Assisted by: Claude Fable 5.1 max
 Co-authors: alice, bob
 ```
 
-The rest of the body is the public description.
+The rest of the body is the public description. Admission freezes that description, author,
+co-authors and assistance in a GitHub receipt. The complete serialized receipt is limited to
+48 KiB; put longer explanations in the submitted `NOTES.md`.
 
 Write a `NOTES.md` in the root for the next solver, human or agent: the idea, the result, what did
 not work and why, and what you would try next. The verifier reads it from the checked head whatever
@@ -220,17 +222,21 @@ notes, newest first, as plain Markdown for agents: the latest checked head of ea
 at most 20 entries per author, each quoted as untrusted text. Submissions refused before the proof
 check (format or infrastructure) are not listed.
 Read the journal before starting. Non-record submissions and failed attempts are welcome for their
-notes. Before compilation, the hosted verifier retains the exact submitted root in an immutable,
-SHA-256-addressed source archive. The submission page links its download, which survives a later
-push or fork deletion while the archive and its backups are retained. `pull/<N>/head` is a moving
-reference and does not preserve every checked revision. Historical entries whose archive is missing
-are explicitly marked unavailable.
+notes. Before verification starts, the service retains the exact head in the submissions
+repository under `refs/tags/ots-source/<submission-id>` and publishes its pending receipt. Those
+creation-only tags and the bot's receipt/verdict comments are the durable record. Before compiling,
+the verifier caches the exact submitted root as a deterministic, SHA-256-addressed ZIP linked from
+the submission page. The ZIP can be rebuilt from the retained commit and must match any recorded
+digest. `pull/<N>/head` moves and is never a historical source reference. Missing source caches
+are marked unavailable until rebuilt; older entries without retention tags may be unrecoverable.
+Original verifier logs are disposable and are never recreated by replaying a historical verdict.
 
 A verified improvement becomes the record: a verified head is the track's new record if, when its
 verification finishes, its claim strictly improves the current record, or the track has none.
 Records are decided in the order verifications finish, so a later identical or copied claim never
-takes a record. Pull requests are never merged or closed by the verifier; the record's proof is
-its exact checked source archive. Other verified submissions appear on their solver's
+takes a record. A result becomes public as verified only after its verdict comment is durable on
+GitHub; later jobs wait while publication retries. Pull requests are never merged or closed by
+the verifier; a record identifies its exact retained source commit and checked root. Other verified submissions appear on their solver's
 page. Submissions never update the trusted core checkout. See `docs/repositories.md` for workspace
 preparation and configuration.
 
@@ -245,6 +251,8 @@ documentation in the same change. Keep lower and upper admission independent. Ru
 describe requirements without current scores. READMEs describe their directory and link to these
 rules instead of restating them.
 
-Run `tools/check_repo.py` for repository checks and `service/browser_check.py` for the seeded local
-preview; setup and optional formal/official checks are documented in `tools/README.md`. Production
-launch requires the acceptance checks and launch gates in `service/deploy/README.md`.
+Run `tools/check_repo.py` for repository checks; setup and optional formal/official checks are
+documented in `tools/README.md`. The maintainer workflow is commit, push and update the live `h2`
+deployment, without starting localhost. `service/browser_check.py` is available for an explicitly
+requested seeded local preview. Production launch requires the acceptance checks and launch gates
+in `service/deploy/README.md`.

@@ -37,13 +37,23 @@ python3 verifier/verify.py lower-generality-1 --source ../ots.golf-submissions
 checkout. macOS verification runs unsandboxed, for trusted local development; hosted verification
 requires the Linux isolation in the [deployment guide](service/deploy/README.md).
 
-Run the website locally with the committed [demo fixtures](service/demo/README.md):
+For optional local website development, opt into the committed [demo fixtures](service/demo/README.md):
 
 ```sh
 cd service
 uv sync --frozen
-./run-local.sh        # http://localhost:8000
+OTS_PHONY=1 ./run-local.sh        # http://localhost:8000
 ```
+
+## Live service and recovery
+
+Maintainer updates follow commit, push, then deployment to `h2`; no localhost preview is required.
+Production shows real submissions only (`OTS_PHONY=0`). GitHub retains each admitted commit under
+`refs/tags/ots-source/<submission-id>` and stores frozen receipt/verdict comments. The server is
+disposable: `python -m app.rebuild` restores metadata; `--sources` also rebuilds exact source ZIPs
+without rechecking historical proofs. Original logs are disposable. See the
+[deployment guide](service/deploy/README.md#rebuilding-the-server-from-nothing) for the credentialed
+rebuild command, source-tag protection and launch checks.
 
 ## Repository map
 

@@ -23,6 +23,9 @@ from .config import settings
 from .db import GithubReport, SessionLocal, Submission, init_db, local_lock, schedule_report, utcnow
 
 POLL_SECONDS = 3
+TERMINAL_STATUSES = {"verified", "rejected", "policy_rejected", "timeout", "failed"}
+RECEIPT_FIELDS = ("source_ref", "created_at", "author", "description", "co_authors",
+                  "assisted_by", "contract_commit", "submission_root")
 
 
 def _log(msg: str) -> None:
@@ -137,53 +140,172 @@ def promote(session, sub: Submission, at=None) -> None:
         sub.record_at = at or sub.finished_at or utcnow()
 
 
+def reported_status(sub: Submission) -> str:
+    if sub.status == "admitting":
+        return "pending"
+    if sub.status == "publishing":
+        status = sub.detail_dict.get("publication_status")
+        if status not in TERMINAL_STATUSES:
+            raise ValueError("publishing submission has no terminal verdict")
+        return status
+    return sub.status
+
+
 def verdict_entry(sub: Submission) -> dict:
-    """What a rebuild needs to restore one checked head."""
-    return {"id": sub.id, "track": sub.track, "commit": sub.commit, "status": sub.status, "claim": sub.claim,
-            "duration_s": sub.duration_s,
-            "finished_at": sub.finished_at.isoformat(timespec="microseconds") + "Z" if sub.finished_at else None,
-            "contract": sub.detail_dict.get("contract"), "record": bool(sub.is_record),
-            "source_archive": sub.detail_dict.get("source_archive")}
+    """The frozen receipt and verdict needed to rebuild this checked head."""
+    detail = sub.detail_dict
+    receipt = detail.get("receipt")
+    entry = {key: receipt[key] for key in RECEIPT_FIELDS if isinstance(receipt, dict) and key in receipt}
+    if detail.get("source_ref"):
+        entry["source_ref"] = detail["source_ref"]
+        entry.setdefault("created_at", sub.created_at.isoformat(timespec="microseconds") + "Z"
+                         if sub.created_at else None)
+    failure = detail.get("failure")
+    failure = ({"code": str(failure.get("code", ""))[:32],
+                "message": str(failure.get("message", ""))[:1200]}
+               if isinstance(failure, dict) else None)
+    status = reported_status(sub)
+    # Retrying a supplementary commit status must not erase a running job's durable receipt.
+    if detail.get("source_ref") and status == "verifying":
+        status = "pending"
+    entry.update(id=sub.id, track=sub.track, commit=sub.commit, status=status, claim=sub.claim,
+                 duration_s=sub.duration_s,
+                 finished_at=sub.finished_at.isoformat(timespec="microseconds") + "Z" if sub.finished_at else None,
+                 contract=detail.get("contract"), record=bool(sub.is_record),
+                 source_archive=detail.get("source_archive"), failure=failure)
+    return entry
 
 
-def report(sub: Submission, history: list[dict] | None = None) -> int | None:
-    """Publish a verdict; retain the comment ID so later updates edit the same comment."""
-    repo = sub.pr_repository
-    if not repo or not settings.submissions_repo or repo.lower() != settings.submissions_repo.lower():
-        raise ValueError("the submission does not belong to the configured submissions repository")
-    url = f"{settings.base_url}/submissions/{sub.id}"
-    if sub.status in {"pending", "verifying"}:
-        state, what = "pending", "queued for verification" if sub.status == "pending" else "verification in progress"
-        body = f"**ots.golf verifier:** {what}. Details: {url}"
-    elif sub.status == "verified":
-        what = f"verified: claim {sub.claim}" + (" — new record" if sub.is_record else " (not a record)")
-        state, body = "success", f"**ots.golf verifier:** {what}. Details: {url}"
-    else:
-        failure = (sub.detail_dict.get("failure") or {}).get("message", "")
-        what = f"{sub.status}: {failure}"[:140] if failure else sub.status
-        state = "error" if sub.status == "failed" else "failure"
-        quoted = failure[:600].replace("```", "'''").replace("<!--", "<!​--")
-        body = f"**ots.golf verifier:** `{sub.status}`.\n\n```\n{quoted}\n```\n\nDetails: {url}"
-    finished = [e for e in (history or [verdict_entry(sub)]) if e["status"] not in {"pending", "verifying"}]
-    if finished:
-        body += "\n\n" + github.verdict_block(finished)
-    if sub.current_contract:
-        github.post_status(repo, sub.commit, state, what, url)
-    else:
-        body = "**Historical contract result; excluded from the current competition.**\n\n" + body
+class CommentPublishedError(Exception):
+    """The durable comment succeeded, but its supplementary commit status needs retrying."""
+    def __init__(self, comment_id: int, error: Exception):
+        self.comment_id = comment_id
+        self.error = error
+        super().__init__(str(error))
+
+
+def publish_comment(sub: Submission, body: str) -> int | None:
     comment_id = sub.detail_dict.get("github_comment_id")
     if type(comment_id) is int:
         try:
-            github.update_comment(repo, comment_id, body)
+            github.update_comment(sub.pr_repository, comment_id, body)
             return comment_id
         except github.httpx.HTTPStatusError as exc:
             if exc.response.status_code != 404:
                 raise
-            # A maintainer may have deleted the earlier comment. Recreate it on the same PR.
-    return github.post_comment(repo, sub.pr_number, body)
+    return github.post_comment(sub.pr_repository, sub.pr_number, body)
+
+
+def report(sub: Submission, history: list[dict] | None = None) -> int | None:
+    """New retained-source heads publish their own durable comment before a commit status.
+
+    Preserve legacy aggregate comments: several historical rows may share their comment ID.
+    """
+    repo = sub.pr_repository
+    if not repo or not settings.submissions_repo or repo.lower() != settings.submissions_repo.lower():
+        raise ValueError("the submission does not belong to the configured submissions repository")
+    url = f"{settings.base_url}/submissions/{sub.id}"
+    status = reported_status(sub)
+    durable = bool(sub.detail_dict.get("source_ref"))
+    if status in {"pending", "verifying"}:
+        state, what = "pending", "queued for verification" if status == "pending" else "verification in progress"
+        body = f"**ots.golf verifier:** {what}. Details: {url}"
+    elif status == "verified":
+        what = f"verified: claim {sub.claim}" + (" — new record" if sub.is_record else " (not a record)")
+        state, body = "success", f"**ots.golf verifier:** {what}. Details: {url}"
+    else:
+        failure = (sub.detail_dict.get("failure") or {}).get("message", "")
+        what = f"{status}: {failure}"[:140] if failure else status
+        state = "error" if status == "failed" else "failure"
+        quoted = failure[:600].replace("```", "'''").replace("<!--", "<!​--")
+        body = f"**ots.golf verifier:** `{status}`.\n\n```\n{quoted}\n```\n\nDetails: {url}"
+    entries = ([verdict_entry(sub)] if durable else
+               [e for e in (history or [verdict_entry(sub)])
+                if not e.get("source_ref") and e["status"] not in {"pending", "verifying"}])
+    if entries:
+        body += "\n\n" + github.verdict_block(entries)
+    if not sub.current_contract:
+        body = "**Historical contract result; excluded from the current competition.**\n\n" + body
+    if not durable and sub.current_contract:
+        github.post_status(repo, sub.commit, state, what, url)
+    comment_id = publish_comment(sub, body)
+    if durable:
+        if type(comment_id) is not int or comment_id <= 0:
+            raise ValueError("GitHub did not confirm a durable comment identity")
+        if sub.current_contract:
+            try:
+                github.post_status(repo, sub.commit, state, what, url)
+            except Exception as exc:
+                raise CommentPublishedError(comment_id, exc) from exc
+    return comment_id
+
+
+def report_backoff(pending: GithubReport) -> None:
+    pending.attempts += 1
+    pending.next_attempt = utcnow() + timedelta(seconds=min(3600, 30 * 2 ** min(pending.attempts, 7)))
+
+
+def deliver_durable_report(sub_id: str) -> None:
+    # Hold this lock through the external write. Later record decisions cannot overtake an
+    # unpublished result, and tentative promotion stays only on a detached snapshot.
+    with local_lock("results"), SessionLocal() as session:
+        pending = session.get(GithubReport, sub_id)
+        current = session.get(Submission, sub_id)
+        if pending is None or current is None or pending.next_attempt > utcnow():
+            return
+        if (current.pr_repository or "").lower() != settings.submissions_repo.lower():
+            return
+        version, original_status = pending.version, current.status
+        snapshot = Submission(**{column.name: getattr(current, column.name)
+                                 for column in Submission.__table__.columns})
+        error, comment_id = None, None
+        try:
+            if original_status == "publishing":
+                snapshot.status = reported_status(current)
+                snapshot.is_record, snapshot.record_at = False, None
+                promote(session, snapshot)
+            comment_id = report(snapshot)
+        except CommentPublishedError as exc:
+            comment_id, error = exc.comment_id, exc.error
+        except Exception as exc:
+            error = exc
+        if error is not None:
+            _log(f"GitHub report for {sub_id} failed: {type(error).__name__}; queued for retry")
+        # Admission may schedule a newer outbox version while the request is running.
+        session.expire_all()
+        pending = session.get(GithubReport, sub_id)
+        current = session.get(Submission, sub_id)
+        if pending is None or current is None:
+            return
+        detail = current.detail_dict
+        published = type(comment_id) is int and comment_id > 0
+        if published:
+            detail["github_comment_id"] = comment_id
+        if pending.version == version:
+            if published and current.status == original_status:
+                if original_status == "admitting":
+                    current.status = "pending"
+                elif original_status == "publishing":
+                    current.status = snapshot.status
+                    current.is_record, current.record_at = snapshot.is_record, snapshot.record_at
+                    detail.pop("publication_status", None)
+            if error is None and published:
+                session.delete(pending)
+            else:
+                report_backoff(pending)
+        current.detail = json.dumps(detail)
+        session.commit()
 
 
 def deliver_report(sub_id: str) -> None:
+    # Recovery imports rows incrementally, then reconstructs the complete record frontier.
+    with local_lock("recovery", shared=True):
+        if (settings.data_dir / "recovery.incomplete").exists():
+            return
+        _deliver_report(sub_id)
+
+
+def _deliver_report(sub_id: str) -> None:
     if not settings.submissions_repo or not settings.github_token:
         return
     with SessionLocal() as session:
@@ -193,10 +315,14 @@ def deliver_report(sub_id: str) -> None:
             return
         if (sub.pr_repository or "").lower() != settings.submissions_repo.lower():
             return
+        durable = bool(sub.detail_dict.get("source_ref"))
         version = pending.version
-        history = [verdict_entry(s) for s in session.scalars(
+        history = [] if durable else [verdict_entry(s) for s in session.scalars(
             select(Submission).where(func.lower(Submission.pr_url) == (sub.pr_url or "").lower())
-            .order_by(Submission.created_at))]
+            .order_by(Submission.created_at)) if not s.detail_dict.get("source_ref")]
+    if durable:
+        deliver_durable_report(sub_id)
+        return
     error, comment_id = None, None
     try:
         comment_id = report(sub, history)
@@ -216,8 +342,7 @@ def deliver_report(sub_id: str) -> None:
             if error is None:
                 session.delete(pending)
             else:
-                pending.attempts += 1
-                pending.next_attempt = utcnow() + timedelta(seconds=min(3600, 30 * 2 ** min(pending.attempts, 7)))
+                report_backoff(pending)
         session.commit()
 
 
@@ -248,9 +373,12 @@ def next_finish_time(session):
 
 
 def process(sub_id: str) -> None:
-    with SessionLocal() as session:
+    with local_lock("recovery", shared=True), local_lock("results"), SessionLocal() as session:
+        if (settings.data_dir / "recovery.incomplete").exists():
+            return
         sub = session.get(Submission, sub_id)
-        if sub is None or sub.status != "pending":
+        publishing = session.scalar(select(Submission.id).where(Submission.status == "publishing").limit(1))
+        if sub is None or sub.status != "pending" or publishing is not None:
             return
         sub.status, sub.started_at = "verifying", utcnow()
         session.commit()
@@ -264,7 +392,9 @@ def process(sub_id: str) -> None:
     except Exception:
         _log(traceback.format_exc())
         result, log_path = {"status": "failed", "reason": "internal error in the verifier; the operator has the trace"}, None
-    with local_lock("results"), SessionLocal() as session:
+    # A running proof may finish during recovery. Store its result after the import;
+    # the persistent marker still prevents publication if recovery was incomplete.
+    with local_lock("recovery", shared=True), local_lock("results"), SessionLocal() as session:
         sub = session.get(Submission, sub_id)
         if sub is None:
             return
@@ -291,8 +421,12 @@ def process(sub_id: str) -> None:
             except source_archive.ArchiveError:
                 sub.status = "failed"
                 detail["failure"] = {"code": "failed", "message": "invalid source archive metadata"}
+        if detail.get("source_ref"):
+            detail["publication_status"] = sub.status
+            sub.status, sub.is_record, sub.record_at = "publishing", False, None
         sub.detail = json.dumps(detail)
-        promote(session, sub)
+        if sub.status != "publishing":
+            promote(session, sub)
         schedule_report(session, sub)
         session.commit()
         _log(f"{sub.id}: {sub.status}" + (f" claim {sub.claim}" + (" RECORD" if sub.is_record else "") if sub.status == "verified" else ""))
@@ -307,8 +441,11 @@ def work_loop() -> None:
         session.commit()
     while True:
         with SessionLocal() as session:
-            sub_id = session.scalar(select(Submission.id).where(Submission.status == "pending")
-                                    .order_by(Submission.created_at.asc()).limit(1))
+            publishing = session.scalar(select(Submission.id).where(Submission.status == "publishing").limit(1))
+            blocked = publishing is not None or (settings.data_dir / "recovery.incomplete").exists()
+            sub_id = None if blocked else session.scalar(
+                select(Submission.id).where(Submission.status == "pending")
+                .order_by(Submission.created_at.asc()).limit(1))
         if sub_id:
             process(sub_id)
         else:

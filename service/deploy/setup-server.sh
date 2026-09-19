@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-shot setup of the verifier + site on a fresh Ubuntu 24.04 host (run as root once).
+# One-shot setup of the verifier + site on Ubuntu 26.04 with systemd 257+ (run as root once).
 #
 #   OTS_DOMAIN=ots.golf bash deploy/setup-server.sh
 #
@@ -32,9 +32,14 @@ mem_gb=$(( $(awk '/MemTotal/ {print $2}' /proc/meminfo) / 1024 / 1024 ))
 (( mem_gb >= 30 )) || { echo 'at least 32 GB of installed RAM is required' >&2; exit 1; }
 [[ "$(uname -m)" == x86_64 ]] || { echo 'this installer currently supports x86_64 Linux only' >&2; exit 1; }
 
+systemd_version="$(systemd --version | awk 'NR == 1 {print $2}')"
+[[ "${systemd_version}" =~ ^[0-9]+$ ]] && (( systemd_version >= 257 )) || {
+  echo 'systemd 257 or newer is required for PrivatePIDs; use Ubuntu 26.04 or an equivalent supported host' >&2; exit 1;
+}
+
 apt-get update
-apt-get install -y git curl build-essential python3 gnupg sudo openssl sqlite3 debian-keyring debian-archive-keyring apt-transport-https
-# Go, current release from go.dev (landrun needs 1.24+; Ubuntu's golang-go is older)
+apt-get install -y git curl build-essential python3 gnupg sudo openssl sqlite3 apparmor e2fsprogs util-linux debian-keyring debian-archive-keyring apt-transport-https
+# Go from go.dev (landrun requires 1.24 or newer)
 if ! /usr/local/go/bin/go version >/dev/null 2>&1; then
   go_ver="$(curl -fsSL 'https://go.dev/VERSION?m=text' | head -1)"
   curl -fsSL "https://go.dev/dl/${go_ver}.linux-amd64.tar.gz" -o /tmp/go.tgz
@@ -69,9 +74,10 @@ fi
 chown ots:ots-state /srv/ots-work
 chmod 2770 /srv/ots-work
 loginctl enable-linger ots   # systemd --user for the sandbox scope of the worker
-# Ubuntu forbids unprivileged user namespaces (kernel.apparmor_restrict_unprivileged_userns). The
-# sandbox needs them only for systemd to build each job's private /dev and /dev/shm, so the
-# exception covers systemd-executor alone.
+# Ubuntu restricts unprivileged user namespaces. This unconfined AppArmor profile permits
+# systemd-executor to create the job namespaces and is inherited by its child processes.
+# It is not a restriction to the executor alone; Landlock and the checked systemd restrictions
+# enforce the candidate boundary. Run the actual-host isolation probe before admission.
 cat > /etc/apparmor.d/ots-systemd-executor <<'APPARMOR'
 abi <abi/4.0>,
 include <tunables/global>
@@ -93,7 +99,7 @@ OTS_DATABASE_URL=sqlite:///${OTS_HOME}/data/ots.db
 OTS_DATA_DIR=${OTS_HOME}/data
 OTS_WORK_DIR=/srv/ots-work
 TMPDIR=/srv/ots-work
-OTS_PHONY=1
+OTS_PHONY=0
 ENV
 [[ -f /etc/ots/secrets.env ]] || ( umask 077; cat > /etc/ots/secrets.env <<ENV
 GITHUB_WEBHOOK_SECRET=$(openssl rand -hex 32)

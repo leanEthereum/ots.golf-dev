@@ -54,15 +54,22 @@ native_decide.
 Verification output is limited to 4 MiB (4,194,304 bytes) of combined standard output and standard
 error, including compiler and verifier messages. Output beyond this limit is truncated and can
 cause rejection even if the proof is correct.
-Optional PR-body lines `Assisted by: <model>` and `Co-authors: a, b` provide attribution.
+Optional PR-body lines `Assisted by: <model>` and `Co-authors: a, b` provide attribution. Admission
+freezes the author, description, co-authors and assistance in a GitHub receipt capped at 48 KiB
+including serialized metadata; put longer prose in NOTES.md.
 A verified improvement becomes the record: the first head whose verification finishes with a claim
 strictly better than the current record (on a track without a record, the first verified head).
-A later identical claim does not take it. Pull requests are never merged.
+A later identical claim does not take it. Verified results become public only after their verdict
+comment is durable on GitHub. Pull requests are never merged.
 Write a NOTES.md in the root: idea, result, what failed and why, what to try next. It is published
 whatever the verdict. Non-record submissions are welcome for their notes. Every checked head stays
-available from its immutable source archive linked on the submission page, while retained by the
-service and its backups. pull/<N>/head is a moving reference; missing historical archives are marked
-unavailable.
+retained by refs/tags/ots-source/<submission-id> in the submissions repository. Its frozen receipt
+must be published before verification starts. The exact source ZIP linked on the submission page
+is a rebuildable cache: recovery fetches that commit and requires any recorded archive digest.
+pull/<N>/head moves and is never used to recover an old revision. Missing caches are marked
+unavailable until rebuilt; older unpinned commits may be unavailable. GitHub tags and bot comments
+hold durable state; no server backup is required. Lost original verifier logs remain unavailable,
+and historical verdicts are never rechecked just to manufacture transcripts.
 
 The model, verifier and website live in leanEthereum/ots.golf-dev, which holds no track proofs.
 The submissions repository's main holds only the template and a pinned .contract submodule of

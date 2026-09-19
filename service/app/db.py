@@ -173,14 +173,15 @@ SessionLocal = sessionmaker(engine, expire_on_commit=False)
 
 
 @contextmanager
-def local_lock(name: str, *, blocking: bool = True):
-    """Serialize one-host service work across threads and processes.
+def local_lock(name: str, *, blocking: bool = True, shared: bool = False):
+    """Lock one-host service work across threads and processes; shared readers may coexist.
 
     Keep the lock file in place: unlinking a locked inode would let another worker bypass it.
     Locks are released automatically when a process dies.
     """
     with (settings.data_dir / f"{name}.lock").open("a") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB))
+        fcntl.flock(lock, (fcntl.LOCK_SH if shared else fcntl.LOCK_EX) |
+                    (0 if blocking else fcntl.LOCK_NB))
         try:
             yield
         finally:

@@ -84,6 +84,56 @@ def pr_track(owner_repo: str, number: int, *, expected_files: int | None = None)
     return touched.pop(), outside
 
 
+def _source_ref_path(owner_repo: str, submission_id: str, commit: str, source_ref: str) -> str:
+    if (not REPO_RE.fullmatch(owner_repo) or not settings.submissions_repo
+            or owner_repo.lower() != settings.submissions_repo.lower()
+            or not re.fullmatch(r"[0-9a-f]{32}", submission_id)
+            or not SHA_RE.fullmatch(commit)
+            or source_ref != f"refs/tags/ots-source/{submission_id}"):
+        raise ValueError("invalid retained submission reference")
+    return f"{API}/repos/{owner_repo}/git/ref/{source_ref.removeprefix('refs/')}"
+
+
+def _verify_source_object(data: dict, commit: str) -> None:
+    obj = data.get("object") if isinstance(data, dict) else None
+    if not isinstance(obj, dict) or obj.get("type") != "commit" or obj.get("sha") != commit:
+        raise ValueError("retained submission reference points to a different object")
+
+
+def verify_source_ref(owner_repo: str, submission_id: str, commit: str, source_ref: str) -> None:
+    """Require the immutable retention tag to name the exact queued commit in the base repo."""
+    url = _source_ref_path(owner_repo, submission_id, commit, source_ref)
+    with httpx.Client(timeout=30) as client:
+        response = client.get(url, headers=_headers())
+        _check(response, "read retained source reference")
+        _verify_source_object(response.json(), commit)
+
+
+def ensure_source_ref(owner_repo: str, submission_id: str, commit: str) -> str:
+    """Create once and read back; never update or delete a retained source tag.
+
+    PR heads are available in their base repository. Keeping a ref there prevents loss of the
+    checked commit when a contributor later force-pushes or deletes their branch or fork.
+    """
+    source_ref = f"refs/tags/ots-source/{submission_id}"
+    url = _source_ref_path(owner_repo, submission_id, commit, source_ref)
+    if not settings.github_token:
+        raise ValueError("GitHub credentials are required to retain a submission")
+    with httpx.Client(timeout=30) as client:
+        response = client.get(url, headers=_headers())
+        if response.status_code == 404:
+            created = client.post(f"{API}/repos/{owner_repo}/git/refs", headers=_headers(),
+                                  json={"ref": source_ref, "sha": commit})
+            # Another admission process may have created the same tag. Only a matching readback
+            # counts as success; a conflict never authorizes changing an existing ref.
+            if created.status_code not in (201, 422):
+                _check(created, "retain submission source")
+            response = client.get(url, headers=_headers())
+        _check(response, "read retained source reference")
+        _verify_source_object(response.json(), commit)
+    return source_ref
+
+
 def post_status(owner_repo: str, sha: str, state: str, description: str, target_url: str) -> None:
     if not settings.github_token:
         return
@@ -95,22 +145,24 @@ def post_status(owner_repo: str, sha: str, state: str, description: str, target_
 
 
 def _paged(path: str, params: dict | None = None, limit: int = 5000) -> list[dict]:
-    """Every item of a paginated GitHub list, up to `limit`."""
+    """Read complete history, failing explicitly if its configured bound is exceeded."""
     items: list[dict] = []
     with httpx.Client(timeout=30) as client:
         page = 1
-        while len(items) < limit:
+        while True:
             r = client.get(f"{API}{path}", params={**(params or {}), "per_page": 100, "page": page},
                            headers=_headers())
             _check(r, f"list {path}")
             batch = r.json()
-            if not isinstance(batch, list) or not batch:
-                break
+            if not isinstance(batch, list):
+                raise ValueError("GitHub returned a malformed history page")
+            if len(items) + len(batch) > limit:
+                raise ValueError(f"GitHub history exceeds {limit} entries; refusing a partial rebuild")
             items.extend(batch)
             if len(batch) < 100:
                 break
             page += 1
-    return items[:limit]
+    return items
 
 
 def list_pulls(owner_repo: str) -> list[dict]:
@@ -152,14 +204,16 @@ def targets_default_branch(pr: dict) -> bool:
 
 VERDICT_OPEN, VERDICT_CLOSE = "<!-- ots-result", "-->"
 VERDICT_RE = re.compile(r"<!-- ots-result\n(.*)\n-->\s*", re.S)
-VERDICT_KEYS = ("id", "track", "commit", "status", "claim", "duration_s", "finished_at", "contract", "record", "source_archive")
+VERDICT_KEYS = ("id", "track", "commit", "status", "claim", "duration_s", "finished_at", "contract", "record", "source_archive",
+                "source_ref", "created_at", "author", "description", "co_authors", "assisted_by",
+                "contract_commit", "submission_root", "failure")
 
 
 def verdict_block(entries: list[dict]) -> str:
     """Every verdict of a pull request, machine-readable, hidden in the bot's comment. The comment is
     the durable copy: the server's database can be rebuilt from it."""
     clean = [{k: e.get(k) for k in VERDICT_KEYS} for e in entries]
-    text = json.dumps({"version": 1, "results": clean}, separators=(",", ":"), sort_keys=True)
+    text = json.dumps({"version": 1, "results": clean}, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
     text = text.replace("--", "-\\u002d")          # an HTML comment cannot contain "--"
     return VERDICT_OPEN + "\n" + text + "\n" + VERDICT_CLOSE
 

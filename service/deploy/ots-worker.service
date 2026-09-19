@@ -20,6 +20,8 @@ ExecStart=/srv/ots/repo/service/.venv/bin/python -m app.worker
 Restart=always
 RestartSec=5
 TimeoutStopSec=60
+# SIGTERM unwinds the pipeline cleanup and exits 128 + 15.
+SuccessExitStatus=143
 KillMode=control-group
 
 [Install]

@@ -6,7 +6,13 @@ results, plus a separate worker that checks each proof against the trusted core 
 competition rules are on [ots.golf/rules](https://ots.golf/rules) and, precisely, in
 [AGENTS.md](../AGENTS.md); maintainer instructions for the site are in [AGENTS.md](AGENTS.md).
 
-## Run locally
+## Live maintenance
+
+The active workflow is commit, push, then update `h2`; no localhost preview or refresh is required.
+Follow [deployment and recovery](deploy/README.md) for host checks, exact-commit updates and rebuilding
+a disposable server from GitHub. Production web and worker use `OTS_PHONY=0`.
+
+## Optional local development
 
 ```sh
 cd service
@@ -14,22 +20,15 @@ uv sync --frozen
 ./run-local.sh
 ```
 
-Open `http://localhost:8000`. Startup refreshes the fictional [demo fixtures](demo/README.md),
+Open `http://localhost:8000`. The default `OTS_PHONY=0` shows only real submissions; a track
+without a verified record shows "No record yet". For a requested demo preview, run
+`OTS_PHONY=1 ./run-local.sh`. Startup then refreshes the fictional [demo fixtures](demo/README.md),
 preserving their IDs and dates; each row carries a demo label, and real submissions are left alone.
-Set `OTS_PHONY=0` to show real submissions only: a track without a verified record shows
-"No record yet".
 
-**Refreshing.** This checkout's `post-commit` hook runs `refresh-local.sh`, which re-seeds the
-demo rows and reloads the web process, including its cached commit. After every local commit,
-check the rendered page. To install the hook in another checkout, from the repository root:
-
-```sh
-install -m 755 service/post-commit "$(git rev-parse --git-path hooks/post-commit)"
-```
-
-Refresh by hand with `bash service/refresh-local.sh`. The worker does not hot-reload: restart
-`run-local.sh` after changing worker code. The startup script removes GitHub credentials from the
-worker's environment.
+For a deliberately running demo preview, `OTS_PHONY=1 bash refresh-local.sh` updates the
+fixtures. The worker does not hot-reload: restart `run-local.sh` after changing worker code.
+The startup script removes GitHub credentials from the worker's environment. A post-commit
+refresh hook is optional and is not part of the live-deployment workflow.
 
 **Demo rows.** `seed_demo.py --refresh` updates them, plain `seed_demo.py` replaces them and
 `--remove` deletes them. The script refuses production mode and non-loopback site URLs, even with
@@ -52,21 +51,26 @@ lock files enforce this across processes on the same host.
   cycle axis) and a lower section with one leaderboard per Generality framework.
   `/?framework=generality-1|generality-2|generality-3` filters the lower tables; `#lower` and
   `#upper` select the direction.
-- **Admission.** A pull request must change exactly one submission root. The authenticated webhook
-  checks the repository, files and head; the worker verifies that exact commit on the trusted tree.
-- **Records.** A verified improvement becomes the record. When the worker stores a verified
-  result it decides, under the results lock, whether the claim strictly improves the track's
-  current record (or the track has none); records therefore follow the order verifications finish,
-  and a later identical claim never takes one. Record decisions ignore demo rows. The bot never
-  merges or closes pull requests: it writes only commit statuses and comments.
-- **Reporting.** Commit statuses and result comments go through a durable outbox, so a reporting
-  outage retries delivery without repeating the proof. Result reports keep their PR's repository.
-- **Database.** A disposable cache: the website rebuilds it from GitHub at startup (`app.resync`),
-  replaying verified verdicts in finish order to decide records;
-  see [rebuilding the server](deploy/README.md#rebuilding-the-server-from-nothing).
+- **Admission.** A pull request must change exactly one submission root. The service checks the
+  repository, files and full head SHA, creates `refs/tags/ots-source/<submission-id>` in the base
+  submissions repository, and publishes a pending receipt with frozen attribution and contract
+  identity. The worker cannot start until GitHub confirms that receipt. Its serialized metadata
+  is capped at 48 KiB; longer prose belongs in `NOTES.md`.
+- **Records.** A verified improvement becomes the record only after its verdict comment is durable.
+  Decisions follow verification-finish order under the results lock, so a later identical claim
+  never takes a record. Demo rows cannot affect records. The bot never merges or closes PRs.
+- **Reporting.** The local outbox retries GitHub delivery without repeating a finished proof. A
+  result awaiting its comment stays `publishing`; later jobs wait. Commit-status updates may retry
+  after the durable comment succeeds. Reports retain the submission's original PR repository.
+- **Recovery.** GitHub source tags and bot comments are durable state. SQLite and deterministic
+  source ZIPs are rebuildable caches; original logs are disposable. `python -m app.rebuild`
+  restores metadata and queued receipts; `--sources` also fetches exact commits and requires any
+  recorded archive digest. `--queue-open-heads` additionally admits unseen open heads. Rebuild
+  never rechecks historical proofs or manufactures missing logs. See
+  [rebuilding the server](deploy/README.md#rebuilding-the-server-from-nothing).
 
 Whenever the contract or an admission status changes, update the metadata, charts, leaderboards,
-rules and documentation together, then refresh and inspect localhost.
+rules and documentation together, then check the rendered live pages after deployment.
 
 ## Configuration
 
@@ -75,7 +79,7 @@ rules and documentation together, then refresh and inspect localhost.
 | `OTS_ENV` | `development` | `development` or `production` |
 | `OTS_ROLE` | `web` | `web` or `worker` |
 | `OTS_REPO_ROOT` | checkout root | trusted contract checkout |
-| `OTS_DATA_DIR` | `service/data` | SQLite database, logs and process locks |
+| `OTS_DATA_DIR` | `service/data` | SQLite and source ZIP caches, disposable logs and process locks |
 | `OTS_WORK_DIR` | `<data>/work` | disposable verification jobs; dedicated bounded mount on Linux |
 | `OTS_DATABASE_URL` | `sqlite:///<data>/ots.db` | database connection; deployment uses SQLite |
 | `OTS_BASE_URL` | `http://localhost:8000` | site origin, without a path |
@@ -83,16 +87,16 @@ rules and documentation together, then refresh and inspect localhost.
 | `OTS_SUBMISSIONS_REPO` | empty | proof PR repository; set to `leanEthereum/ots.golf-submissions` to configure intake |
 | `GITHUB_WEBHOOK_SECRET` | empty | webhook authentication; web process only |
 | `GITHUB_TOKEN` | empty | GitHub API access and reporting; web process only |
-| `OTS_PHONY` | `1` | re-seed the invented demo rows at every start; `0` shows real submissions only |
+| `OTS_PHONY` | `0` | show real submissions only; `1` opts into labeled demo rows for local development |
 | `OTS_RESYNC_ON_START` | `1` | rebuild missing submissions from GitHub when the website starts |
 | `OTS_BOT_LOGIN` | token's login | account whose PR comments carry verdicts |
-| `OTS_MAX_INFLIGHT_PER_USER` | `2` | pending and verifying jobs per user |
-| `OTS_QUEUE_CAP` | `20` | pending jobs overall |
+| `OTS_MAX_INFLIGHT_PER_USER` | `2` | admitting, pending, verifying and publishing jobs per user |
+| `OTS_QUEUE_CAP` | `20` | in-flight jobs overall |
 
 Production web startup requires HTTPS, two distinct repositories, a token and a webhook secret of
 at least 32 characters. Production workers refuse GitHub credentials. Run the web process and the
 worker under different Unix identities, sharing only the state group. See
-[deployment](deploy/README.md) for storage, isolation, backups and launch checks, and
+[deployment](deploy/README.md) for storage, isolation, GitHub recovery and launch checks, and
 [repository setup](../docs/repositories.md) for the submissions workspace.
 
 ## Checks

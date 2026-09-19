@@ -14,9 +14,10 @@ sig.golf/
 ```
 
 Run core commands from `ots.golf-dev/` and submission checks from `ots.golf-submissions/`.
-Start localhost with `bash service/run-local.sh` from the core repository.
-The [committed demo fixtures](../service/demo/submissions.json) populate a fresh local database
-automatically. They belong to the website in the core repository; checked proof submissions
+The maintenance workflow is commit, push, then update the live `h2` deployment; no localhost is
+required. For explicitly requested local development, `bash service/run-local.sh` starts a preview.
+The [committed demo fixtures](../service/demo/submissions.json) populate a local database when
+`OTS_PHONY=1`; the default is `OTS_PHONY=0`. They belong to the website in the core repository; checked proof submissions
 belong to `ots.golf-submissions`.
 
 The submissions workspace has a `.contract` submodule pinned to a core commit for local proof
@@ -26,9 +27,12 @@ head, using its own core checkout for every protected file and verification tool
 Verification results are reported to the PR in the submissions repository as a commit status and
 a comment. A verified improvement becomes the record: the first verified head whose claim strictly
 improves the track's record when its verification finishes; on a track without a record, the first
-verified head. Pull requests are never merged. Before compilation, the hosted verifier retains
-the exact root in a source archive linked from the submission page; operators back up these archives.
-The GitHub reference `pull/<N>/head` moves on later pushes and is not a historical archive.
+verified head. A result becomes public as verified after its verdict comment is durable. Pull
+requests are never merged. The service retains the exact admitted commit in the base submissions
+repository under `refs/tags/ots-source/<submission-id>` and freezes attribution in a pending receipt
+before the worker can start. The exact source ZIP is a rebuildable cache linked from the submission
+page; GitHub tags and receipt/verdict comments are durable state. No server backups are required,
+and lost original logs remain unavailable. `pull/<N>/head` moves and is not a historical archive.
 Submissions never change the model, website, or trusted checkout. Repository
 identity is retained in each PR URL, so moving intake does not send old result comments to an
 unrelated PR with the same number.

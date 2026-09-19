@@ -9,6 +9,9 @@ from pathlib import Path
 import sys
 import io
 import zipfile
+import os
+import subprocess
+import tempfile
 
 from fastapi import HTTPException
 from fastapi.responses import Response
@@ -33,7 +36,10 @@ def validate_metadata(value: object, sub) -> dict:
     expected_contract = sub.detail_dict.get("contract")
     if not isinstance(expected_contract, str) or not archives.HEX64.fullmatch(expected_contract):
         raise ArchiveError("submission has no valid frozen source archive contract")
-    return archives.validate_metadata(value, commit=sub.commit, track=sub.track, contract=expected_contract)
+    receipt = sub.detail_dict.get("receipt") or {}
+    root = receipt.get("submission_root") if isinstance(receipt, dict) else None
+    return archives.validate_metadata(value, commit=sub.commit, track=sub.track,
+                                      contract=expected_contract, submission_root=root)
 
 
 def metadata_for_submission(sub) -> dict | None:
@@ -107,3 +113,110 @@ def download_response(sub) -> Response:
         headers={"Content-Disposition": f'attachment; filename="{filename}"',
                  "X-Content-Type-Options": "nosniff", "ETag": f'"{meta["sha256"]}"',
                  "Cache-Control": "public, max-age=31536000, immutable"})
+
+
+# Run the bounded exporter in a separate, credential-free interpreter. It reads Git blobs only;
+# no Lean, candidate module, hook or checkout is executed. A process-wide deadline also bounds
+# the sum of all individual Git operations, whose process groups are cleaned up by the exporter.
+_EXPORT_SCRIPT = """
+import signal, sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from verifier.verify import export_submission
+
+def timeout(*_):
+    raise TimeoutError("source export time limit")
+signal.signal(signal.SIGALRM, timeout)
+signal.alarm(600)
+try:
+    commit = export_submission(sys.argv[2], sys.argv[3], sys.argv[4], Path(sys.argv[5]))
+    print(commit)
+except Exception as exc:
+    print(type(exc).__name__, file=sys.stderr)
+    raise SystemExit(1)
+finally:
+    signal.alarm(0)
+"""
+
+
+def _export_exact(source: str, commit: str, root: str, destination: Path) -> None:
+    """Never inherit web credentials, credential helpers or user/system Git configuration."""
+    empty_home = destination.parent / "git-home"
+    empty_home.mkdir()
+    env = {"PATH": os.environ.get("PATH", os.defpath), "HOME": str(empty_home),
+           "XDG_CONFIG_HOME": str(empty_home), "TMPDIR": str(empty_home), "PYTHONDONTWRITEBYTECODE": "1",
+           "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
+           "GIT_TERMINAL_PROMPT": "0", "GIT_CONFIG_COUNT": "2",
+           "GIT_CONFIG_KEY_0": "credential.helper", "GIT_CONFIG_VALUE_0": "",
+           "GIT_CONFIG_KEY_1": "core.hooksPath", "GIT_CONFIG_VALUE_1": os.devnull}
+    try:
+        result = subprocess.run([sys.executable, "-B", "-c", _EXPORT_SCRIPT, _ROOT,
+                                 source, commit, root, str(destination)],
+                                env=env, capture_output=True, text=True, timeout=615, check=True)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise ArchiveError(f"exact source export failed ({type(exc).__name__})") from exc
+    if result.stdout.strip() != commit:
+        raise ArchiveError("exported source resolved to a different commit")
+
+
+def rebuild_cache(sub) -> tuple[dict, bool]:
+    """Recreate an optional ZIP from a pinned GitHub commit, without changing its proof verdict.
+
+    Return (descriptor, newly_rebuilt). Historical manifest identity and an expected digest are
+    binding. Build and compare in a temporary store before publishing to the permanent cache.
+    Legacy verdicts can recover only while their exact commit remains available in the base repo.
+    """
+    from . import contract, github
+
+    detail = sub.detail_dict
+    if detail.get("demo") or not sub.pr_repository or sub.pr_repository.lower() != settings.submissions_repo.lower():
+        raise ArchiveError("submission does not belong to the configured submissions repository")
+    if not isinstance(sub.commit, str) or not github.SHA_RE.fullmatch(sub.commit):
+        raise ArchiveError("source recovery requires an exact GitHub commit")
+    if detail.get("source_archive_error"):
+        raise ArchiveError("the recorded source archive descriptor is invalid")
+    expected = validate_metadata(detail["source_archive"], sub) if detail.get("source_archive") is not None else None
+    if expected is not None:
+        try:
+            archives.read_validated_bytes(directory(), expected)
+            return expected, False
+        except FileNotFoundError:
+            pass
+        except ArchiveError:
+            # A missing directory can be reconstructed. Existing corrupt objects cannot be
+            # overwritten by immutable publication, and are surfaced as an explicit error.
+            if directory().exists():
+                raise
+    else:
+        retained = recover_metadata(sub)
+        if retained is not None:
+            return retained, False
+    source_ref = detail.get("source_ref")
+    if source_ref is not None:
+        try:
+            github.verify_source_ref(settings.submissions_repo, sub.id, sub.commit, source_ref)
+        except Exception as exc:
+            raise ArchiveError(f"pinned source ref unavailable ({type(exc).__name__})") from exc
+    receipt = detail.get("receipt") or {}
+    track = contract.track(sub.track)
+    root = (expected["submission_root"] if expected else receipt.get("submission_root")
+            or (track or {}).get("submission_root"))
+    identity = {"source_repo": expected["source_repo"] if expected else sub.source_repo,
+                "commit": sub.commit, "track": sub.track, "submission_root": root,
+                "contract": detail.get("contract")}
+    archives.validate_metadata(dict(version=1, sha256="0" * 64, size_bytes=1,
+                                     file_count=0, total_bytes=0, **identity))
+    # The fetch target is trusted configuration; historical source_repo is manifest metadata
+    # only. Never use a URL from a comment as a network destination or pass a token to Git.
+    source = f"https://github.com/{settings.submissions_repo}.git"
+    with tempfile.TemporaryDirectory(prefix="ots-source-rebuild-", dir=settings.work_dir) as temporary:
+        staging = Path(temporary) / "export"
+        _export_exact(source, sub.commit, root, staging)
+        staged_store = Path(temporary) / "archives"
+        rebuilt = archives.save_source(staged_store, sub.id, staging / root, **identity)
+        if expected is not None and rebuilt != expected:
+            raise ArchiveError("reconstructed source does not match the recorded archive digest")
+        published = archives.save_source(directory(), sub.id, staging / root, **identity)
+        if published != rebuilt:
+            raise ArchiveError("source changed while publishing the recovered archive")
+    return published, True

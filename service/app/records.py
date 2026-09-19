@@ -34,7 +34,7 @@ def frontier(session: Session, slug: str) -> list[Submission]:
 
 
 def in_flight(session: Session, slug: str | None = None) -> list[Submission]:
-    q = select(Submission).where(Submission.status.in_(("pending", "verifying")))
+    q = select(Submission).where(Submission.status.in_(("admitting", "pending", "verifying", "publishing")))
     if slug:
         q = q.where(Submission.track == slug)
     return [s for s in session.scalars(q.order_by(Submission.created_at.asc())) if visible(s)]

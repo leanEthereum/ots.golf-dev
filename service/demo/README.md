@@ -9,12 +9,13 @@ attribution establishes no theorem, and record decisions for real submissions ig
 ```sh
 cd service
 uv sync --frozen
-./run-local.sh
+OTS_PHONY=1 ./run-local.sh
 ```
 
-Startup creates the local database and loads the fixtures, so a fresh clone needs no database
-dump. `OTS_PHONY=0` skips seeding; `seed_demo.py --refresh` reconciles the fixtures by hand
-(development mode and a loopback site URL only).
+With this explicit opt-in, startup creates the local database and loads the fixtures. The default
+`OTS_PHONY=0` skips seeding and hides existing demo rows without deleting their IDs or dates.
+`seed_demo.py --refresh` reconciles the fixtures by hand (development mode and a loopback site URL
+only). Production and the normal live-maintenance workflow do not use these fixtures.
 
 ## Entry format
 
