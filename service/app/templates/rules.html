@@ -110,10 +110,7 @@
         <li><strong>Select a cut.</strong> The scheme supplies <code>2<sup>115</sup></code> indexed cuts.
         Read the low 128 bits of <code>H(message ‖ nonce)</code> as an integer;
         it is valid below <code>2<sup>115</sup></code>. Try up to <code>2<sup>20</sup></code> uniformly
-        sampled 128-bit nonces without replacement, stopping at the first valid index or failing.
-        The <code>2<sup>20</sup></code> trials are what the signing budget pays for, one compression
-        each; <code>2<sup>115</sup></code> is the smallest power of two for which they all fail with
-        probability at most <code>2<sup>−128</sup></code>.</li>
+        sampled 128-bit nonces without replacement, stopping at the first valid index or failing.</li>
         <li><strong>Reveal.</strong> Send the nonce and the cut's node values in node order,
         with at most 5,376 payload bits.</li>
         <li><strong>Verify.</strong> Reject invalid indices or wrong payload lengths; otherwise
