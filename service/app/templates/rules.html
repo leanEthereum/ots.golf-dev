@@ -107,8 +107,8 @@
       excluding the root. Verification follows all declared parent edges backwards to the cut,
       then evaluates required nodes forwards, once each.</p>
       <ol id="cut">
-        <li><strong>Select a cut.</strong> The scheme supplies <code>2<sup>115</sup></code> indexed cuts,
-        possibly repeated. Read the low 128 bits of <code>H(message ‖ nonce)</code> as an integer;
+        <li><strong>Select a cut.</strong> The scheme supplies <code>2<sup>115</sup></code> indexed cuts.
+        Read the low 128 bits of <code>H(message ‖ nonce)</code> as an integer;
         it is valid below <code>2<sup>115</sup></code>. Try up to <code>2<sup>20</sup></code> uniformly
         sampled 128-bit nonces without replacement, stopping at the first valid index or failing.
         The <code>2<sup>20</sup></code> trials are what the signing budget pays for, one compression
