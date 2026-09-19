@@ -39,10 +39,10 @@ All five public tracks are open.
 - **Generality 3/3** (`lower-generality-3`): arbitrary oracle programs. `OracleAlgorithm.lean`
   defines the protected interface and statement. The lower challenge fixes perfect correctness,
   deterministic verification, signing failure at most `2^-128` for every public-key-dependent
-  message choice, the paper size and resource limits, and 127-bit strong unforgeability.
+  message choice, the size and resource limits of the rules, and 127-bit strong unforgeability.
 - **Upper bound** (`upper-compressions`): arbitrary oracle programs. The challenge fixes perfect
   correctness, deterministic verification, signing failure at most `2^-128` for every
-  public-key-dependent message choice, the paper size and resource limits, and 127-bit strong
+  public-key-dependent message choice, the size and resource limits of the rules, and 127-bit strong
   unforgeability.
 - **RISC-V upper bound** (`upper-riscv`): an OTS meeting the Upper bound requirements, together
   with a fixed RV64IM verifier proved to compute exactly the Lean verifier's oracle computation on
@@ -80,10 +80,9 @@ theorem OptimalOTS.Challenge.LowerGenerality2.candidate :
     LowerBoundGenerality2 <claim> := ...
 ```
 
-`LowerBoundGenerality2` quantifies over strongly `Secure` schemes, the notion every track uses. The
-lower-bound attacks forge on a new message; each lower root proves in its own `WeakSecurity.lean`
-that strong security implies the weak experiment it analyses, so the bounds hold for weakly secure
-schemes as well.
+`LowerBoundGenerality2` quantifies over strongly `Secure` schemes, the notion every track uses. (The
+reference lower-bound proofs forge on a new message, so they in fact also cover weakly secure
+schemes; that is a property of those proofs, not a requirement of the contract.)
 
 **Generality 3/3 lower track** (`formal/Submissions/LowerGenerality3/`, same direction and record
 rule):

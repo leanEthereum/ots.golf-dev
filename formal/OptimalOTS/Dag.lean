@@ -26,9 +26,8 @@ until one gives a valid index, at most `trials` times. -/
 /-- Length of signing nonces. -/
 def nonceBits : ℕ := 128
 
-/-- Width of the disclosure index, the low bits of `H(m ‖ η)`. Any width of at least
-`log₂ numCuts` would do; with 128 bits a trial finds a valid index with probability
-`numCuts / 2 ^ idxBits = 2 ^ -13`. -/
+/-- Width of the disclosure index, the low bits of `H(m ‖ η)`. A trial finds a valid index with
+probability `numCuts / 2 ^ idxBits = 2 ^ -13`. -/
 def idxBits : ℕ := 128
 
 /-- Cost of the index query `H(m ‖ η)`. -/
