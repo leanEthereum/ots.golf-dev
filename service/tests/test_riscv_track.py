@@ -56,17 +56,17 @@ class RiscvTrackTests(unittest.TestCase):
         compression = self.points(html, 'chart-points')
         machine = self.points(html, 'riscv-chart-points')
         self.assertTrue(all(p['unit'].startswith('compression') for p in compression))
-        self.assertFalse(any(p['claim'] == 1628 for p in compression))
+        self.assertFalse(any(p['claim'] == 702 for p in compression))
         self.assertEqual([(p['claim'], p['login'], p['unit']) for p in machine],
-                         [(2066, 'satoshi-nakamoto', 'cycles'), (2046, 'hal-finney', 'cycles'),
-                          (2026, 'satoshi-nakamoto', 'cycles'), (2006, 'vitalik-buterin', 'cycles'),
-                          (1986, 'hal-finney', 'cycles'), (1966, 'hal-finney', 'cycles'),
-                          (1956, 'satoshi-nakamoto', 'cycles'), (1936, 'vitalik-buterin', 'cycles'),
-                          (1926, 'vitalik-buterin', 'cycles'), (1916, 'hal-finney', 'cycles'),
-                          (1906, 'satoshi-nakamoto', 'cycles'), (1896, 'hal-finney', 'cycles'),
-                          (1886, 'vitalik-buterin', 'cycles'), (1876, 'hal-finney', 'cycles'),
-                          (1866, 'vitalik-buterin', 'cycles'), (1856, 'vitalik-buterin', 'cycles'),
-                          (1628, 'satoshi-nakamoto', 'cycles')])
+                         [(1140, 'satoshi-nakamoto', 'cycles'), (1120, 'hal-finney', 'cycles'),
+                          (1100, 'satoshi-nakamoto', 'cycles'), (1080, 'vitalik-buterin', 'cycles'),
+                          (1060, 'hal-finney', 'cycles'), (1040, 'hal-finney', 'cycles'),
+                          (1030, 'satoshi-nakamoto', 'cycles'), (1010, 'vitalik-buterin', 'cycles'),
+                          (1000, 'vitalik-buterin', 'cycles'), (990, 'hal-finney', 'cycles'),
+                          (980, 'satoshi-nakamoto', 'cycles'), (970, 'hal-finney', 'cycles'),
+                          (960, 'vitalik-buterin', 'cycles'), (950, 'hal-finney', 'cycles'),
+                          (940, 'vitalik-buterin', 'cycles'), (930, 'vitalik-buterin', 'cycles'),
+                          (702, 'satoshi-nakamoto', 'cycles')])
         self.assertIn('class="chart-btn" data-chart="cycles"', html)
         self.assertIn('class="chart-panel riscv-dashboard" data-chart="cycles" hidden', html)
         self.assertIn('data-track="upper-riscv"', html)
@@ -83,7 +83,7 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertEqual(len(ids), len(set(ids)))
         sub = self.session.get(Submission, machine[-1]['id'])
         detail = self.client.get(f'/submissions/{sub.id}').text
-        self.assertIn('1628 cycles', detail)
+        self.assertIn('702 cycles', detail)
         self.assertIn('Upper bound · RISC-V cycles', detail)
         self.assertNotIn('must prove', detail)
         self.assertNotIn('demo', detail)
@@ -118,7 +118,7 @@ class RiscvTrackTests(unittest.TestCase):
         rows = list(self.session.scalars(select(Submission).where(Submission.track == 'upper-riscv')))
         self.assertEqual(len(rows), 18)
         machine = min(rows, key=lambda r: r.claim)
-        self.assertEqual(machine.claim, 1628)
+        self.assertEqual(machine.claim, 702)
         self.assertTrue(machine.is_record)
 
     def test_rules_state_every_execution_bound_and_total_spec_refinement_without_scores(self):
@@ -128,7 +128,7 @@ class RiscvTrackTests(unittest.TestCase):
                        'same oracle', 'raw signature bit string', 'max(1, ⌈n / 512⌉)',
                        'no additional instruction charge', 'RV64IM'):
             self.assertIn(phrase, section)
-        self.assertNotIn('1628', html)
+        self.assertNotIn('702', html)
         self.assertNotRegex(html, r'<details\b[^>]*\bopen\b')
         self.assertIn('formal/Submissions/UpperRiscv/', html)
         self.assertIn('<code>upper-riscv</code>', html)
