@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app import contract, github, records
+from app.config import settings
 from app.db import Base, Submission, User, get_session, utcnow
 from app.main import app, queue_submission
 import seed_demo
@@ -24,6 +25,9 @@ class FrameworkTests(unittest.TestCase):
     maxDiff = 1500
 
     def setUp(self):
+        phony_patcher = patch.object(settings, 'phony', True)
+        phony_patcher.start()
+        self.addCleanup(phony_patcher.stop)
         # Preserve the original four-track preview as a compatibility fixture. The
         # RISC-V suite separately checks the expanded contract and the migration.
         cfg = copy.deepcopy(contract.load())
@@ -137,7 +141,8 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn('1 compression', detail)
         self.assertIn('Lower bound · Generality 3/3', detail)
         self.assertNotIn('This claim covers', detail)
-        self.assertNotIn('demo', detail)
+        self.assertIn('<span class="tag">demo</span>', detail)
+        self.assertNotIn('class="status s-verified"', detail)
         self.assertNotIn('DAG framework', detail)
         self.assertNotIn('baseline', detail.lower())
         profile = self.client.get('/solvers/vitalik-buterin').text
@@ -154,7 +159,7 @@ class FrameworkTests(unittest.TestCase):
         self.assertEqual(len(uppers), 1)
         self.assertEqual(uppers[0].get('data-series'), 'upper-compressions')
         self.assertEqual(uppers[0].get('data-status'), 'certified')
-        self.assertEqual(''.join(uppers[0].find("text[@class='label']").itertext()), 'Upper bound · 104')
+        self.assertEqual(''.join(uppers[0].find("text[@class='label']").itertext()), 'Upper bound · 104 · demo')
         self.assertEqual(len(uppers[0].findall(".//a[@class='chart-record']")), 15)
         self.assertNotIn('admission pending', html.lower())
         self.assertNotIn('candidate', html.lower())
@@ -333,17 +338,76 @@ class FrameworkTests(unittest.TestCase):
             self.assertEqual(sub.claim, fixture_claims[sub.detail_dict['fixture_id']])
         self.assertEqual(seed_demo.refresh(self.session), 0)
 
-    def test_fictional_submissions_carry_no_demo_label_and_hide_their_commit(self):
+    def test_fictional_entries_are_labeled_without_verification_badges(self):
         seed_demo.refresh(self.session)
         home = self.client.get('/').text
-        self.assertNotIn('<span class="tag">demo</span>', home)
-        self.assertNotIn('· demo', home)
+        self.assertNotIn('Local demo leaderboard', home)
+        cards = re.findall(r'<article\b.*?</article>', home, re.S)
+        self.assertEqual(len(cards), 4)
+        for card in cards:
+            self.assertIn('<span class="tag">demo</span>', card)
+        rows = re.findall(r'<tr class="lb-row[^"]*".*?</tr>', home, re.S)
+        self.assertTrue(rows)
+        for row in rows:
+            self.assertIn('<span class="tag">demo</span>', row)
+            self.assertNotIn('>first record<', row)
+        self.assertIn('· demo', home)
         for sub in self.session.scalars(select(Submission)):
             detail = self.client.get(f'/submissions/{sub.id}').text
-            self.assertNotIn('demo', detail)
+            self.assertIn('<span class="tag">demo</span>', detail)
+            self.assertIn('Fictional demo submission; this entry has not been verified.', detail)
+            self.assertNotIn('class="status s-verified"', detail)
+            self.assertNotIn('<span class="tag">record</span>', detail)
             self.assertNotIn(sub.commit_url, detail)
         profile = self.client.get('/solvers/vitalik-buterin').text
-        self.assertNotIn('demo', profile)
+        self.assertIn('<span class="tag">demo</span>', profile)
+        self.assertNotIn('class="status s-verified"', profile)
+
+    def test_disabling_demo_mode_hides_preexisting_fixtures(self):
+        seed_demo.refresh(self.session)
+        demos = list(self.session.scalars(select(Submission)))
+        with patch.object(settings, 'phony', False):
+            home = self.client.get('/').text
+            self.assertEqual(self.chart(home), [])
+            self.assertIn('No record yet', home)
+            notes = self.client.get('/notes.md').text
+            for sub in demos:
+                self.assertNotIn(sub.id, home)
+                self.assertNotIn(sub.id, notes)
+                self.assertEqual(self.client.get(f'/submissions/{sub.id}').status_code, 404)
+                self.assertEqual(self.client.get(f'/submissions/{sub.id}/log').status_code, 404)
+            for login in {sub.user.login for sub in demos}:
+                profile = self.client.get(f'/solvers/{login}')
+                self.assertIn(profile.status_code, (200, 404))
+                for sub in demos:
+                    self.assertNotIn(sub.id, profile.text)
+            for track in contract.tracks():
+                state = records.track_state(self.session, track)
+                self.assertIsNone(state['record_claim'])
+                self.assertFalse(state['record_verified'])
+                self.assertEqual(state['solvers'], 0)
+        self.assertEqual(len(list(self.session.scalars(select(Submission)))), len(demos))
+
+    def test_real_verified_result_keeps_its_badge_when_demo_mode_is_off(self):
+        seed_demo.refresh(self.session)
+        user = User(login='real-verified-solver')
+        self.session.add(user)
+        self.session.flush()
+        sub = Submission(track='lower-generality-2', user_id=user.id, claim=18,
+                         status='verified', is_record=True, source_repo='local', commit='a' * 40,
+                         finished_at=utcnow(), record_at=utcnow(),
+                         detail=json.dumps({'contract': contract.contract_id()}))
+        self.session.add(sub)
+        self.session.commit()
+        with patch.object(settings, 'phony', False):
+            self.assertIn(sub.id, self.client.get('/').text)
+            detail = self.client.get(f'/submissions/{sub.id}').text
+            self.assertIn('class="status s-verified"', detail)
+            self.assertNotIn('<span class="tag">demo</span>', detail)
+            state = records.track_state(self.session, contract.track(sub.track))
+            self.assertEqual(state['record_submission_id'], sub.id)
+            self.assertTrue(state['record_verified'])
+            self.assertFalse(state['record_demo'])
 
     def test_dashboard_uses_external_scripts_and_precise_sort_timestamps(self):
         seed_demo.refresh(self.session)
@@ -394,6 +458,9 @@ if __name__ == "__main__":
 
 class NotesJournalTests(unittest.TestCase):
     def setUp(self):
+        phony_patcher = patch.object(settings, 'phony', True)
+        phony_patcher.start()
+        self.addCleanup(phony_patcher.stop)
         self.engine = create_engine('sqlite://', connect_args={'check_same_thread': False}, poolclass=StaticPool)
         Base.metadata.create_all(self.engine)
         self.session = Session(self.engine, expire_on_commit=False)

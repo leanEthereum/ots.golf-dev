@@ -26,6 +26,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import auth, charts, contract, github, records, scheme_art
 from .config import settings
+from .visibility import visible
 from .db import (SessionLocal, Submission, User, get_session, init_db, local_lock, pr_submission_id,
                  schedule_report, stable_id, utcnow)
 
@@ -67,15 +68,15 @@ async def lifespan(_app):
 
 
 def prepare_board() -> None:
-    """With OTS_PHONY=1 (for now), recreate the invented demo rows at every start. Otherwise the
-    board shows only real submissions, and a track without a verified record has none."""
+    """Refresh demo fixtures while preserving their IDs and dates. With OTS_PHONY=0,
+    existing demo rows stay stored but are excluded from public views."""
     if not settings.phony:
         return
     log = logging.getLogger(__name__)
     try:
         import seed_demo
         with local_lock("results"), SessionLocal() as session:
-            log.info("phony board: removed %s, added %s demo submissions", *seed_demo.reseed(session))
+            log.info("phony board: updated or added %s demo submissions", seed_demo.refresh(session))
     except Exception:
         log.exception("preparing the board failed; the site starts anyway")
 
@@ -351,7 +352,7 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
 @app.get("/submissions/{sub_id}", response_class=HTMLResponse)
 def submission_page(sub_id: str, request: Request, session: Session = Depends(get_session)):
     sub = session.get(Submission, sub_id)
-    if sub is None:
+    if sub is None or not visible(sub):
         raise HTTPException(404)
     t = contract.track(sub.track)
     return render(request, "submission.html", sub=sub, t=t, framework=contract.framework(t["framework"]),
@@ -363,7 +364,7 @@ def submission_page(sub_id: str, request: Request, session: Session = Depends(ge
 def submission_log(sub_id: str, session: Session = Depends(get_session)):
     """The verifier's transcript. Public: the submission is a public pull request anyway."""
     sub = session.get(Submission, sub_id)
-    if sub is None:
+    if sub is None or not visible(sub):
         raise HTTPException(404)
     if sub.log_path and Path(sub.log_path).is_file():
         return FileResponse(sub.log_path, media_type="text/plain; charset=utf-8")   # streamed, never loaded
@@ -375,8 +376,8 @@ def solver_page(login: str, request: Request, session: Session = Depends(get_ses
     solver = session.scalars(select(User).where(User.login == login)).first()
     if solver is None:
         raise HTTPException(404)
-    subs = list(session.scalars(select(Submission).where(Submission.user_id == solver.id)
-                                .order_by(Submission.created_at.desc())))
+    subs = [s for s in session.scalars(select(Submission).where(Submission.user_id == solver.id)
+                                .order_by(Submission.created_at.desc())) if visible(s)]
     return render(request, "solver.html", solver=solver, subs=subs)
 
 
@@ -401,8 +402,10 @@ def notes_markdown(track: str | None = None, session: Session = Depends(get_sess
         sub, t = e["sub"], e["cfg"]
         when = (sub.finished_at or sub.created_at).strftime("%Y-%m-%d %H:%M UTC")
         claim = f"{sub.claim} {contract.cost_unit(t, sub.claim)}" if sub.claim is not None else "no claim"
-        tag = " (record)" if sub.is_record else ""
-        out += [f"## {e['label']}: {claim}, {sub.status}{tag}", "",
+        demo = bool(sub.detail_dict.get("demo"))
+        tag = " (demo record)" if demo and sub.is_record else " (record)" if sub.is_record else ""
+        status = "demo" if demo else sub.status
+        out += [f"## {e['label']}: {claim}, {status}{tag}", "",
                 f"By {sub.user.login}, {when}. Submission: {base}/submissions/{sub.id}"
                 + (f". Pull request: {sub.pr_url}" if sub.pr_url else "")
                 + (f". Code: {sub.archive_url}" if sub.archive_url else "") + ".", "",

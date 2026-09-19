@@ -6,11 +6,12 @@ from sqlalchemy.orm import Session
 
 from . import contract
 from .db import Submission
+from .visibility import visible
 
 
 def eligible(sub: Submission) -> bool:
     """Unversioned and historical results are never evidence for the current contract."""
-    return sub.current_contract or bool(sub.detail_dict.get("demo"))
+    return visible(sub) and (sub.current_contract or bool(sub.detail_dict.get("demo")))
 
 
 def _verified(slug: str):
@@ -36,7 +37,7 @@ def in_flight(session: Session, slug: str | None = None) -> list[Submission]:
     q = select(Submission).where(Submission.status.in_(("pending", "verifying")))
     if slug:
         q = q.where(Submission.track == slug)
-    return list(session.scalars(q.order_by(Submission.created_at.asc())))
+    return [s for s in session.scalars(q.order_by(Submission.created_at.asc())) if visible(s)]
 
 
 def solver_count(session: Session, slug: str) -> int:
@@ -49,7 +50,7 @@ def track_state(session: Session, t: dict) -> dict:
         "slug": t["slug"], "title": t["title"], "direction": t["direction"],
         "cost_unit": contract.cost_unit(t),
         "record_claim": rec.claim if rec else None,
-        "record_verified": rec is not None,
+        "record_verified": bool(rec and not rec.detail_dict.get("demo")),
         "record_demo": bool(rec and rec.detail_dict.get("demo")),
         "record_submission_id": rec.id if rec else None,
         "record_setter": rec.user.login if rec else None,
@@ -109,6 +110,8 @@ def journal(session: Session, track: str | None = None, limit: int = 300, per_au
     q = select(Submission).where(Submission.status.in_(("verified", "rejected", "timeout")))
     items, seen_prs, by_author = [], set(), {}
     for s in session.scalars(q.order_by(func.coalesce(Submission.finished_at, Submission.created_at).desc())):
+        if not visible(s):
+            continue
         if s.pr_url:
             if s.pr_url in seen_prs:
                 continue

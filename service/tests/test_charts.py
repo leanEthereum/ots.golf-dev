@@ -40,6 +40,19 @@ class ChartTests(unittest.TestCase):
         self.assertIn(login, link.get('aria-label'))
         self.assertNotIn('onload', link.attrib)
 
+    def test_demo_marks_and_endpoints_are_labeled_without_marking_real_results(self):
+        stamp = datetime(2026, 1, 1)
+        for demo in (True, False):
+            with self.subTest(demo=demo):
+                point = {'t': stamp, 'claim': 93, 'login': 'solver', 'id': 'id', 'demo': demo}
+                chart = record_chart([self.series(points=[point])], stamp + timedelta(days=1))
+                svg = ET.fromstring(chart['svg'])
+                link = svg.find('.//a')
+                self.assertEqual(' · demo' in link.get('aria-label'), demo)
+                self.assertEqual(' · demo' in link.find('.//title').text, demo)
+                self.assertEqual(' · demo' in ''.join(svg.find("./g/text[@class='label']").itertext()), demo)
+                self.assertEqual(json.loads(chart['points'])[0]['demo'], demo)
+
     def test_equal_endpoint_labels_remain_separate(self):
         series = [dict(self.series(93), slug=slug) for slug in ('first', 'second', 'third')]
         svg = ET.fromstring(record_chart(series, datetime(2026, 1, 1))['svg'])

@@ -5,7 +5,7 @@ exercise record presentation; they carry a demo label and never show verificatio
 Everything it adds is marked with `detail = {"demo": true}` and `--remove` deletes it again. Claims
 are fixed in the fixture file; real submissions are left alone.
 
-    .venv/bin/python seed_demo.py           # add (idempotent: removes its previous rows first)
+    .venv/bin/python seed_demo.py           # reconcile fixtures, preserving existing IDs and dates
     .venv/bin/python seed_demo.py --force   # the same against a database that is not the local one
     .venv/bin/python seed_demo.py --remove  # remove the phony rows only
     .venv/bin/python seed_demo.py --refresh # reconcile claims and add missing fixtures, preserving existing rows
@@ -158,18 +158,13 @@ def main() -> None:
     local = settings.database_url == f"sqlite:///{(SERVICE_DIR / 'data').resolve() / 'ots.db'}"
     if not local and "--force" not in sys.argv:
         sys.exit(f"refusing: {settings.database_url} is not the local development database.\n"
-                 "This script replaces the invented demo rows; pass --force to do that anyway.")
+                 "This script updates the invented demo rows; pass --force to do that anyway.")
     Base.metadata.create_all(engine)
     with SessionLocal() as session:
-        if "--refresh" in sys.argv:
-            print(f"updated or added {refresh(session)} demo submissions")
-            return
-        n = remove(session)
         if "--remove" in sys.argv:
-            print(f"removed {n} phony submissions")
+            print(f"removed {remove(session)} phony submissions")
             return
-        m = add(session)
-        print(f"removed {n} old phony submissions, added {m}")
+        print(f"updated or added {refresh(session)} demo submissions")
 
 
 if __name__ == "__main__":

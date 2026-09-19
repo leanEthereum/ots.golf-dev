@@ -195,7 +195,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     generic_claim = demo_best(config, 'lower-generality-3')
     expected_label = json.dumps(f"Generality 3/3 lower {generic_claim}")
     assert js('return document.querySelector(".chart-series[data-series=lower-generality-3]").dataset.status === "certified" && document.querySelector(".chart-series[data-series=lower-generality-3] .label").textContent === ' + expected_label + ';')
-    assert js('return document.querySelectorAll(".framework-overview .upper-score strong").length >= 1 && !document.body.textContent.includes("demo");'), 'This check requires the seeded local preview (service/run-local.sh).'
+    assert js('return document.querySelectorAll(".framework-overview .upper-score strong").length >= 1 && document.querySelectorAll(".framework-overview .tag").length >= 4;'), 'This check requires the seeded local preview (service/run-local.sh).'
 
     assert js('return document.querySelector(".board-track[data-track=upper]").hidden;')
     js('document.querySelector(".seg-btn[data-track=upper]").click(); return true;')
@@ -207,7 +207,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     js('document.querySelector(".lb-table[data-track=upper-compressions] .sort-btn[data-key=score]").click(); return true;')
     assert js('return document.querySelector(".lb-table[data-track=upper-compressions] th[aria-sort=descending]") !== null;')
     js('document.querySelector(".chart-series[data-kind=upper] .chart-record").focus(); return true;')
-    assert js('return !document.querySelector(".tooltip").hidden && document.querySelector(".tooltip").textContent.includes("Upper bound") && !document.querySelector(".tooltip").textContent.includes("demo");')
+    assert js('return !document.querySelector(".tooltip").hidden && document.querySelector(".tooltip").textContent.includes("Upper bound") && document.querySelector(".tooltip").textContent.includes("demo");')
     js('document.activeElement.blur(); return true;')
     js('document.querySelector(".seg-btn[data-track=lower]").click(); return true;')
     js('document.querySelector(".lower-btn[data-framework=generality-2]").click(); return true;')

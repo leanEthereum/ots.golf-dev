@@ -14,7 +14,7 @@
       cross.setAttribute('visibility', 'visible');
       tip.textContent = '';
       var head = document.createElement('strong');
-      head.textContent = point.track + ' · ' + point.claim + ' ' + point.unit;
+      head.textContent = point.track + ' · ' + point.claim + ' ' + point.unit + (point.demo ? ' · demo' : '');
       tip.appendChild(head); tip.appendChild(document.createElement('br'));
       tip.appendChild(document.createTextNode(point.login + ' · ' + point.date));
       tip.hidden = false;

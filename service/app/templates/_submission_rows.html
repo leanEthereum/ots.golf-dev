@@ -7,7 +7,7 @@
     <a href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>{% if s.co_authors_list %} and {{ s.co_authors_list|length }} other{{ 's' if s.co_authors_list|length > 1 }}{% endif %}
   </td>
   <td class="muted">{{ s.assisted_by or '' }}</td>
-  <td><span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span></td>
+  <td>{% if s.detail_dict.get('demo') %}<span class="tag">demo</span>{% else %}<span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span>{% endif %}</td>
   <td class="muted nowrap" title="{{ (s.finished_at or s.created_at)|dt }}">{{ (s.finished_at or s.created_at)|date }}</td>
 </tr>
 {% else %}
@@ -21,13 +21,13 @@
   <td class="lb-solver">
     <span class="lb-rank">{% if rank %}{{ '%02d'|format(rank) }}{% endif %}</span>
     <span class="lb-avatar">{% if s.user.avatar_url %}<img src="{{ s.user.avatar_url }}" alt="">{% else %}<span class="lb-avatar-blank"></span>{% endif %}</span>
-    <a class="lb-login" href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>
+    <a class="lb-login" href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>{% if s.detail_dict.get('demo') %} <span class="tag">demo</span>{% endif %}
     {% if s.assisted_by %}<span class="lb-model" title="Assisted by {{ s.assisted_by }}">{{ s.assisted_by }}</span>{% endif %}
   </td>
   <td class="r lb-score"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }} <span class="lb-unit">{{ cfg|cost_unit(s.claim) }}</span>{% else %}–{% endif %}</a></td>
   <td class="r lb-gain">
-    {%- if kind == 'record' %}{% if d is not none %}<span class="good">{{ '+' if d > 0 else '' }}{{ d }}</span>{% else %}<span class="muted">first record</span>{% endif %}
-    {%- else %}<span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span>{% endif -%}
+    {%- if kind == 'record' %}{% if d is not none %}<span class="good">{{ '+' if d > 0 else '' }}{{ d }}</span>{% else %}<span class="muted">{{ 'first demo record' if s.detail_dict.get('demo') else 'first record' }}</span>{% endif %}
+    {%- elif not s.detail_dict.get('demo') %}<span class="status s-{{ s.status }}">{{ s.status.replace('_', ' ') }}</span>{% endif -%}
   </td>
   <td class="r lb-date muted" title="{{ (s.record_at or s.finished_at or s.created_at)|dt }}">{{ (s.record_at or s.finished_at or s.created_at)|date }}</td>
 </tr>

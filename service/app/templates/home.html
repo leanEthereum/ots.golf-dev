@@ -19,7 +19,7 @@
     <div>
       <h3 id="upper-compressions-title"><a href="/rules#upper-compressions">By compressions</a></h3>
       {% if upper_compressions and upper_compressions.state.record_submission_id %}
-      <p>By <a href="/submissions/{{ upper_compressions.state.record_submission_id }}">{{ upper_compressions.state.record_setter }}</a></p>
+      <p>By <a href="/submissions/{{ upper_compressions.state.record_submission_id }}">{{ upper_compressions.state.record_setter }}</a>{% if upper_compressions.state.record_demo %} <span class="tag">demo</span>{% endif %}</p>
       {% else %}<p><a href="/rules#play">Submit a construction ↗</a></p>{% endif %}
     </div>
     {% if upper_compressions %}<div class="upper-score"><span class="muted">Verification cost</span>{% if upper_compressions.state.record_claim is none %}<span class="no-record">No record yet</span>{% else %}<strong>{{ upper_compressions.state.record_claim }}</strong><span>compressions</span>{% endif %}</div>{% endif %}
@@ -29,7 +29,7 @@
     <div>
       <h3 id="upper-riscv-title"><a href="/rules#upper-riscv">By RISC-V cycles</a></h3>
       {% if upper_riscv.state.record_submission_id %}
-      <p>By <a href="/submissions/{{ upper_riscv.state.record_submission_id }}">{{ upper_riscv.state.record_setter }}</a></p>
+      <p>By <a href="/submissions/{{ upper_riscv.state.record_submission_id }}">{{ upper_riscv.state.record_setter }}</a>{% if upper_riscv.state.record_demo %} <span class="tag">demo</span>{% endif %}</p>
       {% else %}<p><a href="/rules#play">Submit an implementation ↗</a></p>{% endif %}
     </div>
     <div class="upper-score"><span class="muted">Verification cost</span>{% if upper_riscv.state.record_claim is none %}<span class="no-record">No record yet</span>{% else %}<strong>{{ upper_riscv.state.record_claim }}</strong><span>cycles</span>{% endif %}</div>
@@ -55,7 +55,7 @@
         <dd>{% if model.boards.get('lower') and model.boards.lower.state.record_claim is none %}<span class="no-record">No record yet</span>{% elif model.boards.get('lower') %}{{ model.boards.lower.state.record_claim }} <span class="framework-unit">compression{{ '' if model.boards.lower.state.record_claim == 1 else 's' }}</span>{% endif %}</dd></div>
       </dl>
       {% if model.boards and model.boards.lower.state.record_submission_id %}
-      <p class="framework-record">By <a href="/submissions/{{ model.boards.lower.state.record_submission_id }}">{{ model.boards.lower.state.record_setter }}</a></p>
+      <p class="framework-record">By <a href="/submissions/{{ model.boards.lower.state.record_submission_id }}">{{ model.boards.lower.state.record_setter }}</a>{% if model.boards.lower.state.record_demo %} <span class="tag">demo</span>{% endif %}</p>
       {% else %}
       <p class="framework-record"><a href="/rules#play">Submit a proof ↗</a></p>
       {% endif %}
@@ -108,12 +108,12 @@
         <tr class="lb-row record">
           <td class="lb-solver">
             <span class="lb-avatar">{% if s.user.avatar_url %}<img src="{{ s.user.avatar_url }}" alt="">{% else %}<span class="lb-avatar-blank"></span>{% endif %}</span>
-            <a class="lb-login" href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>
+            <a class="lb-login" href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>{% if s.detail_dict.get('demo') %} <span class="tag">demo</span>{% endif %}
             {% if s.assisted_by %}<span class="lb-model" title="Assisted by {{ s.assisted_by }}">{{ s.assisted_by }}</span>{% endif %}
           </td>
           <td class="lb-track"><a href="{{ item.href }}">{{ item.label }}</a></td>
           <td class="r lb-score"><a href="/submissions/{{ s.id }}">{{ s.claim }} <span class="lb-unit">{{ item.cfg|cost_unit(s.claim) }}</span></a></td>
-          <td class="r lb-gain">{% if item.gain is not none %}<span class="good">{{ '+' if item.gain > 0 else '' }}{{ item.gain }}</span>{% else %}<span class="muted">first record</span>{% endif %}</td>
+          <td class="r lb-gain">{% if item.gain is not none %}<span class="good">{{ '+' if item.gain > 0 else '' }}{{ item.gain }}</span>{% else %}<span class="muted">{{ 'first demo record' if s.detail_dict.get('demo') else 'first record' }}</span>{% endif %}</td>
           <td class="r lb-date muted" title="{{ (s.record_at or s.finished_at or s.created_at)|dt }}">{{ (s.record_at or s.finished_at or s.created_at)|date }}</td>
         </tr>
         {% else %}
@@ -147,9 +147,9 @@
         {% set b = model.boards.get(kind) %}
         <div class="framework-board-head">
           <div><h3 id="{{ model.slug }}-{{ kind }}-title" class="visually-hidden">{{ model.title }}</h3>
-          {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
+          {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% set demo_count = b.frontier|selectattr('detail_dict.demo')|list|length %}{% if demo_count %} · {{ demo_count }} demo record{{ 's' if demo_count != 1 }}{% endif %}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
           {% if b and b.state.record_claim is none %}<div class="board-current"><p class="no-record">No record yet</p></div>
-          {% elif b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span></p></div>
+          {% elif b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span>{% if b.state.record_demo %} <span class="tag">demo</span>{% endif %}</p></div>
           {% endif %}
         </div>
         {% if b %}
@@ -183,9 +183,9 @@
       <section class="upper-board" data-upper="{{ 'upper-riscv' if is_riscv else 'upper-compressions' }}" aria-labelledby="{{ upper_id }}"{% if is_riscv %} hidden{% endif %}>
         <div class="framework-board-head">
           <div><h3 id="{{ upper_id }}" class="visually-hidden">{{ upper_title }}</h3>
-          {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
+          {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% set demo_count = b.frontier|selectattr('detail_dict.demo')|list|length %}{% if demo_count %} · {{ demo_count }} demo record{{ 's' if demo_count != 1 }}{% endif %}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>
           {% if b and b.state.record_claim is none %}<div class="board-current"><p class="no-record">No record yet</p></div>
-          {% elif b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span></p></div>
+          {% elif b %}<div class="board-current"><p class="board-big">{{ b.state.record_claim }} <span class="lb-unit">{{ b.cfg|cost_unit(b.state.record_claim) }}</span>{% if b.state.record_demo %} <span class="tag">demo</span>{% endif %}</p></div>
           {% endif %}
         </div>
         {% if b %}

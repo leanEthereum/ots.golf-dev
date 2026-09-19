@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app import contract
+from app.config import settings
 from app.db import Base, Submission, User, get_session
 from app.main import app, queue_submission
 import seed_demo
@@ -22,6 +23,9 @@ import seed_demo
 
 class RiscvTrackTests(unittest.TestCase):
     def setUp(self):
+        phony_patcher = patch.object(settings, 'phony', True)
+        phony_patcher.start()
+        self.addCleanup(phony_patcher.stop)
         self.config = copy.deepcopy(contract.load())
         machine = copy.deepcopy(next(t for t in self.config['tracks'] if t['slug'] == 'upper-compressions'))
         machine.update(slug='upper-riscv', title='RISC-V upper bound',
@@ -86,7 +90,8 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertIn('702 cycles', detail)
         self.assertIn('Upper bound · RISC-V cycles', detail)
         self.assertNotIn('must prove', detail)
-        self.assertNotIn('demo', detail)
+        self.assertIn('<span class="tag">demo</span>', detail)
+        self.assertNotIn('class="status s-verified"', detail)
         profile = self.client.get('/solvers/satoshi-nakamoto').text
         self.assertIn('Upper bound · RISC-V cycles</a>', profile)
         self.assertIn('cycles', profile)

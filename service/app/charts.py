@@ -49,7 +49,7 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
         return MT + (H - MT - bottom_margin) * (y_hi - v) / max(y_hi - y_lo, 1)
 
     chart_id = escape(chart_id)
-    description = ("Certified bounds on every execution. Smaller is better. " if unit == "cycles" else
+    description = ("Verification costs on every execution. Smaller is better. " if unit == "cycles" else
                    "Lower bounds rise and upper bounds fall. Each lower framework has its own series. ")
     out = [f'<svg viewBox="0 0 {W} {H}" class="record-chart" role="group" data-unit="{escape(unit)}" '
            f'aria-labelledby="{chart_id}-title {chart_id}-desc">',
@@ -96,17 +96,18 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
                      "kind": s["kind"], "claim": p["claim"], "login": p["login"],
                      "date": p["t"].strftime("%Y-%m-%d %H:%M UTC"), "id": p["id"], "demo": p.get("demo", False),
                      "unit": unit[:-1] if p["claim"] == 1 else unit}
-            point_title = escape(f'{s["label"]}: {p["claim"]} {point["unit"]} · {p["login"]} · {point["date"]}'
-                           )
+            demo_label = " · demo" if point["demo"] else ""
+            point_title = escape(f'{s["label"]}: {p["claim"]} {point["unit"]} · {p["login"]} · {point["date"]}{demo_label}')
             out.append(f'<a href="/submissions/{escape(p["id"])}" class="chart-record" data-point="{len(points)}" aria-label="{point_title}">'
                        f'<circle class="hit-area" cx="{x:.1f}" cy="{y:.1f}" r="16"/>'
                        f'<circle class="mark" cx="{x:.1f}" cy="{y:.1f}" r="4.5"><title>{point_title}</title></circle></a>')
             points.append(point)
         end_y, text_y = sy(last_claim), label_y[s["slug"]]
         out.append(f'<path class="connector" d="M{sx(t1):.1f},{end_y:.1f} L{sx(t1) + 12:.1f},{text_y:.1f} H{sx(t1) + 18:.1f}"/>')
+        demo_label = " · demo" if pts[-1].get("demo") else ""
         out.append(f'<text class="label" x="{sx(t1) + 23:.1f}" y="{text_y + 4:.1f}">'
                    f'<tspan class="label-name">{label}</tspan><tspan class="label-dot"> · </tspan>'
-                   f'<tspan class="label-value">{last_claim}</tspan></text>')
+                   f'<tspan class="label-value">{last_claim}</tspan><tspan class="label-demo">{demo_label}</tspan></text>')
         out.append('</g>')
 
     # This lane has no y-axis value. Pending never becomes a fabricated zero or a record point.

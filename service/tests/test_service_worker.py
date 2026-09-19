@@ -593,15 +593,15 @@ class ServiceWorkerTests(unittest.TestCase):
                                   ('PATCH', '/repos/owner/repo/issues/comments/77')})
         self.assertFalse(any(m in ('PUT', 'DELETE') or 'merge' in p for m, p in calls))
 
-    def test_startup_reseeds_the_phony_board_only_in_phony_mode(self):
+    def test_startup_refreshes_the_phony_board_only_in_phony_mode(self):
         with patch.object(settings, 'phony', True), patch('app.main.SessionLocal', self.sessions), \
-             patch('seed_demo.reseed', return_value=(0, 3)) as reseed:
+             patch('seed_demo.refresh', return_value=3) as refresh:
             main.prepare_board()
-        reseed.assert_called_once()
+        refresh.assert_called_once()
         with patch.object(settings, 'phony', False), patch('app.main.SessionLocal', self.sessions), \
-             patch('seed_demo.reseed') as reseed:
+             patch('seed_demo.refresh') as refresh:
             main.prepare_board()
-        reseed.assert_not_called()
+        refresh.assert_not_called()
         with self.sessions() as session:
             self.assertEqual(session.scalars(select(Submission)).all(), [])
 
