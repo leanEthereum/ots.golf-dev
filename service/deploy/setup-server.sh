@@ -69,6 +69,19 @@ fi
 chown ots:ots-state /srv/ots-work
 chmod 2770 /srv/ots-work
 loginctl enable-linger ots   # systemd --user for the sandbox scope of the worker
+# Ubuntu forbids unprivileged user namespaces (kernel.apparmor_restrict_unprivileged_userns). The
+# sandbox needs them only for systemd to build each job's private /dev and /dev/shm, so the
+# exception covers systemd-executor alone.
+cat > /etc/apparmor.d/ots-systemd-executor <<'APPARMOR'
+abi <abi/4.0>,
+include <tunables/global>
+
+profile ots-systemd-executor /usr/lib/systemd/systemd-executor flags=(unconfined) {
+  userns,
+  include if exists <local/ots-systemd-executor>
+}
+APPARMOR
+apparmor_parser -r /etc/apparmor.d/ots-systemd-executor
 # Only ots-web receives secrets. The verifier's different Unix identity must never receive them,
 # including through /proc/<pid>/environ. The shared group grants database/log access, not credentials.
 mkdir -p /etc/ots

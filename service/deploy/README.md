@@ -50,6 +50,10 @@ before public launch, and day-to-day operations. For local development see the
    including reads of another process's environment. Production worker startup refuses GitHub
    credentials. Do not run both services as the same user.
 
+   Ubuntu 24.04 forbids unprivileged user namespaces, which the per-user systemd needs to give each
+   job a private `/dev` and `/dev/shm`. The installer adds a narrow AppArmor profile,
+   `/etc/apparmor.d/ots-systemd-executor`, that grants them to `systemd-executor` only.
+
 3. Job storage at `/srv/ots-work`, at most 64 GiB. The installer creates it: a fully allocated
    48 GiB image, `/var/lib/ots-work.img` (root only, made with `fallocate`, formatted with
    `mkfs.ext4 -E nodiscard,lazy_itable_init=0,lazy_journal_init=0` so no hole is punched into it), mounted through `/etc/fstab` at every boot, root owned by `ots:ots-state` with mode
