@@ -64,5 +64,5 @@ together.
 
 ## Credits
 
-The competition and chart were inspired by [better.codes](https://better.codes) and
-[zk.golf](https://zk.golf). License: Apache 2.0.
+The competition and chart were inspired by [better.codes](https://better.codes),
+[zk.golf](https://zk.golf) and [yukon.org](https://www.yukon.org/). License: Apache 2.0.
