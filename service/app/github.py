@@ -143,11 +143,21 @@ def read_file(owner_repo: str, path: str, commit: str, max_bytes: int = 64 * 102
         return r.content[:max_bytes].decode("utf-8", errors="replace")
 
 
+def targets_default_branch(pr: dict) -> bool:
+    """A submission counts only when its pull request targets the repository's default branch."""
+    base = pr.get("base") or {}
+    default = (base.get("repo") or {}).get("default_branch")
+    return bool(default) and base.get("ref") == default
+
+
 def merge_pr(owner_repo: str, number: int, sha: str, title: str) -> tuple[bool, str]:
-    """Merge a pull request, but only if its head is still exactly `sha`. Returns whether it merged,
-    and GitHub's reason when it did not (a conflict, a newer push, a closed pull request)."""
+    """Merge a pull request, but only if its head is still exactly `sha` and it still targets the
+    default branch. Returns whether it merged, and the reason when it did not (a conflict, a newer
+    push, a closed pull request, another target branch)."""
     if not SHA_RE.fullmatch(sha):
         raise ValueError("not a commit id")
+    if not targets_default_branch(get_pr(owner_repo, number)):
+        return False, "the pull request must target the default branch"
     with httpx.Client(timeout=60) as client:
         r = client.put(f"{API}/repos/{owner_repo}/pulls/{number}/merge", headers=_headers(),
                        json={"sha": sha, "merge_method": "merge", "commit_title": title})

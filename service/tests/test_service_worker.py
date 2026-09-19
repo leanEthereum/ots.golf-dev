@@ -64,7 +64,7 @@ class ServiceWorkerTests(unittest.TestCase):
 
     def merged_pr(self, *, sha='a' * 40, merged=True):
         return {'state': 'closed', 'merged': merged, 'merged_at': '2026-09-17T12:00:00Z',
-                'head': {'sha': sha, 'repo': {'clone_url': 'https://github.com/author/repo.git'}}}
+                'base': {'ref': 'main', 'repo': {'default_branch': 'main'}}, 'head': {'sha': sha, 'repo': {'clone_url': 'https://github.com/author/repo.git'}}}
 
     def merge(self, sub):
         with patch('app.main.github.get_pr', return_value=self.merged_pr()):
@@ -118,7 +118,7 @@ class ServiceWorkerTests(unittest.TestCase):
     def test_submission_pr_queues_its_fork_head_against_the_core_verifier(self):
         pr = {'state': 'open', 'changed_files': 1, 'body': 'A proof.',
               'user': {'login': 'alice', 'id': 42},
-              'head': {'sha': 'b' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}}
+              'base': {'ref': 'main', 'repo': {'default_branch': 'main'}}, 'head': {'sha': 'b' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}}
         with patch('app.main.github.get_pr', return_value=pr), \
              patch('app.main.github.pr_track', return_value=('lower-generality-3', [])):
             queued = main.handle_pull_request('owner/repo', 9, 'b' * 40)
@@ -138,6 +138,24 @@ class ServiceWorkerTests(unittest.TestCase):
                 self.assertEqual(command[command.index('--source') + 1], sub.source_repo)
                 self.assertEqual(command[command.index('--commit') + 1], sub.commit)
                 self.assertEqual(launch.call_args.kwargs['cwd'], settings.repo_root)
+
+    def test_pull_requests_not_targeting_the_default_branch_are_refused(self):
+        pr = {'state': 'open', 'changed_files': 1, 'body': '', 'user': {'login': 'alice', 'id': 42},
+              'base': {'ref': 'side', 'repo': {'default_branch': 'main'}},
+              'head': {'sha': 'b' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}}
+        with patch('app.main.github.get_pr', return_value=pr), \
+             patch('app.main.github.pr_track', return_value=('lower-generality-3', [])), \
+             patch('app.main.github.post_comment') as comment:
+            self.assertFalse(main.handle_pull_request('owner/repo', 9, 'b' * 40)['queued'])
+            comment.assert_called_once()
+        sub = self.submission()
+        merged = dict(self.merged_pr(), base={'ref': 'side', 'repo': {'default_branch': 'main'}})
+        with patch('app.main.github.get_pr', return_value=merged):
+            self.assertFalse(main.handle_merged_pull_request('owner/repo', sub.pr_number, sub.commit)['promoted'])
+        from app import github
+        self.assertFalse(github.targets_default_branch(merged))
+        self.assertFalse(github.targets_default_branch({'base': {'ref': 'main', 'repo': {}}}))
+        self.assertTrue(github.targets_default_branch(self.merged_pr()))
 
     def test_wrong_head_or_unmerged_close_never_promotes(self):
         sub = self.submission()
@@ -258,7 +276,7 @@ class ServiceWorkerTests(unittest.TestCase):
 
     def test_pr_submission_ids_are_stable_and_failed_heads_requeue_under_the_same_id(self):
         pr = {'state': 'open', 'user': {'login': 'alice', 'id': 42},
-              'head': {'sha': 'b' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}}
+              'base': {'ref': 'main', 'repo': {'default_branch': 'main'}}, 'head': {'sha': 'b' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}}
         with patch('app.main.github.get_pr', return_value=pr), \
              patch('app.main.github.pr_track', return_value=('lower-generality-3', [])):
             first = main.handle_pull_request('owner/repo', 9, 'b' * 40)
@@ -331,9 +349,9 @@ class ServiceWorkerTests(unittest.TestCase):
         pulls = [
             {'number': 7, 'state': 'closed', 'merged_at': '2026-09-11T08:00:00Z', 'created_at': '2026-09-09T00:00:00Z',
              'user': {'login': 'alice', 'id': 42}, 'body': 'Averaging over classes.\nAssisted by: Model X',
-             'head': {'sha': 'a' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}},
+             'base': {'ref': 'main', 'repo': {'default_branch': 'main'}}, 'head': {'sha': 'a' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}},
             {'number': 8, 'state': 'open', 'merged_at': None, 'created_at': '2026-09-12T00:00:00Z',
-             'user': {'login': 'bob', 'id': 43}, 'body': '', 'head': {'sha': 'b' * 40, 'repo': None}},
+             'user': {'login': 'bob', 'id': 43}, 'body': '', 'base': {'ref': 'main', 'repo': {'default_branch': 'main'}}, 'head': {'sha': 'b' * 40, 'repo': None}},
         ]
         comments = {7: [{'id': 55, 'user': {'login': 'ots-bot'}, 'body': 'verified\n\n' + block},
                         {'id': 56, 'user': {'login': 'mallory'}, 'body': forged}], 8: []}

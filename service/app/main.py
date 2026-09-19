@@ -284,6 +284,11 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str, announce: b
     if (pr.get("state") != "open" or pr_after.get("state") != "open"
             or pr["head"]["sha"] != head_sha or pr_after["head"]["sha"] != head_sha):
         return {"queued": False, "reason": "the pull request moved on; its newer event is the one that counts"}
+    if not (github.targets_default_branch(pr) and github.targets_default_branch(pr_after)):
+        if announce:
+            github.post_comment(owner_repo, number, "**ots.golf verifier:** not queued. A submission must "
+                                "target the repository's default branch.")
+        return {"queued": False, "reason": "the pull request does not target the default branch"}
     if slug is None or outside:
         if announce:
             github.post_comment(owner_repo, number,
@@ -320,6 +325,8 @@ def handle_merged_pull_request(owner_repo: str, number: int, head_sha: str) -> d
         raise HTTPException(502, f"GitHub API: {exc}") from exc
     if not pr.get("merged") or pr.get("state") != "closed" or pr["head"]["sha"] != head_sha:
         return {"promoted": False, "reason": "this head was not merged"}
+    if not github.targets_default_branch(pr):
+        return {"promoted": False, "reason": "merged into a branch other than the default branch"}
     from .worker import promote
     with local_lock("results"), SessionLocal() as session:
         pr_url = f"https://github.com/{owner_repo}/pull/{number}"
