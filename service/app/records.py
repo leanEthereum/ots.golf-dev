@@ -93,16 +93,25 @@ def track_label(t: dict) -> tuple[str, str]:
     return "Upper bound · " + ("RISC-V cycles" if t["slug"] == "upper-riscv" else "compressions"), "/#upper"
 
 
-def journal(session: Session, track: str | None = None, limit: int = 300) -> list[dict]:
-    """Every finished submission that carries notes, newest first: records, non-records and
-    rejected attempts alike, so ideas and dead ends stay readable."""
-    q = select(Submission).where(Submission.status.in_(("verified", "rejected", "policy_rejected", "timeout", "failed")))
+def journal(session: Session, track: str | None = None, limit: int = 300, per_author: int = 20) -> list[dict]:
+    """Notes of checked submissions, newest first: records, non-records and proofs the checker
+    rejected, so ideas and dead ends stay readable. Only the latest checked head of each pull
+    request counts, submissions refused before any proof check (format, infrastructure) are left
+    out, and each author has at most `per_author` entries, so no one can flood the journal."""
+    q = select(Submission).where(Submission.status.in_(("verified", "rejected", "timeout")))
     if track:
         q = q.where(Submission.track == track)
-    items = []
+    items, seen_prs, by_author = [], set(), {}
     for s in session.scalars(q.order_by(func.coalesce(Submission.finished_at, Submission.created_at).desc())):
         if not s.notes or not contract.track(s.track):
             continue
+        if s.pr_url:
+            if s.pr_url in seen_prs:
+                continue
+            seen_prs.add(s.pr_url)
+        if by_author.get(s.user_id, 0) >= per_author:
+            continue
+        by_author[s.user_id] = by_author.get(s.user_id, 0) + 1
         t = contract.track(s.track)
         label, href = track_label(t)
         items.append({"sub": s, "cfg": t, "label": label, "href": href})
