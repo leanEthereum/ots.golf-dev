@@ -1,12 +1,15 @@
 """Regression tests for the pre-compilation trust boundary; no Lean or network needed."""
 from __future__ import annotations
 
+import fcntl
 import json
 import os
+import signal
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -284,6 +287,82 @@ class VerifierTests(unittest.TestCase):
     def test_bounded_command_timeout(self):
         with self.assertRaises(subprocess.TimeoutExpired):
             bounded_output([sys.executable, "-c", "import time; time.sleep(5)"], 1024, timeout=0.05)
+
+    def assert_helper_times_out(self, code: str):
+        """A separate watchdog makes the regression fail instead of hanging the test runner."""
+        pid_file = self.root / "helper-pgid"
+        command = [sys.executable, "-c",
+                   f"from pathlib import Path; import os; Path({str(pid_file)!r}).write_text(str(os.getpid()))\n" + code]
+        probe = f"""
+import subprocess, sys
+sys.path.insert(0, {str(VERIFIER)!r})
+from verify import bounded_output, _BOUNDED_PROCESSES
+try:
+    bounded_output({command!r}, 1024 * 1024, timeout=0.5)
+except subprocess.TimeoutExpired:
+    assert not _BOUNDED_PROCESSES, 'helper remained registered after cleanup'
+else:
+    raise AssertionError('the helper deadline did not fire')
+"""
+        def cleanup_fixture():
+            # Run after the test's cleanup assertions, and also if the watchdog caught a hang.
+            if pid_file.exists():
+                try:
+                    os.killpg(int(pid_file.read_text()), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+        self.addCleanup(cleanup_fixture)
+        started = time.monotonic()
+        result = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, timeout=4)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertLess(time.monotonic() - started, 3)
+
+    def test_exited_leader_with_descendant_holding_stdout_obeys_deadline(self):
+        ready, lock_path = self.root / "child-ready", self.root / "child-lock"
+        self.assert_helper_times_out(f"""
+import fcntl, time
+if os.fork() == 0:
+    with open({str(lock_path)!r}, 'w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        Path({str(ready)!r}).write_text('ready')
+        time.sleep(30)
+else:
+    while not Path({str(ready)!r}).exists():
+        time.sleep(0.005)
+    os._exit(0)
+""")
+        self.assertTrue(ready.is_file(), 'the fixture must actually start its descendant')
+        # Advisory locks disappear when a process dies, including before its orphan is reaped.
+        with lock_path.open('a') as lock:
+            deadline = time.monotonic() + 1
+            while True:
+                try:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError:
+                    if time.monotonic() >= deadline:
+                        self.fail('the helper left its descendant running after timeout')
+                    time.sleep(0.005)
+
+    def test_closed_output_does_not_remove_the_leader_deadline(self):
+        self.assert_helper_times_out('import time; os.close(1); os.close(2); time.sleep(30)')
+
+    def test_continuing_output_does_not_reset_the_deadline(self):
+        self.assert_helper_times_out("import time\nwhile True:\n    os.write(1, b'x'); time.sleep(0.005)")
+
+    def test_bounded_output_accepts_exact_limit_and_rejects_next_byte(self):
+        self.assertEqual(bounded_output([sys.executable, '-c', "import os; os.write(1, b'x' * 1024)"], 1024),
+                         b'x' * 1024)
+        self.assertEqual(bounded_output([sys.executable, '-c', 'pass'], 0), b'')
+        for count, limit in ((1025, 1024), (1, 0)):
+            with self.subTest(count=count, limit=limit), self.assertRaises(PolicyReject):
+                bounded_output([sys.executable, '-c', f"import os; os.write(1, b'x' * {count})"], limit)
+
+    def test_bounded_output_preserves_nonzero_exit_and_stderr(self):
+        with self.assertRaises(subprocess.CalledProcessError) as error:
+            bounded_output([sys.executable, '-c', "import os; os.write(2, b'fetch failed'); os._exit(7)"], 1024)
+        self.assertEqual(error.exception.returncode, 7)
+        self.assertEqual(error.exception.stderr, 'fetch failed')
 
     def test_fetch_helper_bounds_remote_progress(self):
         with patch("verify.LOG_CAP", 1024), self.assertRaises(PolicyReject):

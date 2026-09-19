@@ -31,6 +31,7 @@ import json
 import os
 import platform
 import re
+import selectors
 import signal
 import shutil
 import stat
@@ -80,45 +81,60 @@ def tools_env(root: Path) -> dict:
     return env
 
 
-def bounded_output(cmd: list[str], limit: int, timeout: int = 60) -> bytes:
-    """Read untrusted Git metadata/blobs without an unbounded capture or tar extraction."""
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
+def bounded_output(cmd: list[str], limit: int, timeout: float = 60) -> bytes:
+    """Bound output bytes and the time until both the command and its output pipe finish."""
+    deadline = time.monotonic() + timeout
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            start_new_session=True, bufsize=0)
     _BOUNDED_PROCESSES.add(proc)
     chunks: list[bytes] = []
-    exceeded = False
+    size = 0
 
-    def read():
-        nonlocal exceeded
-        size = 0
-        for chunk in iter(lambda: proc.stdout.read(65536), b""):
-            size += len(chunk)
-            if size > limit:
-                exceeded = True
-                try:
-                    os.killpg(proc.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                return
-            chunks.append(chunk)
+    def remaining() -> float:
+        left = deadline - time.monotonic()
+        if left <= 0:
+            raise subprocess.TimeoutExpired(cmd, timeout)
+        return left
 
-    reader = threading.Thread(target=read, daemon=True)
-    reader.start()
     try:
-        proc.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        os.killpg(proc.pid, signal.SIGKILL)
-        proc.wait()
-        raise
+        # A descendant can retain stdout after the leader exits. Read without a buffered
+        # reader thread, whose close() could otherwise wait forever on that thread's lock.
+        os.set_blocking(proc.stdout.fileno(), False)
+        with selectors.DefaultSelector() as selector:
+            selector.register(proc.stdout, selectors.EVENT_READ)
+            while True:
+                if not selector.select(remaining()):
+                    continue
+                try:
+                    chunk = os.read(proc.stdout.fileno(), min(65536, limit - size + 1))
+                except BlockingIOError:
+                    continue
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > limit:
+                    raise PolicyReject("submission metadata or file exceeds its size limit")
+                chunks.append(chunk)
+        # EOF alone is not completion either: the command may close stdout and keep running.
+        proc.wait(timeout=remaining())
+        data = b"".join(chunks)
+        if proc.returncode:
+            raise subprocess.CalledProcessError(proc.returncode, cmd, stderr=data.decode(errors="replace"))
+        return data
     finally:
-        reader.join(5)
-        proc.stdout.close()
-        _BOUNDED_PROCESSES.discard(proc)
-    if exceeded:
-        raise PolicyReject("submission metadata or file exceeds its size limit")
-    data = b"".join(chunks)
-    if proc.returncode:
-        raise subprocess.CalledProcessError(proc.returncode, cmd, stderr=data.decode(errors="replace"))
-    return data
+        try:
+            # The group may still exist after its leader exits, even after a successful command.
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            try:
+                proc.wait(timeout=1)  # bounded grace for reaping after SIGKILL
+            except subprocess.TimeoutExpired:
+                pass
+        finally:
+            proc.stdout.close()  # unbuffered and never shared with a reader thread
+            _BOUNDED_PROCESSES.discard(proc)
 
 
 def valid_name(name: str) -> bool:
