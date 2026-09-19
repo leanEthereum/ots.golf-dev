@@ -172,9 +172,9 @@ class FrameworkTests(unittest.TestCase):
             detail = self.client.get(f'/submissions/{sub.id}').text
             self.assertIn('Upper bound · compressions', detail)
             self.assertNotIn('must prove', detail)
-            self.assertIn('href="/#upper"', detail)
+            self.assertIn('href="/?upper=upper-compressions#upper"', detail)
             self.assertNotIn('signing success at least 1/2', detail)
-            self.assertIn('href="/#upper">Upper bound · compressions</a>',
+            self.assertIn('href="/?upper=upper-compressions#upper">Upper bound · compressions</a>',
               self.client.get('/solvers/satoshi-nakamoto').text)
 
     def test_lower_records_do_not_initialize_upper_compressions(self):

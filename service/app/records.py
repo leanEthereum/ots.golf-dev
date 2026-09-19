@@ -98,7 +98,7 @@ def track_label(t: dict) -> tuple[str, str]:
         return "Lower bound · " + contract.track_framework_title(t), f'/?framework={t["framework"]}#lower'
     if t["framework"] != "generality-3" and t["slug"] != "upper-riscv":
         return contract.track_framework_title(t), "/rules#legacy-certificates"
-    return "Upper bound · " + ("RISC-V cycles" if t["slug"] == "upper-riscv" else "compressions"), "/#upper"
+    return "Upper bound · " + ("RISC-V cycles" if t["slug"] == "upper-riscv" else "compressions"), f'/?upper={t["slug"]}#upper'
 
 
 def journal(session: Session, track: str | None = None, limit: int = 300, per_author: int = 20) -> list[dict]:

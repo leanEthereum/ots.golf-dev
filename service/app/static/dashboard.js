@@ -72,10 +72,17 @@
 
   var lowerButtons = document.querySelectorAll('.lower-btn');
   var lowerBoards = document.querySelectorAll('.framework-board[data-framework]');
+  function showLower(framework) {
+    var available = Array.prototype.some.call(lowerBoards, function (board) {
+      return board.dataset.framework === framework;
+    });
+    if (!available && lowerBoards.length) framework = lowerBoards[0].dataset.framework;
+    lowerButtons.forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.framework === framework)); });
+    lowerBoards.forEach(function (board) { board.hidden = board.dataset.framework !== framework; });
+  }
   lowerButtons.forEach(function (button) {
     button.addEventListener('click', function () {
-      lowerButtons.forEach(function (other) { other.setAttribute('aria-pressed', String(other === button)); });
-      lowerBoards.forEach(function (board) { board.hidden = board.dataset.framework !== button.dataset.framework; });
+      showLower(button.dataset.framework);
       var url = new URL(location.href); url.searchParams.set('framework', button.dataset.framework);
       history.replaceState(null, '', url.pathname + url.search + url.hash);
     });
@@ -83,10 +90,20 @@
 
   var upperButtons = document.querySelectorAll('.upper-btn');
   var upperBoards = document.querySelectorAll('.upper-board[data-upper]');
+  function showUpper(track) {
+    var available = Array.prototype.some.call(upperBoards, function (board) {
+      return board.dataset.upper === track;
+    });
+    if (!available && upperBoards.length) track = upperBoards[0].dataset.upper;
+    upperButtons.forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.upper === track)); });
+    upperBoards.forEach(function (board) { board.hidden = board.dataset.upper !== track; });
+  }
   upperButtons.forEach(function (button) {
     button.addEventListener('click', function () {
-      upperButtons.forEach(function (other) { other.setAttribute('aria-pressed', String(other === button)); });
-      upperBoards.forEach(function (board) { board.hidden = board.dataset.upper !== button.dataset.upper; });
+      showUpper(button.dataset.upper);
+      var url = new URL(location.href); url.searchParams.set('upper', button.dataset.upper);
+      url.hash = 'upper';
+      history.replaceState(null, '', url.pathname + url.search + url.hash);
     });
   });
 
@@ -102,12 +119,17 @@
     if (updateUrl) history.replaceState(null, '', location.pathname + location.search + '#' + kind);
   }
   buttons.forEach(function (button) { button.addEventListener('click', function () { show(button.dataset.track, true); }); });
-  function fromHash() {
+  function fromUrl() {
+    var params = new URL(location.href).searchParams;
+    showLower(params.get('framework'));
+    showUpper(params.get('upper'));
     show(location.hash === '#upper' ? 'upper' : 'lower', false);
+    fitRows();
     if (location.hash === '#upper' || location.hash === '#lower') document.getElementById('board-title').scrollIntoView();
   }
-  window.addEventListener('hashchange', fromHash);
-  fromHash();
+  window.addEventListener('hashchange', fromUrl);
+  window.addEventListener('popstate', fromUrl);
+  fromUrl();
 
   document.querySelectorAll('.lb-table').forEach(function (table) {
     var body = table.querySelector('tbody');
