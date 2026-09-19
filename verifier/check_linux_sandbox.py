@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import signal
 import subprocess
 import sys
 import tempfile
@@ -87,10 +88,74 @@ print(json.dumps({"sandbox": "passed", "checks": ["environment", "proc", "readon
 '''
 
 
-def main() -> int:
-    if platform.system() != "Linux":
-        print("Linux sandbox smoke test requires Linux; no isolation claim is made on this host", file=sys.stderr)
-        return 2
+
+class ProbeInterrupted(Exception):
+    def __init__(self, signum: int):
+        self.signum = signum
+        super().__init__(f"interrupted by signal {signum}")
+
+
+def bus_environment() -> dict[str, str]:
+    """Reach the verifier user's lingering manager even from sudo without a login session."""
+    env = dict(os.environ)
+    runtime = env.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+    env["XDG_RUNTIME_DIR"] = runtime
+    env["DBUS_SESSION_BUS_ADDRESS"] = env.get("DBUS_SESSION_BUS_ADDRESS") or f"unix:path={runtime}/bus"
+    return env
+
+
+def kill_process_group(proc: subprocess.Popen) -> None:
+    """Bound cleanup even when a process already exited or cannot immediately be reaped."""
+    try:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except OSError:
+            pass
+        try:
+            proc.wait(timeout=1)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    finally:
+        # These are unbuffered pipes with no competing reader thread.
+        for stream in (proc.stdout, proc.stderr):
+            if stream is not None:
+                try:
+                    stream.close()
+                except OSError:
+                    pass
+
+
+def stop_unit(unit: str, env: dict[str, str]) -> None:
+    """The transient unit is independent of systemd-run's process group; stop both."""
+    for action in (["kill", "--signal=KILL", "--kill-whom=all"], ["stop", "--no-block"]):
+        control = None
+        try:
+            control = subprocess.Popen(["systemctl", "--user", *action, unit], env=env,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+            control.wait(timeout=2)
+        except (OSError, subprocess.TimeoutExpired):
+            # An already collected unit is normal; unavailable/hung managers must not hang cleanup.
+            pass
+        finally:
+            if control is not None:
+                kill_process_group(control)
+
+
+def run_probe(cmd: list[str], env: dict[str, str], unit: str) -> subprocess.CompletedProcess:
+    client = None
+    try:
+        client = subprocess.Popen(cmd, env=env, text=True, bufsize=0, start_new_session=True,
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = client.communicate(timeout=90)
+        return subprocess.CompletedProcess(cmd, client.returncode, stdout, stderr)
+    finally:
+        try:
+            stop_unit(unit, env)
+        finally:
+            if client is not None:
+                kill_process_group(client)
+
+def check() -> int:
     holder = None
     try:
         env = tools_env(repo_root())
@@ -103,16 +168,18 @@ def main() -> int:
             (work / "readonly").write_text("must stay unchanged")
             probe = work / "probe.py"
             probe.write_text(PROBE)
-            parent_env = dict(os.environ, OTS_SANDBOX_CANARY="public-smoke-test-canary")
-            holder = subprocess.Popen([python, "-c", "import time; time.sleep(180)"], env=parent_env)
+            parent_env = dict(bus_environment(), OTS_SANDBOX_CANARY="public-smoke-test-canary")
+            holder = subprocess.Popen([python, "-c", "import time; time.sleep(180)"],
+                                      env=parent_env, start_new_session=True)
             clean = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": str(Path.home())}
             landrun = [env["COMPARATOR_LANDRUN"], "--best-effort", "--ro", "/", "--rw", "/dev",
                        "-ldd", "-add-exec", "--env", "PATH", "--env", "HOME", "--rwx", str(work / ".lake"),
                        "--rox", str(Path(python).parent), "--", python, str(probe), str(work), str(holder.pid)]
+            unit = f"ots-smoke-{uuid.uuid4().hex[:12]}"
             cmd = linux_command(landrun, work, clean, {"memory_bytes": 512 * 1024 * 1024,
                                                       "wall_clock_seconds": 60},
-                                f"ots-smoke-{uuid.uuid4().hex[:12]}")
-            result = subprocess.run(cmd, env=parent_env, text=True, capture_output=True, timeout=90)
+                                unit)
+            result = run_probe(cmd, parent_env, unit)
             if result.returncode or '"sandbox": "passed"' not in result.stdout:
                 print(result.stdout + result.stderr, file=sys.stderr)
                 raise ContractError("Linux sandbox smoke test failed; do not admit untrusted submissions")
@@ -125,8 +192,34 @@ def main() -> int:
         return 1
     finally:
         if holder is not None:
-            holder.terminate()
-            holder.wait(timeout=10)
+            kill_process_group(holder)
+
+
+def main() -> int:
+    if platform.system() != "Linux":
+        print("Linux sandbox smoke test requires Linux; no isolation claim is made on this host", file=sys.stderr)
+        return 2
+    previous = {sig: signal.getsignal(sig) for sig in (signal.SIGINT, signal.SIGTERM)}
+
+    def interrupted(signum, _frame):
+        # A second signal must not interrupt the bounded cleanup triggered by the first.
+        for sig in previous:
+            signal.signal(sig, signal.SIG_IGN)
+        raise ProbeInterrupted(signum)
+
+    try:
+        for sig in previous:
+            signal.signal(sig, interrupted)
+        try:
+            return check()
+        except ProbeInterrupted as exc:
+            print(f"sandbox check: {exc}", file=sys.stderr)
+            return 128 + exc.signum
+        except KeyboardInterrupt:
+            return 130
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
 
 
 if __name__ == "__main__":
