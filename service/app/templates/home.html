@@ -160,7 +160,7 @@
               <th class="l" scope="col">Solver</th>
               <th class="r" scope="col" aria-sort="{{ 'ascending' if b.cfg.direction == '-' else 'descending' }}"><button type="button" class="sort-btn" data-key="score" data-dir="{{ 'asc' if b.cfg.direction == '-' else 'desc' }}" aria-pressed="true">Score <span class="arr">↕</span></button></th>
               <th class="r" scope="col" aria-sort="none"><button type="button" class="sort-btn" data-key="gain" data-dir="desc" aria-pressed="false">Gain <span class="arr">↕</span></button></th>
-              <th class="r" scope="col" aria-sort="none"><button type="button" class="sort-btn" data-key="date" data-dir="desc" aria-pressed="false">Date <span class="arr">↕</span></button></th>
+              <th class="r" scope="col">Date</th>
             </tr></thead>
             <tbody>{{ lbrows(b.frontier, b.in_flight, b.cfg) }}</tbody>
           </table>
@@ -196,7 +196,7 @@
               <th class="l" scope="col">Solver</th>
               <th class="r" scope="col" aria-sort="ascending"><button type="button" class="sort-btn" data-key="score" data-dir="asc" aria-pressed="true">Score <span class="arr">↕</span></button></th>
               <th class="r" scope="col" aria-sort="none"><button type="button" class="sort-btn" data-key="gain" data-dir="desc" aria-pressed="false">Gain <span class="arr">↕</span></button></th>
-              <th class="r" scope="col" aria-sort="none"><button type="button" class="sort-btn" data-key="date" data-dir="desc" aria-pressed="false">Date <span class="arr">↕</span></button></th>
+              <th class="r" scope="col">Date</th>
             </tr></thead>
             <tbody>{{ lbrows(b.frontier, b.in_flight, b.cfg) }}</tbody>
           </table>
