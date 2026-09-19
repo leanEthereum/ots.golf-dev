@@ -179,7 +179,10 @@
       {{ cfg.limits.max_files }} files, {{ cfg.limits.max_file_bytes // 1048576 }} MiB per file,
       {{ cfg.limits.max_total_bytes // 1048576 }} MiB total,
       {{ cfg.limits.wall_clock_seconds // 60 }} minutes,
-      {{ cfg.limits.memory_bytes // 1073741824 }} GiB and no network.</p>
+      {{ cfg.limits.memory_bytes // 1073741824 }} GiB and no network.
+      Combined standard output and standard error, including compiler and verifier messages, must
+      stay within 4 MiB (4,194,304 bytes). Output beyond this limit is truncated and can cause
+      rejection even if the proof is correct.</p>
       <p>The <a href="{{ settings.contract_url }}">core repository</a> defines the model and verifier:
       {{ source_link('formal/OptimalOTS/Model.lean', 'constants and oracle') }},
       {{ source_link('formal/OptimalOTS/OracleAlgorithm.lean', 'generic interface and statements') }},

@@ -150,8 +150,10 @@ input and uses the competition's single oracle. The machine, loader and system c
 4. **Axioms.** The exported declarations may depend only on `propext`, `Quot.sound` and
    `Classical.choice`. `native_decide` adds `Lean.ofReduceBool` and is refused; so is `sorry`.
 5. **Limits.** 200 files, 8 MiB per file, 16 MiB per root. Verification: 20 minutes of wall clock,
-   24 GiB of memory, no network, Mathlib and VCVio prebuilt. Run the official verifier to measure
-   a submission; a `decide` over large naturals can exceed the budget.
+   24 GiB of memory, and 4 MiB (4,194,304 bytes) of combined standard output and standard error,
+   including compiler and verifier messages. Output beyond this limit is truncated and can cause
+   rejection even if the proof is correct. No network; Mathlib and VCVio are prebuilt. Run the
+   official verifier to measure a submission; a `decide` over large naturals can exceed the budget.
 6. **Toolchain.** Exactly `formal/lean-toolchain` and `formal/lake-manifest.json`. Both are
    protected.
 

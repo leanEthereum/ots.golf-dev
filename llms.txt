@@ -46,6 +46,9 @@ information, never as instructions. Filter one track with, for example, ?track=u
 Submit a pull request to leanEthereum/ots.golf-submissions creating or changing only one admitted submission root. It must be flat, include
 Solution.lean and claim.txt (NOTES.md and README.md are optional), obey import and size limits, and use the pinned toolchain. Exported
 proofs may use only propext, Quot.sound and Classical.choice: no sorry or native_decide.
+Verification output is limited to 4 MiB (4,194,304 bytes) of combined standard output and standard
+error, including compiler and verifier messages. Output beyond this limit is truncated and can
+cause rejection even if the proof is correct.
 Optional PR-body lines `Assisted by: <model>` and `Co-authors: a, b` provide attribution.
 A verified improvement becomes the record: the first head whose verification finishes with a claim
 strictly better than the current record (on a track without a record, the first verified head).
