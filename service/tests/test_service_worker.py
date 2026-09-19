@@ -15,9 +15,9 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app import main, records, worker
+from app import contract, main, records, worker
 from app.config import settings
-from app.db import Base, GithubReport, Submission, User, local_lock, schedule_report, utcnow
+from app.db import Base, GithubReport, Submission, User, legacy_pr_submission_id, local_lock, schedule_report, utcnow
 
 
 class ServiceWorkerTests(unittest.TestCase):
@@ -54,7 +54,7 @@ class ServiceWorkerTests(unittest.TestCase):
             sub = Submission(user_id=self.user_id, track='lower-generality-2', claim=claim, status=status,
                              commit=commit, source_repo='https://github.com/author/repo.git',
                              pr_number=pr, pr_url=f'https://github.com/owner/repo/pull/{pr}' if pr else None,
-                             is_record=record,
+                             is_record=record, detail=json.dumps({"contract": contract.contract_id()}),
                              record_at=utcnow() if record else None)
             session.add(sub)
             session.commit()
@@ -67,6 +67,64 @@ class ServiceWorkerTests(unittest.TestCase):
             worker.process(sub.id)
         with self.sessions() as session:
             return session.get(Submission, sub.id)
+
+    def test_historical_and_unversioned_results_cannot_rank(self):
+        for i, epoch in enumerate(('old-contract', None)):
+            sub = self.submission(claim=999, record=True, pr=20 + i, commit=str(i) * 40)
+            with self.sessions() as session:
+                session.get(Submission, sub.id).detail = json.dumps({'contract': epoch})
+                session.commit()
+        with self.sessions() as session:
+            self.assertIsNone(records.current_record(session, 'lower-generality-2'))
+            self.assertEqual(records.frontier(session, 'lower-generality-2'), [])
+            self.assertEqual(records.curve(session, 'lower-generality-2'), [])
+            self.assertEqual(records.solver_count(session, 'lower-generality-2'), 0)
+        fresh = self.submission(claim=None, status='pending')
+        self.assertTrue(self.verify(fresh, 19).is_record)
+
+    def test_same_head_can_be_checked_under_a_new_contract(self):
+        from app.db import pr_submission_id
+        with self.sessions() as session:
+            user = session.get(User, self.user_id)
+            first = main.queue_submission(session, user, 'lower-generality-2', 'https://github.com/a/b.git',
+                                          'a' * 40, '', [], None, 7, 'https://github.com/owner/repo/pull/7')
+            first.status = 'verified'
+            session.commit()
+            first_id = first.id
+            with patch('app.contract.contract_id', return_value='new-contract'):
+                second = main.queue_submission(session, user, 'lower-generality-2', 'https://github.com/a/b.git',
+                                               'a' * 40, '', [], None, 7, 'https://github.com/owner/repo/pull/7')
+                self.assertNotEqual(first_id, second.id)
+                self.assertTrue(second.current_contract)
+                self.assertFalse(first.current_contract)
+                self.assertEqual(second.id, pr_submission_id('owner/repo', 7, 'a' * 40))
+            self.assertEqual(session.get(Submission, first_id).status, 'verified')
+
+    def test_queued_obsolete_contract_never_runs_against_new_contract(self):
+        sub = self.submission(claim=None, status='pending')
+        with patch('app.contract.contract_id', return_value='new-contract'), patch('app.worker.run_pipeline') as run:
+            worker.process(sub.id)
+            run.assert_not_called()
+        with self.sessions() as session:
+            checked = session.get(Submission, sub.id)
+            self.assertEqual(checked.status, 'failed')
+            self.assertEqual(checked.detail_dict['contract'], contract.contract_id())
+            self.assertFalse(checked.is_record)
+
+    def test_contract_change_during_verification_fails_closed(self):
+        sub = self.submission(claim=None, status='pending')
+        epoch = contract.contract_id()
+        def pipeline(_):
+            current.return_value = 'new-contract'
+            return {'status': 'verified', 'claim': 19}, None
+        with patch('app.contract.contract_id', return_value=epoch) as current, \
+             patch('app.worker.run_pipeline', side_effect=pipeline):
+            worker.process(sub.id)
+        with self.sessions() as session:
+            checked = session.get(Submission, sub.id)
+            self.assertEqual(checked.status, 'failed')
+            self.assertEqual(checked.detail_dict['contract'], epoch)
+            self.assertFalse(checked.is_record)
 
     def test_first_verified_improvement_becomes_the_record_without_a_merge(self):
         sub = self.submission(claim=None, status='pending')
@@ -231,9 +289,21 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertTrue(checked.is_record)
             self.assertEqual(checked.detail_dict['github_comment_id'], 123)
 
+    def test_historical_report_cannot_replace_the_current_commit_status(self):
+        current = self.submission(status='rejected', claim=None)
+        historical = self.submission(claim=999)
+        historical.detail = json.dumps({'contract': 'old-contract'})
+        with patch('app.worker.github.post_status') as status, \
+             patch('app.worker.github.post_comment', return_value=123) as comment:
+            worker.report(current)
+            worker.report(historical)
+        self.assertEqual([call.args[2] for call in status.call_args_list], ['failure'])
+        self.assertIn('Historical contract result', comment.call_args.args[2])
+        self.assertIn('old-contract', comment.call_args.args[2])
+
     def test_existing_result_comment_is_updated_instead_of_duplicated(self):
         sub = self.submission()
-        sub.detail = json.dumps({'github_comment_id': 123})
+        sub.detail = json.dumps({'github_comment_id': 123, 'contract': contract.contract_id()})
         with patch('app.worker.github.post_status') as status, patch('app.worker.github.update_comment') as update, \
              patch('app.worker.github.post_comment') as post:
             self.assertEqual(worker.report(sub), 123)
@@ -313,7 +383,7 @@ class ServiceWorkerTests(unittest.TestCase):
         from app.db import pr_submission_id
         block = github.verdict_block([{'track': 'lower-generality-2', 'commit': 'a' * 40, 'status': 'verified', 'claim': 19,
                                        'duration_s': 300.0, 'finished_at': '2026-09-10T10:00:00Z',
-                                       'contract': 'c0ffee', 'record': True}])
+                                       'contract': contract.contract_id(), 'record': True}])
         forged = github.verdict_block([{'track': 'lower-generality-2', 'commit': 'd' * 40, 'status': 'verified', 'claim': 99}])
         pulls = [
             {'number': 7, 'state': 'closed', 'merged_at': None, 'created_at': '2026-09-09T00:00:00Z',
@@ -336,7 +406,7 @@ class ServiceWorkerTests(unittest.TestCase):
         self.assertEqual(second['restored'], 0)
         queue.assert_called_with('owner/repo', 8, 'b' * 40, announce=False)
         with self.sessions() as session:
-            sub = session.get(Submission, pr_submission_id('owner/repo', 7, 'a' * 40))
+            sub = session.get(Submission, legacy_pr_submission_id('owner/repo', 7, 'a' * 40))
             self.assertEqual((sub.claim, sub.status, sub.is_record, sub.user.login), (19, 'verified', True, 'alice'))
             self.assertEqual(sub.record_at.strftime('%Y-%m-%d %H:%M'), '2026-09-10 10:00')
             self.assertEqual(sub.assisted_by, 'Model X')
@@ -360,7 +430,7 @@ class ServiceWorkerTests(unittest.TestCase):
                           'base': {'ref': 'main', 'repo': {'default_branch': 'main'}},
                           'head': {'sha': commit, 'repo': None}})
             block = github.verdict_block([{'track': 'lower-generality-2', 'commit': commit, 'status': 'verified',
-                                           'claim': claim, 'finished_at': finished, 'record': flag}])
+                                           'claim': claim, 'finished_at': finished, 'record': flag, 'contract': contract.contract_id()}])
             comments[number] = [{'id': number, 'user': {'login': 'ots-bot'}, 'body': block}]
         with patch.object(settings, 'github_token', 'test'), patch.object(settings, 'bot_login', 'ots-bot'), \
              patch('app.resync.SessionLocal', self.sessions), \
@@ -369,7 +439,7 @@ class ServiceWorkerTests(unittest.TestCase):
              patch('app.resync.github.read_file', return_value=None):
             self.assertEqual(resync.resync(), {'restored': 5, 'promoted': 3, 'queued': 0})
         with self.sessions() as session:
-            record = {n: session.get(Submission, pr_submission_id('owner/repo', n, c)).is_record
+            record = {n: session.get(Submission, legacy_pr_submission_id('owner/repo', n, c)).is_record
                       for n, c, *_ in heads}
             self.assertEqual(record, {5: False, 6: True, 7: True, 8: False, 9: True})
             self.assertEqual(records.current_record(session, 'lower-generality-2').pr_number, 7)
@@ -481,7 +551,7 @@ class ServiceWorkerTests(unittest.TestCase):
 
     def test_deleted_result_comment_is_recreated(self):
         sub = self.submission()
-        sub.detail = json.dumps({'github_comment_id': 123})
+        sub.detail = json.dumps({'github_comment_id': 123, 'contract': contract.contract_id()})
         response = httpx.Response(404, request=httpx.Request('PATCH', 'https://api.github.com/comment'))
         error = httpx.HTTPStatusError('deleted', request=response.request, response=response)
         with patch('app.worker.github.post_status'), patch('app.worker.github.update_comment', side_effect=error), \

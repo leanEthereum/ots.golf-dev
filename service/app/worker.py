@@ -97,7 +97,7 @@ def best_record(session, sub: Submission) -> Submission | None:
     records = session.scalars(select(Submission).where(
         Submission.track == sub.track, Submission.status == "verified", Submission.is_record.is_(True),
         Submission.id != sub.id, Submission.claim.is_not(None)).order_by(order))
-    return next((r for r in records if not r.detail_dict.get("demo")), None)
+    return next((r for r in records if r.current_contract and not r.detail_dict.get("demo")), None)
 
 
 def beats_record(session, sub: Submission) -> bool:
@@ -115,7 +115,7 @@ def promote(session, sub: Submission, at=None) -> None:
     (or the track has none). Callers hold the results lock, so records are decided one at a time in
     the order verifications finish: a later copy of the same claim never improves. A rebuild passes
     the original finish time as `at`."""
-    if sub.status != "verified" or sub.claim is None or sub.is_record:
+    if sub.status != "verified" or sub.claim is None or sub.is_record or not sub.current_contract:
         return
     if not settings.submissions_repo or (sub.pr_repository or "").lower() != settings.submissions_repo.lower():
         return
@@ -126,7 +126,7 @@ def promote(session, sub: Submission, at=None) -> None:
 
 def verdict_entry(sub: Submission) -> dict:
     """What a rebuild needs to restore one checked head."""
-    return {"track": sub.track, "commit": sub.commit, "status": sub.status, "claim": sub.claim,
+    return {"id": sub.id, "track": sub.track, "commit": sub.commit, "status": sub.status, "claim": sub.claim,
             "duration_s": sub.duration_s,
             "finished_at": sub.finished_at.strftime("%Y-%m-%dT%H:%M:%SZ") if sub.finished_at else None,
             "contract": sub.detail_dict.get("contract"), "record": bool(sub.is_record)}
@@ -153,7 +153,10 @@ def report(sub: Submission, history: list[dict] | None = None) -> int | None:
     finished = [e for e in (history or [verdict_entry(sub)]) if e["status"] not in {"pending", "verifying"}]
     if finished:
         body += "\n\n" + github.verdict_block(finished)
-    github.post_status(repo, sub.commit, state, what, url)
+    if sub.current_contract:
+        github.post_status(repo, sub.commit, state, what, url)
+    else:
+        body = "**Historical contract result; excluded from the current competition.**\n\n" + body
     comment_id = sub.detail_dict.get("github_comment_id")
     if type(comment_id) is int:
         try:
@@ -230,8 +233,12 @@ def process(sub_id: str) -> None:
         sub.status, sub.started_at = "verifying", utcnow()
         session.commit()
     _log(f"verifying {sub.id} ({sub.track}, {sub.source_repo}@{sub.commit[:10]})")
+    run_contract = contract.contract_id()
     try:
-        result, log_path = run_pipeline(sub)
+        if not sub.current_contract:
+            result, log_path = {"status": "failed", "reason": "queued contract changed; resubmit for the current contract"}, None
+        else:
+            result, log_path = run_pipeline(sub)
     except Exception:
         _log(traceback.format_exc())
         result, log_path = {"status": "failed", "reason": "internal error in the verifier; the operator has the trace"}, None
@@ -239,6 +246,8 @@ def process(sub_id: str) -> None:
         sub = session.get(Submission, sub_id)
         if sub is None:
             return
+        if result.get("status") == "verified" and contract.contract_id() != run_contract:
+            result = {"status": "failed", "reason": "contract changed during verification; resubmit"}
         sub.status = result["status"] if result["status"] in ("verified", "rejected", "policy_rejected", "timeout") else "failed"
         sub.claim = result.get("claim", sub.claim)
         sub.finished_at, sub.duration_s, sub.log_path = utcnow(), result.get("duration_s"), log_path
@@ -248,7 +257,7 @@ def process(sub_id: str) -> None:
             failure = {"code": sub.status, "message": msg}
         detail = sub.detail_dict  # preserve the durable comment identity
         detail.update(failure=failure, commit=result.get("commit"), comparator_exit=result.get("comparator_exit"),
-                      contract=contract.contract_id())
+                      contract=sub.detail_dict.get("contract"))
         notes = result.get("notes")
         if isinstance(notes, str) and notes.strip():
             detail["notes"] = notes[:64 * 1024]

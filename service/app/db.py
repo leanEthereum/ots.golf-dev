@@ -27,7 +27,13 @@ def stable_id(*parts: str) -> str:
     return hashlib.sha256("\x1f".join(parts).encode()).hexdigest()[:32]
 
 
-def pr_submission_id(pr_repository: str, pr_number: int, commit: str) -> str:
+def pr_submission_id(pr_repository: str, pr_number: int, commit: str, epoch: str | None = None) -> str:
+    from . import contract
+    return stable_id("pr", pr_repository.lower(), str(pr_number), commit.lower(),
+                     contract.contract_id() if epoch is None else epoch)
+
+
+def legacy_pr_submission_id(pr_repository: str, pr_number: int, commit: str) -> str:
     return stable_id("pr", pr_repository.lower(), str(pr_number), commit.lower())
 
 
@@ -86,6 +92,11 @@ class Submission(Base):
             return value if isinstance(value, dict) else {}
         except (ValueError, TypeError):
             return {}
+
+    @property
+    def current_contract(self) -> bool:
+        from . import contract
+        return self.detail_dict.get("contract") == contract.contract_id()
 
     @property
     def notes(self) -> str | None:

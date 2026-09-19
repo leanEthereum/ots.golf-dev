@@ -4,6 +4,7 @@
 {% set legacy_upper = t.kind == 'upper' and framework.slug != 'generality-3' %}
 <p class="muted"><a class="back" href="{% if legacy_upper %}/rules#legacy-certificates{% else %}/{% if t.kind == 'lower' %}?framework={{ framework.slug }}{% endif %}#{{ t.kind }}{% endif %}" onclick="if (history.length > 1) { history.back(); return false; }">← Back</a></p>
 <h1>{% if legacy_upper %}{{ framework_title }}{% elif t.kind == 'upper' %}Upper bound · {{ 'RISC-V cycles' if t.slug == 'upper-riscv' else 'compressions' }}{% else %}Lower bound · {{ framework_title }}{% endif %} <span class="status s-{{ sub.status }}">{{ sub.status.replace('_', ' ') }}</span></h1>
+{% if not sub.detail_dict.get('demo') and not sub.current_contract %}<p class="notice">Historical result: this submission was checked under a different or unknown contract and is excluded from the current leaderboard.</p>{% endif %}
 <dl class="facts">
   <dt>Claim</dt><dd>{% if sub.claim is not none %}{{ sub.claim }} {{ t|cost_unit(sub.claim) }}{% else %}–{% endif %}{% if sub.is_record %} <span class="tag">record</span>{% endif %}</dd>
   <dt>Submitter</dt><dd><a href="/solvers/{{ sub.user.login }}">{{ sub.user.login }}</a>{% for c in sub.co_authors_list %}, {{ c }}{% endfor %}</dd>

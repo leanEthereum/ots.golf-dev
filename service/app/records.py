@@ -8,6 +8,11 @@ from . import contract
 from .db import Submission
 
 
+def eligible(sub: Submission) -> bool:
+    """Unversioned and historical results are never evidence for the current contract."""
+    return sub.current_contract or bool(sub.detail_dict.get("demo"))
+
+
 def _verified(slug: str):
     return select(Submission).where(Submission.track == slug, Submission.status == "verified")
 
@@ -15,13 +20,15 @@ def _verified(slug: str):
 def current_record(session: Session, slug: str) -> Submission | None:
     t = contract.track(slug)
     order = Submission.claim.desc() if t["direction"] == "+" else Submission.claim.asc()
-    return session.scalars(_verified(slug).where(Submission.is_record.is_(True), Submission.claim.is_not(None))
-                           .order_by(order, Submission.finished_at.asc()).limit(1)).first()
+    return next((s for s in session.scalars(_verified(slug).where(
+        Submission.is_record.is_(True), Submission.claim.is_not(None))
+        .order_by(order, Submission.finished_at.asc())) if eligible(s)), None)
 
 
 def frontier(session: Session, slug: str) -> list[Submission]:
-    return list(session.scalars(_verified(slug).where(Submission.is_record.is_(True), Submission.claim.is_not(None))
-                                .order_by(Submission.record_at.desc())))
+    return [s for s in session.scalars(_verified(slug).where(
+        Submission.is_record.is_(True), Submission.claim.is_not(None))
+        .order_by(Submission.record_at.desc())) if eligible(s)]
 
 
 def in_flight(session: Session, slug: str | None = None) -> list[Submission]:
@@ -32,8 +39,7 @@ def in_flight(session: Session, slug: str | None = None) -> list[Submission]:
 
 
 def solver_count(session: Session, slug: str) -> int:
-    return session.scalar(select(func.count(func.distinct(Submission.user_id)))
-                          .where(Submission.track == slug, Submission.status == "verified")) or 0
+    return len({s.user_id for s in session.scalars(_verified(slug)) if eligible(s)})
 
 
 def track_state(session: Session, t: dict) -> dict:
@@ -68,7 +74,7 @@ def curve(session: Session, slug: str) -> list[dict]:
                                                    Submission.record_at.is_not(None))
                                 .order_by(Submission.record_at.asc())))
     return [{"t": s.record_at, "claim": s.claim, "id": s.id, "login": s.user.login,
-             "demo": bool(s.detail_dict.get("demo"))} for s in recs]
+             "demo": bool(s.detail_dict.get("demo"))} for s in recs if eligible(s)]
 
 
 def overview(session: Session) -> list[dict]:

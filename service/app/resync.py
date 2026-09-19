@@ -11,13 +11,14 @@ adds what is missing, so running it on a live database is harmless.
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime
 
 from sqlalchemy import select
 
 from . import auth, contract, github
 from .config import settings
-from .db import SessionLocal, Submission, init_db, local_lock, pr_submission_id
+from .db import SessionLocal, Submission, init_db, local_lock, pr_submission_id, legacy_pr_submission_id
 
 FINISHED = {"verified", "rejected", "policy_rejected", "timeout", "failed"}
 
@@ -59,7 +60,10 @@ def resync(queue_open_heads: bool = True) -> dict:
                 t = contract.track(v["track"])
                 if t is None or v["status"] not in FINISHED:
                     continue
-                sid = pr_submission_id(repo, number, v["commit"])
+                # New comments carry their stable identity; old links retain the legacy identity.
+                sid = v.get("id")
+                if not isinstance(sid, str) or not re.fullmatch(r"[0-9a-f]{32}", sid):
+                    sid = legacy_pr_submission_id(repo, number, v["commit"])
                 if session.get(Submission, sid) is not None:
                     continue
                 detail = {"contract": v.get("contract"), "restored": True}
@@ -77,9 +81,10 @@ def resync(queue_open_heads: bool = True) -> dict:
                     finished_at=finished, duration_s=v.get("duration_s"), detail=json.dumps(detail)))
                 restored += 1
             session.commit()
-        if queue_open_heads and pr.get("state") == "open" and head not in {v["commit"] for v in verdicts}:
+        if queue_open_heads and pr.get("state") == "open" and head not in {v["commit"] for v in verdicts if v.get("contract") == contract.contract_id()}:
             with SessionLocal() as session:
-                known = session.get(Submission, pr_submission_id(repo, number, head)) is not None
+                known = any(s.current_contract for s in session.scalars(select(Submission).where(
+                    Submission.pr_url == pr_url, Submission.commit == head)))
             if not known:
                 queued.append((repo, number, head))
     promoted = replay_records()

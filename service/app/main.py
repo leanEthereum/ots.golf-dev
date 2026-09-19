@@ -197,10 +197,11 @@ def _queue_submission(session: Session, user: User, track: str, repo: str, commi
         raise HTTPException(429, f"{user.login} already has {len(mine)} submissions in flight")
     if len(records.in_flight(session)) >= settings.queue_cap:
         raise HTTPException(429, "the verification queue is full")
-    dup = session.scalars(select(Submission).where(Submission.track == track, Submission.commit == commit,
+    duplicates = session.scalars(select(Submission).where(Submission.track == track, Submission.commit == commit,
                                                    Submission.source_repo == repo,
                                                    Submission.status.in_(("pending", "verifying", "verified", "rejected",
-                                                                          "policy_rejected", "timeout")))).first()
+                                                                          "policy_rejected", "timeout"))))
+    dup = next((s for s in duplicates if s.current_contract), None)
     if dup:
         raise HTTPException(409, f"this commit is already submitted: {dup.id}")
     fields = dict(track=track, user_id=user.id, source_repo=repo, commit=commit,
@@ -208,7 +209,7 @@ def _queue_submission(session: Session, user: User, track: str, repo: str, commi
                   assisted_by=(assisted_by or "").strip()[:120] or None, pr_number=pr_number, pr_url=pr_url)
     probe = Submission(**fields)
     sid = (pr_submission_id(probe.pr_repository, pr_number, commit) if probe.pr_repository
-           else stable_id("local", track, repo, commit))
+           else stable_id("local", track, repo, commit, contract.contract_id()))
     sub = session.get(Submission, sid)
     if sub is None:
         sub = Submission(id=sid, **fields)
@@ -220,6 +221,9 @@ def _queue_submission(session: Session, user: User, track: str, repo: str, commi
         sub.started_at = sub.finished_at = sub.duration_s = None
         sub.created_at = utcnow()
         sub.detail = json.dumps({k: v for k, v in sub.detail_dict.items() if k == "github_comment_id"})
+    detail = sub.detail_dict
+    detail["contract"] = contract.contract_id()
+    sub.detail = json.dumps(detail)
     schedule_report(session, sub)
     session.commit()
     return sub
