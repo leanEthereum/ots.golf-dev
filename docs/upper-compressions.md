@@ -35,7 +35,7 @@ The challenge substitutes a submission's claim for 104. `Admissible` requires:
 - Signing failure at most `2⁻¹²⁸`, averaged over honest key generation and signing, for every
   message chosen as a function of the public key, starting from a fresh oracle.
 - Signatures of at most 5,504 bits, and rejection of longer bit strings.
-- At most 1,024 key-generation compressions and `2²⁰` signing compressions on every path.
+- At most 1,048,576 key-generation compressions and `2²⁰` signing compressions on every path.
 
 Public keys are 128 bits and messages are 256 bits. The separate security theorem gives
 strict strong-unforgeability probability below `B / 2¹²⁷` for every pathwise budget `B` of the

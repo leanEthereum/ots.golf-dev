@@ -36,7 +36,7 @@ base <code>main</code>. Read the rules below before preparing a submission.
           <tr><th scope="row">Public key</th><td>128 bits</td></tr>
           <tr><th scope="row">Message</th><td>256 bits</td></tr>
           <tr><th scope="row">Signature</th><td>At most 5,504 bits</td></tr>
-          <tr><th scope="row">Key generation</th><td>At most 1,024 compressions</td></tr>
+          <tr><th scope="row">Key generation</th><td>At most 2<sup>20</sup> compressions</td></tr>
           <tr><th scope="row">Signing</th><td>At most 2<sup>20</sup> compressions</td></tr>
           <tr><th scope="row">Security</th><td>127 bits</td></tr>
           <tr><th scope="row">Verification</th><td><strong>Minimize the worst-case cost</strong>{% if upper_riscv_track %}, in compressions or RISC-V cycles{% endif %}</td></tr>

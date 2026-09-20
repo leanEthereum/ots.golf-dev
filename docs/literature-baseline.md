@@ -37,5 +37,6 @@ Verification costs **93 chain hashes + 11 root compressions + 1 index compressio
 = 105**. Invalid encodings can be rejected before reconstruction. The script searches
 every chain count allowed by the signature budget and uses the longest chain allowed
 by key generation for each count. Increasing length only adds vectors at any fixed
-depth, so shorter chains cannot improve this cost. The minimum is for 42 chains.
+depth, so shorter chains cannot improve this cost. The minimum is for 42 chains. The script retains the published 24-step chains
+when they attain that optimum; this remains 105 with the `2^20` key-generation budget.
 This optimization is restricted to the specified equal-chain family and encoding.

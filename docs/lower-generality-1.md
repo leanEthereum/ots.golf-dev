@@ -12,7 +12,7 @@ half directly from a hash output, or concatenates an ordered list of complete ea
 
 Every node carries a sequence of whole words; a signature discloses complete node values. All
 original DAG cut, root reconstruction, nonce/index, size and resource requirements remain:
-5376 payload bits plus a 128-bit nonce, 128-bit public key, 1024 key-generation compressions,
+5376 payload bits plus a 128-bit nonce, 128-bit public key, 2^20 key-generation compressions,
 2^20 signing trials, 2^115 accepted indices out of 2^128, and 127-bit strong unforgeability.
 Hashes accept any number of words. One shared random oracle answers equal inputs equally; each
 hash call costs at least one compression and one per started 512-bit input block.
@@ -41,7 +41,7 @@ weighted success at least (256/257) M/(64K+M). Both randomly chosen messages are
 probability at least 99/100; the second also differs from the signed message. Thus success is
 at least (99/100)^2 (256/257) M/(64K+M), approximately 0.036318793987.
 
-The entire experiment costs at most B=1024+2^20+2^122+2*88+2. Its security allowance B/2^127
+The entire experiment costs at most B=2^20+2^20+2^122+2*88+2. Its security allowance B/2^127
 is just above 0.03125. The Lean proof rounds the weighted success down to 1/28 and obtains
 success at least 9801/280000, still strictly greater than B/2^127. This contradicts weak
 security and proves that some index costs at least **90 compressions**.

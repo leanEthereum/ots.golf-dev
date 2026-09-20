@@ -172,7 +172,7 @@ def assert_rules_have_no_scores(text: str, config: dict) -> None:
         number = rf'(?<![\w,/]){claim}(?![\w,/])'
         assert not re.search(rf'(?:score|record|candidate|bound)\s+(?:(?:of|is|:|=)\s*)?{number}\b|'
                              rf'{number}\s+compressions?\b', text, re.I), f'Rules publish score {claim}'
-    legitimate = {0, 1, 2, 3, 4, 21, 41, 42, 127, 128, 256, 512, 1024, 5248, 5376, 5504}
+    legitimate = {0, 1, 2, 3, 4, 21, 41, 42, 127, 128, 256, 512, 1048576, 5248, 5376, 5504}
     for claim in claims - legitimate:
         assert not re.search(rf'\b{claim}\b', text), f'Rules publish score {claim}'
 
@@ -189,7 +189,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     assert js('return document.querySelector(".upper-card").getBoundingClientRect().bottom <= document.querySelector(".framework-cards").getBoundingClientRect().top;')
     assert js('return document.querySelector("#upper-compressions-title").textContent.trim() === "By compressions" && getComputedStyle(document.querySelector(".chart-series[data-kind=upper] .line")).strokeDasharray === "none";')
     assert js('return document.querySelector("#framework-generality-1 .framework-generality").textContent === "Whole-word DAGs";')
-    assert js('return [...document.querySelectorAll("header.top nav a")].map(a => a.textContent.trim()).join(",") === "Rules";')
+    assert js('return [...document.querySelectorAll("header.top nav a")].map(a => a.textContent.trim()).join(",") === "Rules,Hall of Fame";')
     assert js('return !document.querySelector(".board-track[data-track=lower]").innerText.includes("Admission pending");')
     assert js('return !document.querySelector("main").innerText.includes("Lower submissions open");')
     lower_claim = demo_best(config, 'lower-generality-1')

@@ -12,7 +12,7 @@ a fixed assembly image, and an input-dependent fuel bound witnessing termination
 
 - Perfect correctness, deterministic verification, signing failure at most `2^-128`, public keys
   of 128 bits, messages of 256 bits, signatures of at most 5504 bits, key generation of at most
-  1024 compressions and signing of at most `2^20` compressions.
+  2^20 compressions and signing of at most `2^20` compressions.
 - 127-bit strong security in the existing shared random-oracle experiment.
 - Exact refinement of the Lean verifier by the machine's oracle computation, preserving
   queries. Faults and fuel exhaustion are excluded on every input; the machine is deterministic

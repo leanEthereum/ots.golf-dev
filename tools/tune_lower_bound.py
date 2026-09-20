@@ -10,7 +10,7 @@ For a proposed bound c, the attack assumes C_i <= c-1 for all i. Reconstruction
 then costs at most v = c-1-idx and evaluates at most a = v-1 hash nodes besides
 the root. For q construction attempts, T nonce trials and K target ranks, the
 model estimates success as (1-delta) sum omega_l b_l and charges
-B = 1024 + L*idx + T*idx + (q+2)*v + 2*idx. A contradiction would need success
+B = KEYGEN_BUDGET + L*idx + T*idx + (q+2)*v + 2*idx. A contradiction would need success
 (strictly) greater than B/2^127, PLUS all the mathematical attack hypotheses.
 
 The default pattern method and the disclosure method use exact integer and
@@ -34,6 +34,8 @@ from __future__ import annotations
 import argparse
 from fractions import Fraction
 import math
+
+KEYGEN_BUDGET = 2 ** 20
 
 M, N, L = 2 ** 115, 2 ** 128, 2 ** 20
 # (1 - p)^L <= 1 / (1 + L*p), with p = M/N.
@@ -97,7 +99,7 @@ def success(a: int, K: int, T: float) -> float:
 
 
 def cost(idx: int, v: int, q: float | int, T: float | int) -> float | int:
-    return 1024 + L * idx + T * idx + (q + 2) * v + 2 * idx
+    return KEYGEN_BUDGET + L * idx + T * idx + (q + 2) * v + 2 * idx
 
 
 def print_point(c: int, idx: int, s_star: int) -> None:
@@ -129,7 +131,7 @@ def print_disclosure_point(c: int, origins: int, freshness: Fraction = Fraction(
     count = math.comb(a + origins, origins)
     averaged_search = Fraction(M, 64 * count + M)
     lower = freshness ** 2 * SIGN_SUCCESS_LOWER_BOUND * averaged_search
-    budget = 1024 + L + trials + 2 * v + 2
+    budget = KEYGEN_BUDGET + L + trials + 2 * v + 2
     ratio = Fraction(budget, 2 ** 127)
     margin = lower - ratio
     print(f"c={c}, origins={origins}, a={a}, reconstruction budget={v}, freshness={freshness}")
@@ -184,14 +186,14 @@ def main() -> int:
         T = 2 ** 122
         for c in claims:
             a, v = c - 3, c - 2
-            count = sum(math.comb(1023, k) for k in range(a + 1))
+            count = sum(math.comb(KEYGEN_BUDGET - 1, k) for k in range(a + 1))
             good = max(Fraction(0), 1 - Fraction(8 * count, M))
             sign_success = SIGN_SUCCESS_LOWER_BOUND
-            fresh1 = 1 - Fraction(1024, 2 ** 256)
-            fresh2 = 1 - Fraction(1024 + L + 1, 2 ** 256)
+            fresh1 = 1 - Fraction(KEYGEN_BUDGET, 2 ** 256)
+            fresh2 = 1 - Fraction(KEYGEN_BUDGET + L + 1, 2 ** 256)
             search_success = Fraction(1, 9)
             lower = fresh1 * good * sign_success * fresh2 * search_success
-            budget = 1024 + L + T + 2 * v + 2
+            budget = KEYGEN_BUDGET + L + T + 2 * v + 2
             ratio = Fraction(budget, 2 ** 127)
             print(f"c={c}, a={a}, reconstruction budget={v}, patterns={count}")
             print(f"  exact pattern count < 2^110: {count < 2 ** 110}")

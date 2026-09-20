@@ -54,7 +54,7 @@ def forestScheme : Scheme where
     have := card_le_of_mem_family (setsName_mem i)
     omega
   keygen_le := by
-    show graph.keygenCost ≤ 1024
+    show graph.keygenCost ≤ 2 ^ 20
     rw [graph_keygenCost]
     norm_num
 

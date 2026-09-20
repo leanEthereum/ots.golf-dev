@@ -40,7 +40,7 @@ def securityBits : ℕ := 127
 /-- Maximal signature length, including any nonce. -/
 def maxSignatureBits : ℕ := 5504
 /-- Maximal cost of key generation. -/
-def keygenBudget : ℕ := 1024
+def keygenBudget : ℕ := 2 ^ 20
 /-- Maximal cost of signing. -/
 def signBudget : ℕ := 2 ^ 20
 /-- Signing may fail with probability at most `1 / 2 ^ signingFailureBits`. -/

@@ -17,6 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TAG_BITS = 16
+REFERENCE_STEPS = 24
 
 
 def contract_nat(module: str, name: str) -> int:
@@ -62,20 +63,38 @@ def calculate() -> dict:
         # Longer chains only add fixed-sum vectors. The longest allowed length
         # therefore gives the smallest feasible depth for this chain count.
         # Coefficients are symmetric/unimodal, so a feasible minimum is <= midpoint.
-        for depth in range(chains * steps // 2 + 1):
-            count = layer_size(chains, steps, depth)
-            if count >= cuts:
-                candidates.append({
-                    "chains": chains, "steps_per_chain": steps,
-                    "chain_compressions": depth * chain_cost,
-                    "root_compressions": root_cost, "index_compressions": cost(index_input),
-                    "verify_compressions": depth * chain_cost + root_cost + cost(index_input),
-                    "keygen_compressions": chains * steps * chain_cost + root_cost,
-                    "signature_bits": nonce + chains * word,
-                    "layer_size": count, "previous_layer_size": layer_size(chains, steps, depth - 1),
-                    "accepted_cuts": cuts,
-                })
-                break
+        lo, hi = 0, chains * steps // 2
+        if layer_size(chains, steps, hi) < cuts:
+            continue
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if layer_size(chains, steps, mid) >= cuts:
+                hi = mid
+            else:
+                lo = mid + 1
+        depth = lo
+        # Realize the optimal depth with the shortest equal chains that suffice.
+        # This avoids spending the enlarged keygen budget on unused chain length.
+        lo, hi = 1, steps
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if layer_size(chains, mid, depth) >= cuts:
+                hi = mid
+            else:
+                lo = mid + 1
+        # Preserve the published chain length when it attains the same optimum.
+        steps = max(lo, min(REFERENCE_STEPS, steps))
+        count = layer_size(chains, steps, depth)
+        candidates.append({
+            "chains": chains, "steps_per_chain": steps,
+            "chain_compressions": depth * chain_cost,
+            "root_compressions": root_cost, "index_compressions": cost(index_input),
+            "verify_compressions": depth * chain_cost + root_cost + cost(index_input),
+            "keygen_compressions": chains * steps * chain_cost + root_cost,
+            "signature_bits": nonce + chains * word,
+            "layer_size": count, "previous_layer_size": layer_size(chains, steps, depth - 1),
+            "accepted_cuts": cuts,
+        })
 
     best = min(candidates, key=lambda row: row["verify_compressions"])
     # The same signing bound as the forest: each fresh, distinct nonce accepts

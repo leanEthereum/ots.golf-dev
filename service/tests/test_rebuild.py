@@ -65,6 +65,21 @@ class RecoveryTests(unittest.TestCase):
              patch("app.resync.github.list_comments", return_value=comments):
             return resync.resync(queue_open_heads=False, **kwargs)
 
+    def test_archived_heads_stay_historical_but_new_heads_are_queued(self):
+        self.pr.update(state="open", head={"sha": self.commit, "repo": None})
+        catalog = [{"date": "2026-09-20", "tracks": [{"entries": [{
+            "pr_url": "https://github.com/owner/entries/pull/7", "commit": self.commit,
+        }]}]}]
+        with patch("app.resync.github.list_pulls", return_value=[self.pr]), \
+             patch("app.resync.github.list_comments", return_value=[]), \
+             patch("app.hall_of_fame.retirements", return_value=catalog), \
+             patch("app.main.handle_pull_request") as queue:
+            resync.resync()
+            queue.assert_not_called()
+            self.pr["head"]["sha"] = "f" * 40
+            resync.resync()
+            queue.assert_called_once_with("owner/entries", 7, "f" * 40, announce=False)
+
     def row(self, *, entry=None, status="verified"):
         entry = entry or self.entry()
         detail = {"contract": entry["contract"], "source_ref": entry["source_ref"],

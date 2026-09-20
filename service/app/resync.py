@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
-from . import auth, contract, git_authors, github, source_archive
+from . import auth, contract, git_authors, github, hall_of_fame, source_archive
 from .config import settings
 from .db import SessionLocal, Submission, init_db, local_lock, legacy_pr_submission_id, schedule_report
 
@@ -245,7 +245,8 @@ def _resync(queue_open_heads: bool = True) -> dict:
                     existing.started_at, existing.log_path = None, None
                     pending += int(v["status"] == "pending")
                 session.commit()
-        if queue_open_heads and pr.get("state") == "open" and head not in {
+        if (queue_open_heads and pr.get("state") == "open"
+                and not hall_of_fame.contains_pr_head(pr_url, head)) and head not in {
                 v["commit"] for v in verdicts if v.get("contract") == contract.contract_id()}:
             with SessionLocal() as session:
                 known = any(s.current_contract for s in session.scalars(select(Submission).where(

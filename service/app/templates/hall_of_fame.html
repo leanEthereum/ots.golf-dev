@@ -18,7 +18,7 @@
     <section class="hall-track" aria-labelledby="{{ retirement.id }}-{{ track.slug }}">
       <header class="hall-track-heading">
         <h3 id="{{ retirement.id }}-{{ track.slug }}">{{ track.kind }} · {{ track.title }}</h3>
-        <span class="hall-generality">Generality {{ track.generality }}</span>
+        {% if track.generality %}<span class="hall-generality">Generality {{ track.generality }}</span>{% endif %}
       </header>
       <ol class="hall-entries">
         {% for entry in track.entries %}

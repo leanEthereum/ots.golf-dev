@@ -6,7 +6,7 @@ with branching factors b_i (an optional digest chain of length m_i on top of eve
 under a root of b_d children. A cut reveals one value on every source-to-root path; its cost is the
 hash cost of everything strictly above it. The family of a cost c is the set of cuts of cost c with
 at most 42 nodes (42 · 128 = 5376 revealed bits). We want the least c whose family has at least
-2^115 cuts, within a key-generation budget of 1024 compressions.
+2^115 cuts, within a key-generation budget of 2^20 compressions.
 
     tools/search_forest.py [--overhead 0] [--max-levels 3] [--max-branch 10] [--digest-chains 0]
 
@@ -27,7 +27,7 @@ import sys
 
 import numpy as np
 
-VALUE_BITS, BLOCK, MAX_NODES, KEYGEN_BUDGET, INDEX_BITS = 128, 512, 42, 1024, 384
+VALUE_BITS, BLOCK, MAX_NODES, KEYGEN_BUDGET, INDEX_BITS = 128, 512, 42, 2 ** 20, 384
 NEED = 2 ** 115
 
 

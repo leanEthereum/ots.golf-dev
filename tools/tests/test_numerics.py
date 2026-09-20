@@ -54,6 +54,7 @@ class NumericalToolTests(unittest.TestCase):
         cuts = self.contract_nat('Dag.lean', 'numCuts')
         indices = 2 ** self.contract_nat('Dag.lean', 'idxBits')
         self.assertEqual((tool['M'], tool['N'], tool['L']), (cuts, indices, trials))
+        self.assertEqual(tool['KEYGEN_BUDGET'], self.contract_nat('Model.lean', 'keygenBudget'))
         self.assertEqual(tool['SIGN_SUCCESS_LOWER_BOUND'],
                          Fraction(trials * cuts, indices + trials * cuts))
         self.assertEqual(tool['PAYLOAD_BITS'],
@@ -61,6 +62,7 @@ class NumericalToolTests(unittest.TestCase):
 
     def test_forest_index_width_matches_the_protected_contract(self):
         tool = runpy.run_path(str(ROOT / 'tools' / 'search_forest.py'))
+        self.assertEqual(tool['KEYGEN_BUDGET'], self.contract_nat('Model.lean', 'keygenBudget'))
         self.assertEqual(tool['INDEX_BITS'], self.contract_nat('Model.lean', 'msgBits')
                          + self.contract_nat('Dag.lean', 'nonceBits'))
 
@@ -106,12 +108,12 @@ class NumericalToolTests(unittest.TestCase):
         self.assertIn('exact success > budget/2^127: True', positive)
         self.assertIn('exact success > budget/2^127: False', negative)
 
-    def test_existing_dag_and_historical_disclosure_points(self):
+    def test_pattern_bound_uses_larger_keygen_and_disclosure_point_still_holds(self):
         for method, claim in [('patterns', '18'), ('disclosure', '80')]:
             with self.subTest(method=method):
                 result = self.run_tool('tune_lower_bound.py', '--method', method, '--claims', claim)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                expected = ('exact success bound > cost/2^127: True' if method == 'patterns'
+                expected = ('exact success bound > cost/2^127: False' if method == 'patterns'
                             else 'exact success > budget/2^127: True')
                 self.assertIn(expected, result.stdout)
 

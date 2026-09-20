@@ -48,7 +48,7 @@ record coordinates. No graph separation hypothesis is part of the contract.
 | Cost per started 512-bit block, at least one | `blockCost`, `queryCost` | every bit in an explicit tweak is charged |
 | Sources, arbitrary deterministic nodes, hash nodes | `NodeKind`, `Graph` | hash nodes have one parent and no label |
 | Root is a hash node | `Graph.root_isHash` | root is never disclosed |
-| Key generation evaluates all nodes, within 1024 compressions | `Graph.keygen`, `Scheme.keygen_le` | |
+| Key generation evaluates all nodes, within 2^20 compressions | `Graph.keygen`, `Scheme.keygen_le` | |
 | Disclosure sets cut every source-to-root path | `root_not_mem`, `no_hidden_source` | |
 | Reconstruction stops at disclosed values | `Graph.Visited`, `evaluated`, `reconstruct` | root is always evaluated |
 | Verification cost is index plus reconstruction | `Scheme.verifyCost`, `idxCost` | the 384-bit index input costs one compression |

@@ -26,3 +26,10 @@ def retirements() -> list[dict]:
 def contains(submission_id: str) -> bool:
     return any(entry["id"] == submission_id for group in retirements()
                for track in group["tracks"] for entry in track["entries"])
+
+
+def contains_pr_head(pr_url: str, commit: str) -> bool:
+    """An unchanged archived head is historical; a new head remains eligible."""
+    return any(entry["pr_url"] == pr_url and entry["commit"] == commit
+               for group in retirements() for track in group["tracks"]
+               for entry in track["entries"])
