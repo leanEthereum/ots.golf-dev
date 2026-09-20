@@ -18,7 +18,7 @@ from datetime import timedelta
 
 from sqlalchemy import func, select
 
-from . import contract, github, record_snapshot, source_archive
+from . import contract, github, record_snapshot, revalidations, source_archive
 from .config import settings
 from .db import GithubReport, SessionLocal, Submission, init_db, local_lock, schedule_report, utcnow
 
@@ -113,14 +113,15 @@ def best_record(session, sub: Submission) -> Submission | None:
     records = session.scalars(select(Submission).where(
         Submission.track == sub.track, Submission.status == "verified", Submission.is_record.is_(True),
         Submission.id != sub.id, Submission.claim.is_not(None)).order_by(order))
-    return next((r for r in records if r.current_contract and not r.detail_dict.get("demo")), None)
+    return next((r for r in records if r.current_contract
+                 and not r.detail_dict.get("demo") and not revalidations.is_check(r)), None)
 
 
 def beats_record(session, sub: Submission) -> bool:
     """Whether this verified claim strictly improves the track's current record; the first verified
     claim of a track without a record does."""
     t = contract.track(sub.track)
-    if t is None or sub.claim is None:
+    if t is None or sub.claim is None or revalidations.is_check(sub):
         return False
     best = best_record(session, sub)
     return contract.improves(t["direction"], sub.claim, best.claim if best else None)
@@ -212,7 +213,10 @@ def report(sub: Submission, history: list[dict] | None = None, *, publish_snapsh
         state, what = "pending", "queued for verification" if status == "pending" else "verification in progress"
         body = f"**ots.golf verifier:** {what}. Details: {url}"
     elif status == "verified":
-        what = f"verified: claim {sub.claim}" + (" — new record" if sub.is_record else " (not a record)")
+        if (origin := revalidations.for_check(sub)) is not None:
+            what = f"verified: claim {sub.claim} — proof update for {origin['original_author']}"
+        else:
+            what = f"verified: claim {sub.claim}" + (" — new record" if sub.is_record else " (not a record)")
         state, body = "success", f"**ots.golf verifier:** {what}. Details: {url}"
     else:
         failure = (sub.detail_dict.get("failure") or {}).get("message", "")

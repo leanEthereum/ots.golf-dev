@@ -14,6 +14,7 @@
   {% if not sub.detail_dict.get('demo') %}<dt>Commit</dt><dd>{% if sub.commit_url %}<a href="{{ sub.commit_url }}"><code>{{ sub.commit|short }}</code></a>{% else %}<code>{{ sub.commit|short }}</code>{% endif %} in <code>{{ sub.source_repo }}</code></dd>{% endif %}
   {% if sub.pr_url %}<dt>Pull request</dt><dd><a href="{{ sub.pr_url }}">#{{ sub.pr_number }}</a></dd>{% endif %}
   {% if sub.source_url %}<dt>Code</dt><dd><a href="{{ sub.source_url }}">View source on GitHub</a></dd>{% elif sub.archive_url %}<dt>Checked code</dt><dd><a href="{{ sub.archive_url }}">Download exact source ZIP</a></dd>{% elif not sub.detail_dict.get('demo') and sub.finished_at %}<dt>Checked code</dt><dd>Source archive unavailable.</dd>{% endif %}
+  {% if proof_update %}<dt id="revalidation">Updated proof</dt><dd><a href="{{ proof_update_url }}">View source for the current rules</a> · <a href="{{ proof_update.check_pr_url }}">verification</a></dd>{% endif %}
   <dt>Queued</dt><dd>{{ sub.created_at|dt }}{% if queue_position %} · position {{ queue_position }} in the queue{% endif %}</dd>
   {% if sub.finished_at %}<dt>Finished</dt><dd>{{ sub.finished_at|dt }}{% if sub.duration_s %} · {{ '%.0f'|format(sub.duration_s) }} s{% endif %}</dd>{% endif %}
   {% if sub.detail_dict.failure %}<dt>Why</dt><dd><pre class="why">{{ sub.detail_dict.failure.message }}</pre></dd>{% endif %}

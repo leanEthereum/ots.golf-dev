@@ -12,7 +12,7 @@ from urllib.parse import quote
 
 import httpx
 
-from . import contract, git_authors, github, source_archive
+from . import contract, git_authors, github, revalidations, source_archive
 from .config import settings
 
 REGISTRY = "records.json"
@@ -72,7 +72,7 @@ def _entry(sub, repo: str) -> dict:
     detail = sub.detail_dict
     receipt = detail.get("receipt") or {}
     cfg = contract.track(sub.track)
-    if (sub.status != "verified" or not sub.is_record or not sub.current_contract
+    if (sub.status != "verified" or not sub.is_record or not sub.current_contract or revalidations.is_check(sub)
             or (sub.pr_repository or "").lower() != repo.lower() or cfg is None
             or not isinstance(receipt, dict) or receipt.get("submission_root") != cfg["submission_root"]
             or type(sub.claim) is not int or not 0 <= sub.claim <= contract.load()["limits"]["max_claim"]

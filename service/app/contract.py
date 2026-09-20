@@ -103,7 +103,17 @@ def improves(direction: str, claim: int, record: int | None) -> bool:
 # Model constants, dependencies, surviving declarations and comparator requirements are
 # unchanged. Bind compatibility to BOTH complete pins: a later model edit needs a new audit.
 # Keep the original receipt/archive identity; never rewrite an old verdict's contract ID.
+# Widening only the keygen resource ceiling preserves already proved upper constructions:
+# the same algorithm used at most 1024 compressions, hence also at most 2^20. This is
+# compatibility of the proved construction, not a claim that old source compiles unchanged.
+# Lower bounds quantify over MORE schemes and need an individually verified proof port.
 RESULT_COMPATIBILITY = {
+    "133f49c9ceaf596c3bf6aaf0941ffe126a1efe23db0785c8af1288b149cb093e": {
+        previous: frozenset({"upper-compressions", "upper-riscv"}) for previous in (
+            "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",
+            "cca4d9add2f2a1d3bdc40381258e6992f146e2f3ad9087706913ff281cff22dc",
+        )
+    },
     "cca4d9add2f2a1d3bdc40381258e6992f146e2f3ad9087706913ff281cff22dc": {
         "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb": frozenset({
             "lower-generality-1", "upper-compressions", "upper-riscv",
@@ -113,5 +123,5 @@ RESULT_COMPATIBILITY = {
 
 
 def compatible_result(slug: str, previous_id: str | None) -> bool:
-    """An already verified result for an audited, unchanged statement in this exact revision."""
+    """An audited implication between these exact contracts for an already verified result."""
     return slug in RESULT_COMPATIBILITY.get(contract_id(), {}).get(previous_id, ())

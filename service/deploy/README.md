@@ -356,14 +356,24 @@ its trusted checkout. Run the contract build and host checks, then restart web a
 
 ### Expanding the key-generation budget
 
-The `2^20` key-generation limit has a new contract fingerprint. The earlier retirement's
-compatibility mapping does not apply: all current records need certificates for the new rules,
-including the lower bound, which now quantifies over more schemes. Archive the prior verified
-results before switching contracts and submit the adapted record proofs through ordinary PRs.
-Preserve the original authors in the PR descriptions and Git co-author trailers. The normal
-receipt, verifier, verdict and record-snapshot pipeline publishes their new identities.
+The `2^20` limit preserves the existing achievements, authors, scores and original dates.
+The two exact previous contracts' upper constructions remain valid: using at most 1024 keygen
+compressions also satisfies the larger ceiling. Lower bounds quantify over more schemes and
+require a separately checked replacement certificate; there is no blanket lower compatibility.
 
-Startup recovery does not requeue unchanged heads listed in the Hall of Fame. New commits to
-those PRs remain eligible. Old source links, diagrams and profiles retain their original pins;
-do not relabel an old certificate with the new contract ID. The Git-backed Hall of Fame and bot
-receipts reconstruct the history on a fresh server.
+`service/record-revalidations.json` binds each approved proof update to the original submission,
+its source, track and claim, and the replacement source and contract. Add an entry only after the
+replacement has passed the official verifier. The current three replacements also passed the
+hosted verifier (PRs #12–14). These are administrative proof ports, not new records. Original
+receipt identities, authors, dates, source links, diagrams and profiles stay intact. The original
+submission page links the adapted checked source. `records.json` keeps the new certificate's
+source/archive identity and records the original achievement separately as `record_origin`.
+
+Do not archive these submissions in the Hall of Fame. `app.rebuild` restores the same canonical
+records from GitHub receipts plus the trusted revalidation catalog. `resync.replay_records()`
+repairs computed record flags without altering receipts or proof verdicts.
+
+For future migrations, stage and verify replacement proofs before switching the public rules.
+Check the full leaderboard and original attribution before reopening the site. Use a temporary
+maintenance response if a transition cannot be atomic; never expose an empty board. Stop the
+idle worker before replacing its trusted checkout, and restart both web and worker afterward.

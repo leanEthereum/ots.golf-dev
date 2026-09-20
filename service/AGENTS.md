@@ -168,3 +168,10 @@ gated to development with phony fixtures enabled. GitHub holds the durable drawi
 For the authorized live-maintenance workflow, commit, push and update `h2`; do not start or refresh
 localhost. Other publication actions still require the user's authorization. Commits changing RISC-V formal verification credit
 `Derek Sorensen <d@dhsorens.com>` as co-author.
+
+Rule migrations must preserve original achievement credit and dates. An administrative proof port
+never makes its maintainer the new record holder. Stage and verify replacement certificates before
+switching public rules. Audited compatibility and individually checked proof ports belong in the
+trusted contract/revalidation catalogs; never rewrite old receipts or claim a lower bound is valid
+merely because an upper resource ceiling increased. Do not retire compatible budget-change results
+to the Hall of Fame. Verify the complete board before ending temporary maintenance.

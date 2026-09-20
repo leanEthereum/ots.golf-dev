@@ -28,7 +28,7 @@ from . import auth, charts, contract, git_authors, github, literature, records, 
 from .config import settings
 from .visibility import visible
 from . import signature_diagram
-from . import hall_of_fame
+from . import hall_of_fame, revalidations
 from .db import (SessionLocal, Submission, User, get_session, init_db, local_lock, pr_submission_id,
                  schedule_report, stable_id, utcnow)
 
@@ -414,8 +414,13 @@ def submission_page(sub_id: str, request: Request, session: Session = Depends(ge
         if hall_of_fame.contains(sub_id):
             return RedirectResponse(f"/hall-of-fame#{sub_id}", status_code=302)
         raise HTTPException(404)
+    if (origin := revalidations.for_check(sub)) is not None and session.get(Submission, origin["original_id"]):
+        return RedirectResponse(f"/submissions/{origin['original_id']}#revalidation", status_code=302)
+    proof_update = revalidations.for_original(sub)
     t = contract.track(sub.track)
-    return render(request, "submission.html", sub=sub, t=t, framework=contract.framework(t["framework"]),
+    return render(request, "submission.html", proof_update=proof_update,
+                  proof_update_url=revalidations.proof_url(proof_update) if proof_update else None,
+                  sub=sub, t=t, framework=contract.framework(t["framework"]),
                   framework_title=contract.track_framework_title(t),
                   riscv_breakdown=riscv_breakdown.for_submission(sub),
                   signature_diagram=signature_diagram.for_submission(sub),
@@ -484,7 +489,7 @@ def solver_page(login: str, request: Request, session: Session = Depends(get_ses
     if solver is None:
         raise HTTPException(404)
     subs = [s for s in session.scalars(select(Submission).where(Submission.user_id == solver.id)
-                                .order_by(Submission.created_at.desc())) if visible(s)]
+                                .order_by(Submission.created_at.desc())) if visible(s) and not revalidations.is_check(s)]
     return render(request, "solver.html", solver=solver, subs=subs)
 
 

@@ -4,14 +4,15 @@ from __future__ import annotations
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import contract
+from . import contract, revalidations
 from .db import Submission
 from .visibility import visible
 
 
 def eligible(sub: Submission) -> bool:
     """Unversioned and historical results are never evidence for the current contract."""
-    return visible(sub) and (sub.current_contract or bool(sub.detail_dict.get("demo")))
+    return (visible(sub) and not revalidations.is_check(sub)
+            and (sub.current_contract or bool(sub.detail_dict.get("demo"))))
 
 
 def _verified(slug: str):
@@ -110,7 +111,7 @@ def journal(session: Session, track: str | None = None, limit: int = 300, per_au
     q = select(Submission).where(Submission.status.in_(("verified", "rejected", "timeout")))
     items, seen_prs, by_author = [], set(), {}
     for s in session.scalars(q.order_by(func.coalesce(Submission.finished_at, Submission.created_at).desc())):
-        if not visible(s):
+        if not visible(s) or revalidations.is_check(s):
             continue
         if s.pr_url:
             if s.pr_url in seen_prs:
