@@ -123,7 +123,7 @@
     var params = new URL(location.href).searchParams;
     showLower(params.get('framework'));
     showUpper(params.get('upper'));
-    show(location.hash === '#upper' ? 'upper' : 'lower', false);
+    show(location.hash === '#lower' ? 'lower' : 'upper', false);
     fitRows();
     if (location.hash === '#upper' || location.hash === '#lower') document.getElementById('board-title').scrollIntoView();
   }

@@ -197,7 +197,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     assert js('return document.querySelector(".chart-series[data-series=lower-generality-1]").dataset.status === "certified" && document.querySelector(".chart-series[data-series=lower-generality-1] .label").textContent === ' + expected_label + ';')
     assert js('return document.querySelectorAll(".framework-overview .upper-score strong").length >= 1 && document.querySelectorAll(".framework-overview .tag").length >= 3;'), 'This check requires the seeded local preview (service/run-local.sh).'
 
-    assert js('return document.querySelector(".board-track[data-track=upper]").hidden;')
+    assert js('return !document.querySelector(".board-track[data-track=upper]").hidden && document.querySelector(".board-track[data-track=lower]").hidden && document.querySelector(".seg-btn").dataset.track === "upper";')
     js('document.querySelector(".seg-btn[data-track=upper]").click(); return true;')
     assert js('return !document.querySelector(".board-track[data-track=upper]").hidden && document.querySelector(".board-track[data-track=lower]").hidden && location.hash === "#upper";')
     assert js('return document.querySelector(".lower-switch") === null;')

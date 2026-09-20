@@ -124,13 +124,13 @@
     <div class="board-title-row">
       <h2 id="board-title">Leaderboard</h2>
       <div class="seg" role="group" aria-label="Leaderboard track">
-        <button type="button" class="seg-btn" data-track="lower" aria-pressed="true">Lower bound</button>
-        <button type="button" class="seg-btn" data-track="upper" aria-pressed="false">Upper bound{{ "s" if upper_riscv else "" }}</button>
+        <button type="button" class="seg-btn" data-track="upper" aria-pressed="true">Upper bound{{ "s" if upper_riscv else "" }}</button>
+        <button type="button" class="seg-btn" data-track="lower" aria-pressed="false">Lower bound</button>
       </div>
     </div>
     {% set shown_framework = selected_framework if selected_framework in models|map(attribute='slug')|list else models[0].slug %}
     {% set kind = 'lower' %}
-    <div class="board-track" data-track="lower">
+    <div class="board-track" data-track="lower" hidden>
       {% for model in models %}
       <section class="framework-board f-{{ model.slug }}" data-framework="{{ model.slug }}" aria-labelledby="{{ model.slug }}-{{ kind }}-title"{% if shown_framework != model.slug %} hidden{% endif %}>
         {% set b = model.boards.get(kind) %}
@@ -158,7 +158,7 @@
       </section>
       {% endfor %}
     </div>
-    <div class="board-track" data-track="upper" hidden>
+    <div class="board-track" data-track="upper">
       {% if upper_riscv %}
       <div class="seg upper-switch" role="group" aria-label="Upper bound track">
         <button type="button" class="upper-btn" data-upper="upper-compressions" aria-pressed="true">Compressions</button>
