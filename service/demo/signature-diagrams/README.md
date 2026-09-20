@@ -33,3 +33,25 @@ Production diagrams come from the submissions repository, separately from these 
 See [the owner guide](../../../tools/submissions_template/SIGNATURE_DIAGRAMS.md).
 The website fetches the registry and images from one immutable revision of main; local
 fixtures and `/diagram-previews/` routes are available only in development with `OTS_PHONY=1`.
+
+## 92-compression preview (PR #8)
+
+The new local preview preserves saucegodbased's original record identity. Its forest
+has 54 chains of 18 steps and uses 129-bit values, unlike the earlier 128-bit diagrams.
+The highlighted cut has six disclosed group values and 36 chain disclosures with
+74 remaining chain hashes. Add 12 group hashes, five root compressions and the
+message/nonce hash for 92. The message is 256 bits and the nonce 86 bits.
+
+The encoding accepts the low 129 digest bits below `45 * 2^110`. Fixed finite
+equivalences map those accepted indices to aliases, to classes in 72 tiers, and
+then to distinct disclosure cuts. A class in tier j has `2^(j+1)` aliases. The signer
+draws all `2^20` nonces independently with replacement and keeps the first occurrence
+in the lowest accepted tier. It does not stop at the first accepted nonce.
+
+The illustrative cut satisfies `WideForest.shapes` (six groups, chain rank 74).
+We do not evaluate the noncomputable `family.equivFin` or claim this drawing is
+the decoder output of a particular digest, or identify its tier in the selected
+class embedding. The generator checks the structural and compression counts.
+These definitions are in the original checked PR #8 source, `ProofBundle03.lean`
+(`WideNames`, `WideCuts`, `WeightedSchedule`, `WideScheme`) and `ProofBundle02.lean`
+(`WeightedScheme.Signing`). No proof source or verdict is changed.

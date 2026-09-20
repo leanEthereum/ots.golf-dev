@@ -28,7 +28,8 @@ class DiagramFormatTests(unittest.TestCase):
     def test_registry_paths_pins_and_bad_entry_isolation(self):
         for changes in [{'image': '../escape.svg'}, {'image': 'https://example.com/a.svg'},
                         {'image': 'signature-diagrams/a/b.svg'}, {'image': 'signature-diagrams/%61.svg'},
-                        {'commit': 'main'}, {'contract': None}, {'alt': ''}, {'alt': '<' * 4097}]:
+                        {'commit': 'main'}, {'contract': None}, {'alt': ''}, {'alt': '<' * 4097},
+                        {'intuition': None}, {'intuition': ''}, {'intuition': 'x' * 1025}]:
             valid, errors = parse_registry(registry({SID: ENTRY, '2' * 32: {**ENTRY, **changes}}))
             self.assertEqual(list(valid), [SID])
             self.assertEqual(list(errors), ['2' * 32])
@@ -40,7 +41,8 @@ class DiagramFormatTests(unittest.TestCase):
     def test_static_svg_and_approved_drawings(self):
         self.assertEqual(validate_svg(SVG), (760, 640))
         for file in diagrams.FIXTURES.glob('*.svg'):
-            self.assertEqual(validate_svg(file.read_bytes()), (760, 640))
+            self.assertEqual(validate_svg(file.read_bytes()),
+                             (760, 680 if file.name == "shallow-92.svg" else 640))
         gradient = SVG.replace(b'<path', b'<defs><linearGradient id="g"><stop offset="0"/></linearGradient></defs><path fill="url(#g)"')
         validate_svg(gradient)
 
@@ -202,3 +204,14 @@ class DiagramPageTests(unittest.TestCase):
             fake = SimpleNamespace(track='upper-riscv', detail_dict={
                 'demo': True, 'fixture_id': 'upper-riscv-satoshi-nakamoto-2'})
             self.assertIsNone(diagrams.for_submission(fake))
+
+    def test_optional_intuition_is_plain_text(self):
+        self.real()
+        entry = {**ENTRY, 'intuition': '<script>alert(1)</script>'}
+        valid, errors = parse_registry(registry({SID: entry}))
+        self.assertFalse(errors)
+        with patch.object(settings, 'submissions_repo', REPO), \
+             patch.object(diagrams.cache, 'snapshot', (REPO, {SID: diagrams._image(valid[SID], SVG)})):
+            html = self.client.get(f'/submissions/{SID}').text
+            self.assertIn('&lt;script&gt;alert(1)&lt;/script&gt;', html)
+            self.assertNotIn('<script>alert(1)</script>', html)

@@ -1,4 +1,4 @@
-"""Reproduce the four hand-selected drawings approved in the local preview.
+"""Reproduce the owner drawings and the local 92-compression preview.
 
 The website only consumes SVG images; other owner drawings need not use this
 generator or follow either of these graph shapes.
@@ -20,8 +20,10 @@ assert len(DIGITS) == 32 and sum(DIGITS) == 160
 
 
 class Drawing:
-    def __init__(self, title, description, *, bits=128, threshold=None, selection=None):
-        self.parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 640" role="img">',
+    def __init__(self, title, description, *, bits=128, threshold=None, selection=None, weighted=False):
+        self.weighted = weighted
+        height = 680 if weighted else 640
+        self.parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 {height}" role="img">',
                       f'<title>{escape(title)}</title><desc>{escape(description)}</desc>',
                       '<style>text{font-family:system-ui,sans-serif;font-size:12px;fill:#6f6d67}'
                       '.heading{font-size:13px;font-weight:600;fill:#52514e}'
@@ -30,20 +32,28 @@ class Drawing:
                       '.node{fill:#fcfcfb;stroke:#d2d2cb;stroke-width:1.15}'
                       '.node.active{stroke:#2a78d6;stroke-width:1.5}'
                       '.node.revealed{fill:#2a78d6;stroke:#fcfcfb;stroke-width:1.4}'
-                      '</style>', '<rect width="760" height="640" fill="#fcfcfb"/>']
+                      '</style>', f'<rect width="760" height="{height}" fill="#fcfcfb"/>']
         self.text(28, 32, title, css="heading")
         self.text(732, 32, 'Hash direction ↓', anchor='end')
         cards = [(28, 180, 'Message + nonce', '384-bit input'),
                  (238, 210, 'HASH → integer i', f'Low {bits} bits of the digest'),
                  (478, 254, 'Fixed enumeration of cuts' if threshold else 'Split into 32 four-bit digits',
                   'One index selects a whole pattern' if threshold else '0110 | 0010 | 0010 | …')]
+        if weighted:
+            cards = [(28, 180, 'Message + nonce', 'Try different nonces'),
+                     (238, 210, 'HASH → candidate pattern', 'Which forest values to reveal'),
+                     (478, 254, 'Non-uniform selection', 'Prefer harder-to-hit patterns')]
         for x, width, heading, note in cards:
             self.parts.append(f'<rect x="{x}" y="53" width="{width}" height="52" rx="7" fill="#f5f5f2" stroke="#e6e5e1"/>')
             self.text(x + width/2, 74, heading, anchor='middle', css='heading')
             self.text(x + width/2, 93, note, anchor='middle')
         self.text(223, 84, '→', anchor='middle')
         self.text(463, 84, '→', anchor='middle')
-        if threshold:
+        if weighted:
+            self.text(380, 132, 'Rare means unlikely under a single fresh hash.', anchor='middle')
+            self.text(380, 156, 'The signer tries many nonces, then keeps the rarest valid pattern found.', anchor='middle')
+            self.text(380, 180, 'Every selected pattern still has the same 92-compression verification cost.', anchor='middle')
+        elif threshold:
             self.text(380, 129, f'Accept i < {threshold}; otherwise try a new nonce.', anchor='middle')
             if selection:
                 self.text(380, 153, selection, anchor='middle', css='heading')
@@ -52,7 +62,8 @@ class Drawing:
             self.text(380, 151, 'Each digit is the number of hashes remaining on its chain.', anchor='middle')
             for k, digit in enumerate(DIGITS):
                 self.text(70 + 20*k, 178, str(digit), anchor='middle', css='heading')
-        self.parts.append('<path d="M28 196 H732" stroke="#e6e5e1"/><g transform="translate(0 160)">')
+        divider, shift = 196, 160
+        self.parts.append(f'<path d="M28 {divider} H732" stroke="#e6e5e1"/><g transform="translate(0 {shift})">')
 
     def text(self, x, y, value, anchor='start', css=''):
         self.parts.append(f'<text x="{x:g}" y="{y:g}" text-anchor="{anchor}" class="{css}">{escape(value)}</text>')
@@ -70,12 +81,16 @@ class Drawing:
         self.text(380, y + 20, 'Public key', anchor='middle', css='heading')
 
     def write(self, name):
-        self.parts.append('<path d="M28 432 H732" stroke="#e6e5e1"/>')
+        if self.weighted:
+            self.text(380, 444, '74 chain + 12 group + 5 root + 1 index = 92 compressions',
+                      anchor='middle', css='heading')
+        offset = 40 if self.weighted else 0
+        self.parts.append(f'<path d="M28 {432 + offset} H732" stroke="#e6e5e1"/>')
         for x, state, label in [(34, 'revealed', 'Revealed in signature'),
                                 (275, 'active', 'Computed by verifier'),
                                 (513, '', 'Unused in verification')]:
-            self.node(x, 454, state, 3.4)
-            self.text(x + 12, 458, label)
+            self.node(x, 454 + offset, state, 3.4)
+            self.text(x + 12, 458 + offset, label)
         (HERE / name).write_text('\n'.join(self.parts + ['</g></svg>']) + '\n')
 
 
@@ -138,14 +153,14 @@ d.write('forest.svg')
 
 
 def shallow(claim):
-    """PRs #6 and #7 have the same graph, with different indexed cut families.
+    """PRs #6, #7 and #8 share the forest shape, with different indexed cut families.
 
     ShallowNames: 54 chains × 18 steps -> 18 ternary groups -> root.
-    ShallowCuts: six revealed groups, 36 chain disclosures, cost 84 or 82.
+    ShallowCuts: six revealed groups, 36 chain disclosures, cost 84, 82 or 74; #8 also uses 129-bit values and weighted aliases.
     We illustrate a family member, not an evaluated noncomputable setsName index.
     """
     chain_cost = claim - 18  # 12 group hashes + 5 root compressions + 1 index
-    assert chain_cost in (82, 84)
+    assert chain_cost in (74, 82, 84)
     rng = random.Random(20260920)
     revealed_groups = set(rng.sample(range(18), 6))
     active = [k for k in range(54) if k // 3 not in revealed_groups]
@@ -175,7 +190,22 @@ def shallow(claim):
            f'{chain_cost} chain hashes remaining. The drawing illustrates an allowed cut, '
            f'without claiming a particular digest index. Blue dots are revealed values, '
            f'blue paths are recomputed, and grey branches are unused for this cut.')
-    d = Drawing('54 hash chains · 18 steps each', alt, bits=bits, threshold=threshold)
+    if claim == 92:
+        bits, threshold = 129, '45 × 2¹¹⁰'
+        alt = ('54 tagged chains of 18 steps, with 129-bit values, feed 18 ternary group hashes '
+               'and the public key. The low 129 bits of HASH(message || 86-bit nonce) are '
+               'accepted below 45 × 2^110, then mapped through a fixed alias enumeration to '
+               'a tier and a cut. There are 72 tiers; tier j gives each cut 2^(j+1) digest '
+               'aliases. Signing draws all 2^20 nonces independently with replacement and '
+               'keeps the first occurrence in the lowest accepted tier, failing if none is '
+               'accepted. Verification uses only the chosen nonce and disclosure pattern. '
+               'The drawn cut illustrates the structural family; it is not an evaluated '
+               'decoder output or a claimed member of the selected class embedding. '
+               'Six group values and 36 chain values are revealed. Blue paths compute '
+               '74 chain hashes, 12 group hashes and five root compressions; with the index '
+               'hash, the total is 92. Grey branches are unused by the verifier.')
+    title = '54 chains · 18 steps · 129-bit values' if claim == 92 else '54 hash chains · 18 steps each'
+    d = Drawing(title, alt, bits=bits, threshold=threshold, weighted=claim == 92)
     xs = [62 + 12 * k for k in range(54)]
     ys = [64 + 12 * t for t in range(19)]
     gx = [sum(xs[3*j:3*j+3]) / 3 for j in range(18)]
@@ -201,11 +231,18 @@ def shallow(claim):
 
 public = {}
 for claim, sid, commit, pr in [
+    (92, '4abfb06a48549d67349e07c50b4dc5ca', '7be6d31b9de82713e5b088f17e62e30a9198a734', 8),
     (102, '440fbe4103a5cfff1f213e25ac09bfd9', 'ceeb8503c3950869440af1cb6fa69b52b79044fc', 6),
     (100, 'ad5f125ca8ee77f306dc5fa1f0854ed9', '2dfaf14e5a570c1ceb9637a55d4b60dcc65c3a13', 7),
 ]:
     public[sid] = {'claim': claim, 'commit': commit, 'pr': pr, 'login': 'saucegodbased',
                    'image': f'shallow-{claim}.svg', 'alt': shallow(claim)}
+    if claim == 92:
+        public[sid]['intuition'] = (
+            'The signer tries 2²⁰ nonces and keeps the rarest valid pattern found: one that '
+            'a single fresh hash is unlikely to hit, making it a harder target for a forger. '
+            'Spending more effort on this search allows a smaller family of patterns and '
+            'cheaper verification.')
 (HERE / 'public-previews.json').write_text(json.dumps(public, indent=2) + '\n')
 
 (HERE / 'index.json').write_text(json.dumps({'version': 1, 'diagrams': {

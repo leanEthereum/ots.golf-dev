@@ -1,4 +1,13 @@
 {
+  "4abfb06a48549d67349e07c50b4dc5ca": {
+    "claim": 92,
+    "commit": "7be6d31b9de82713e5b088f17e62e30a9198a734",
+    "pr": 8,
+    "login": "saucegodbased",
+    "image": "shallow-92.svg",
+    "alt": "54 tagged chains of 18 steps, with 129-bit values, feed 18 ternary group hashes and the public key. The low 129 bits of HASH(message || 86-bit nonce) are accepted below 45 \u00d7 2^110, then mapped through a fixed alias enumeration to a tier and a cut. There are 72 tiers; tier j gives each cut 2^(j+1) digest aliases. Signing draws all 2^20 nonces independently with replacement and keeps the first occurrence in the lowest accepted tier, failing if none is accepted. Verification uses only the chosen nonce and disclosure pattern. The drawn cut illustrates the structural family; it is not an evaluated decoder output or a claimed member of the selected class embedding. Six group values and 36 chain values are revealed. Blue paths compute 74 chain hashes, 12 group hashes and five root compressions; with the index hash, the total is 92. Grey branches are unused by the verifier.",
+    "intuition": "The signer tries 2\u00b2\u2070 nonces and keeps the rarest valid pattern found: one that a single fresh hash is unlikely to hit, making it a harder target for a forger. Spending more effort on this search allows a smaller family of patterns and cheaper verification."
+  },
   "440fbe4103a5cfff1f213e25ac09bfd9": {
     "claim": 102,
     "commit": "ceeb8503c3950869440af1cb6fa69b52b79044fc",

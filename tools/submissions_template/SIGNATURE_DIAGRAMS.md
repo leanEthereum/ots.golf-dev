@@ -44,6 +44,8 @@ Names use letters, digits, `_` or `-`: `signature-diagrams/<name>.svg`, with no 
 
 Limits: 64 entries, a 256 KiB registry, 1 MiB and 20,000 elements per SVG, and 16 MiB
 across distinct images. Alt text is required and limited to 4,096 characters.
+An optional `intuition` field (1–1,024 characters of plain text) adds a short
+explanation above the drawing. It is escaped as text, never rendered as HTML or Markdown.
 Validate before committing from an up-to-date **core** checkout:
 
 ```sh

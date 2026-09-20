@@ -40,12 +40,16 @@ def parse_registry(raw: bytes) -> tuple[dict, dict]:
     diagrams, errors = {}, {}
     for sid, item in data["diagrams"].items():
         if (not re.fullmatch(r"[0-9a-f]{1,32}", sid)
-                or not isinstance(item, dict) or set(item) != {"commit", "contract", "image", "alt"}
+                or not isinstance(item, dict)
+                or not {"commit", "contract", "image", "alt"} <= set(item)
+                or not set(item) <= {"commit", "contract", "image", "alt", "intuition"}
                 or not isinstance(item["commit"], str) or not re.fullmatch(r"[0-9a-f]{40}", item["commit"])
                 or not isinstance(item["contract"], str) or not re.fullmatch(r"[0-9a-f]{64}", item["contract"])
                 or not isinstance(item["image"], str)
                 or not re.fullmatch(r"signature-diagrams/[A-Za-z0-9][A-Za-z0-9_-]{0,100}\.svg", item["image"])
-                or not isinstance(item["alt"], str) or not 1 <= len(item["alt"].strip()) <= 4096):
+                or not isinstance(item["alt"], str) or not 1 <= len(item["alt"].strip()) <= 4096
+                or ("intuition" in item and (not isinstance(item["intuition"], str)
+                    or not 1 <= len(item["intuition"].strip()) <= 1024))):
             errors[sid] = "expected checked commit, contract, signature-diagrams/<name>.svg and alt text"
         else:
             diagrams[sid] = dict(item)
