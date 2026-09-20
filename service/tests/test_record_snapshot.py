@@ -32,7 +32,9 @@ class FakeGit:
         self.commits[self.source] = source_root
         self.head = 'b' * 40
         self.original_readme = self.blob(b'current main readme')
+        self.original_profiles = self.blob(b'{"version":1,"profiles":{}}')
         self.commits[self.head] = self.tree({'README.md': self.original_readme,
+            'riscv-profiles.json': self.original_profiles,
             '.contract': {'mode': '160000', 'type': 'commit', 'sha': 'f' * 40}})
         self.before_patch = None
         self.fail_commit = False
@@ -175,6 +177,7 @@ class RecordSnapshotTests(unittest.TestCase):
         self.assertTrue(result['published'])
         self.assertEqual(self.git.at(self.git.root)['sha'], self.git.source_tree)
         self.assertEqual(self.git.at('README.md'), self.git.original_readme)
+        self.assertEqual(self.git.at('riscv-profiles.json'), self.git.original_profiles)
         self.assertEqual(self.git.at('.contract')['sha'], 'f' * 40)
         self.assertNotIn('outside.txt', self.git.trees[self.git.commits[self.git.head]])
         entry = self.git.registry()['records'][self.sub.track]
@@ -234,13 +237,16 @@ class RecordSnapshotTests(unittest.TestCase):
 
     def test_concurrent_main_change_is_preserved_when_retrying(self):
         replacement = self.git.blob(b'maintainer changed README while publishing')
+        profiles = self.git.blob(b'owner edited profiles while the bot published a record')
         def advance():
             tree = self.git.replace(self.git.commits[self.git.head], 'README.md', replacement)
+            tree = self.git.replace(tree, 'riscv-profiles.json', profiles)
             self.git.head = identity(['concurrent', tree])
             self.git.commits[self.git.head] = tree
         self.git.before_patch = advance
         self.assertTrue(record_snapshot.publish_record(self.sub)['published'])
         self.assertEqual(self.git.at('README.md'), replacement)
+        self.assertEqual(self.git.at('riscv-profiles.json'), profiles)
         self.assertEqual(sum(r.method == 'PATCH' for r in self.git.requests), 2)
 
     def test_concurrently_published_newer_record_prevents_retry_rollback(self):

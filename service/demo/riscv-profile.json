@@ -1,0 +1,102 @@
+{
+  "fixture_id": "upper-riscv-satoshi-nakamoto-2",
+  "profile": {
+    "commit": "2d25dd58d7a2fa1fe3ec1bf13be5240ccd04631f",
+    "contract": "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",
+    "accepted": true,
+    "notes": "One accepting execution of the reference forest verifier, using a generated 4,224-bit signature and a fixed oracle transcript. The profiled result agrees with the protected Lean executor. This sample does not establish a worst-case bound.",
+    "rows": [
+      {
+        "instruction": "ADDI",
+        "count": 79
+      },
+      {
+        "instruction": "LD",
+        "count": 76
+      },
+      {
+        "instruction": "SD",
+        "count": 106
+      },
+      {
+        "instruction": "LUI",
+        "count": 3
+      },
+      {
+        "instruction": "HASH",
+        "count": 1,
+        "input_bits": 384
+      },
+      {
+        "instruction": "BEQ",
+        "count": 2
+      },
+      {
+        "instruction": "SLLI",
+        "count": 2
+      },
+      {
+        "instruction": "AND",
+        "count": 8
+      },
+      {
+        "instruction": "SUB",
+        "count": 8
+      },
+      {
+        "instruction": "SRLI",
+        "count": 7
+      },
+      {
+        "instruction": "ADD",
+        "count": 7
+      },
+      {
+        "instruction": "MUL",
+        "count": 1
+      },
+      {
+        "instruction": "XORI",
+        "count": 1
+      },
+      {
+        "instruction": "LHU",
+        "count": 32
+      },
+      {
+        "instruction": "JALR",
+        "count": 32
+      },
+      {
+        "instruction": "SH",
+        "count": 160
+      },
+      {
+        "instruction": "HASH",
+        "count": 160,
+        "input_bits": 192
+      },
+      {
+        "instruction": "HASH",
+        "count": 1,
+        "input_bits": 6080
+      },
+      {
+        "instruction": "XOR",
+        "count": 2
+      },
+      {
+        "instruction": "OR",
+        "count": 1
+      },
+      {
+        "instruction": "SLTIU",
+        "count": 1
+      },
+      {
+        "instruction": "HALT",
+        "count": 1
+      }
+    ]
+  }
+}

@@ -78,6 +78,12 @@ OTS_PHONY=1 ./run-local.sh        # http://localhost:8000
 
 The default `OTS_PHONY=0` shows only real submissions; `1` opts into the demo entries.
 
+## RISC-V profiles
+
+Maintainers can attach a measured per-instruction table to a checked RISC-V submission by
+editing [`riscv-profiles.json`](riscv-profiles.json) on `main`. See [the profile guide](RISCV_PROFILES.md).
+These optional owner profiles do not affect verification or scores and are separate from proof PRs.
+
 ## Credits
 
 The competition and chart were inspired by [better.codes](https://better.codes),

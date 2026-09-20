@@ -47,6 +47,13 @@ lock files enforce this across processes on the same host.
 
 ## How it works
 
+Owners may add the approved per-instruction table to selected verified RISC-V submission pages
+by committing `riscv-profiles.json` to submissions `main`. The web process refreshes its in-memory
+copy every 60 seconds; page requests never wait on GitHub. Entries match the exact submission ID,
+checked source SHA and contract, and never change proof results or scores. A fresh server fetches
+them again. See the [owner guide](../tools/submissions_template/RISCV_PROFILES.md) and validate with
+`python3 service/check_riscv_profiles.py ../ots.golf-submissions/riscv-profiles.json` from the core root.
+
 - **Pages.** The homepage has an upper section (Upper bound; RISC-V upper bound, with its own
   cycle axis) and a lower section with one leaderboard per Generality framework.
   `/?framework=generality-1|generality-2|generality-3` filters the lower tables; `#lower` and

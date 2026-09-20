@@ -18,6 +18,7 @@
   {% if sub.finished_at %}<dt>Finished</dt><dd>{{ sub.finished_at|dt }}{% if sub.duration_s %} · {{ '%.0f'|format(sub.duration_s) }} s{% endif %}</dd>{% endif %}
   {% if sub.detail_dict.failure %}<dt>Why</dt><dd><pre class="why">{{ sub.detail_dict.failure.message }}</pre></dd>{% endif %}
 </dl>
+{% if riscv_breakdown is not none %}{% include "_riscv_breakdown.html" %}{% endif %}
 {% if sub.description %}<h2>Description</h2><div class="prose">{{ sub.description|md|safe }}</div>{% endif %}
 {% if sub.log_path %}<p><a href="/submissions/{{ sub.id }}/log">Verifier transcript</a></p>{% endif %}
 {% endblock %}

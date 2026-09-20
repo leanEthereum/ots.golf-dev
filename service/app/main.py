@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import auth, charts, contract, git_authors, github, literature, records, scheme_art, source_archive
+from . import auth, charts, contract, git_authors, github, literature, records, riscv_breakdown, scheme_art, source_archive
 from .config import settings
 from .visibility import visible
 from .db import (SessionLocal, Submission, User, get_session, init_db, local_lock, pr_submission_id,
@@ -37,8 +37,9 @@ async def lifespan(_app):
         raise RuntimeError("the production website must run with OTS_ROLE=web under its separate Unix identity")
     init_db()
     await run_in_threadpool(prepare_board)
-    task = resync_task = None
+    task = resync_task = profiles_task = None
     if settings.github_token and settings.submissions_repo:
+        profiles_task = asyncio.create_task(riscv_breakdown.refresh_loop())
         if settings.resync_on_start:
             async def resync_once():
                 from .resync import resync
@@ -60,7 +61,7 @@ async def lifespan(_app):
     try:
         yield
     finally:
-        for running in (task, resync_task):
+        for running in (task, resync_task, profiles_task):
             if running is not None and not running.done():
                 running.cancel()
                 with suppress(asyncio.CancelledError):
@@ -406,6 +407,7 @@ def submission_page(sub_id: str, request: Request, session: Session = Depends(ge
     t = contract.track(sub.track)
     return render(request, "submission.html", sub=sub, t=t, framework=contract.framework(t["framework"]),
                   framework_title=contract.track_framework_title(t),
+                  riscv_breakdown=riscv_breakdown.for_submission(sub),
                   queue_position=next((i + 1 for i, s in enumerate(records.in_flight(session)) if s.id == sub.id), None))
 
 

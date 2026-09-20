@@ -140,6 +140,15 @@ execution.
 
 ## Maintainer workflow
 
+Preserve the approved compact RISC-V table: Instruction, Count, Share of run, with HASH price
+in parentheses beside its input length. Do not add summary bars, metrics or explanatory prose.
+Owner profiles come only from `riscv-profiles.json` on the configured submissions repository's
+`main`, keyed by submission ID and pinned to its checked source SHA and contract. Keep this
+display metadata separate from proof intake, verdicts, records and the checked roots. The
+record bot must preserve it, including concurrent owner edits. Refresh it in the background;
+never fetch GitHub while rendering a submission page. GitHub is the durable store, and removal
+of an entry removes its table. The demo fixture is confined to its explicitly enabled demo row.
+
 Ask the user before making substantial visible website changes. Permission to improve documentation
 or agent discovery does not authorize changing navigation or the visible page layout. Explicitly
 requested feature previews stay local and uncommitted until the user validates them.

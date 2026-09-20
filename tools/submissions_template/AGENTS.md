@@ -27,3 +27,7 @@ After a new record's verdict is durable, the bot copies only its checked root an
 to `main` in a separate commit. It never merges or closes the proof PR. Protected source tags and
 bot receipt/verdict comments remain the authority for the original checked source and result.
 The submission page's Code link opens the exact checked folder at its original GitHub SHA.
+
+`riscv-profiles.json` and `RISCV_PROFILES.md` are owner-maintained display metadata. Keep them
+out of proof PRs. Maintainers add optional tables for exact checked submissions by following
+`RISCV_PROFILES.md`; the record bot preserves those files.

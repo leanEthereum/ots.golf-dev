@@ -1,0 +1,18 @@
+{% set profile = riscv_breakdown %}
+<section class="cycle-breakdown" aria-labelledby="cycle-breakdown-title">
+  <h2 class="cycle-table-title" id="cycle-breakdown-title">Per-instruction breakdown</h2>
+  <div class="cycle-table-wrap" tabindex="0" role="region" aria-label="Per-instruction cycle profile">
+    <table class="cycle-table">
+      <caption>Measured execution counts and cycle contributions</caption>
+      <thead><tr><th scope="col">Instruction</th><th scope="col" class="num">Count</th><th scope="col">Share of run</th></tr></thead>
+      <tbody>
+        {% for row in profile.rows %}
+        <tr><th scope="row"><code title="{{ row.label }}">{{ row.instruction }}</code>{% if row.instruction == 'HASH' %}<span class="cycle-input">{{ '{:,}'.format(row.bits) }} bits ({{ row.price }} {{ 'cycle' if row.price == 1 else 'cycles' }} / instruction)</span>{% elif row.instruction == 'HALT' %}<span class="cycle-syscall">ECALL</span>{% endif %}</th>
+          <td class="num">{{ row.executions }}</td>
+          <td class="cycle-share"><meter min="0" max="100" value="{{ row.share }}" aria-label="{{ row.label }} share of measured cycles">{{ row.share }}%</meter><span>{{ row.share }}%</span></td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr><th scope="row">Measured total</th><td class="num">{{ profile.executions }}</td><td></td></tr></tfoot>
+    </table>
+  </div>
+</section>

@@ -56,7 +56,7 @@ class SubmissionsRepositoryTests(unittest.TestCase):
         self.assertNotIn('formal/OptimalOTS/Dag.lean', names)
         self.assertFalse(any(name.startswith('formal/') for name in names))
         self.assertEqual(names, {'.contract', '.github/PULL_REQUEST_TEMPLATE.md', '.gitignore', '.gitmodules',
-                                 'AGENTS.md', 'LICENSE', 'README.md'})
+                                 'AGENTS.md', 'LICENSE', 'README.md', 'RISCV_PROFILES.md', 'riscv-profiles.json'})
         self.assertEqual((destination / 'LICENSE').read_text(), 'Fixture license\n')
         self.assertIn(commit, (destination / 'README.md').read_text())
         self.assertNotIn('{{CONTRACT_', (destination / 'README.md').read_text())
