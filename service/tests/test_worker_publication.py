@@ -46,6 +46,8 @@ class WorkerPublicationTests(unittest.TestCase):
         sid = key * 32
         receipt = dict(source_ref=f'refs/tags/ots-source/{sid}', created_at='2026-09-19T01:02:03.000004Z',
                        author={'login': 'alice', 'id': 42}, description='Frozen description', co_authors=['bob'],
+                       git_authors=[{'name': 'Alice', 'email': 'alice@example.org'},
+                                    {'name': 'Bob', 'email': 'bob@example.org'}],
                        assisted_by='A model', contract_commit='f' * 40,
                        submission_root='formal/Submissions/LowerGenerality2')
         detail = dict(contract=contract.contract_id(), source_ref=receipt['source_ref'], receipt=receipt)
@@ -85,6 +87,11 @@ class WorkerPublicationTests(unittest.TestCase):
         self.finish(sub).assert_not_called()
         with self.sessions() as session:
             self.assertEqual(session.get(GithubReport, sub.id).attempts, 1)
+
+    def test_git_attribution_is_in_the_durable_verdict_block(self):
+        sub = self.submission()
+        restored = github.parse_verdicts(github.verdict_block([worker.verdict_entry(sub)]))[0]
+        self.assertEqual(restored['git_authors'], sub.detail_dict['receipt']['git_authors'])
 
     def test_receipt_precedes_pending_status_and_releases_admission(self):
         sub = self.submission()

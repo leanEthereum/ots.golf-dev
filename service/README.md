@@ -60,7 +60,9 @@ lock files enforce this across processes on the same host.
   Decisions follow verification-finish order under the results lock, so a later identical claim
   never takes a record. Demo rows cannot affect records. After the verdict is durable, the bot
   commits only the checked root and its `records.json` entry to submissions `main`, preserving
-  other tracks and repository files. The bot never merges or closes PRs. PRs opened from an older
+  other tracks and repository files. Its commit credits all Git authors and co-author trailers
+  from the admitted PR revision, with identities frozen in the GitHub receipt. The bot never
+  merges or closes PRs. PRs opened from an older
   base remain eligible when their own changes stay inside one admitted root.
 - **Reporting.** The local outbox retries GitHub delivery without repeating a finished proof. A
   result awaiting its comment stays `publishing`; later jobs wait. Commit-status updates may retry

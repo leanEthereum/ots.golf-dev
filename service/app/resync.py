@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
-from . import auth, contract, github, source_archive
+from . import auth, contract, git_authors, github, source_archive
 from .config import settings
 from .db import SessionLocal, Submission, init_db, local_lock, legacy_pr_submission_id, schedule_report
 
@@ -80,6 +80,10 @@ def _receipt(verdict: dict) -> dict | None:
             or not isinstance(verdict.get("contract"), str)
             or not source_archive.archives.HEX64.fullmatch(verdict["contract"])):
         raise ValueError("invalid frozen admission receipt")
+    # Optional only for receipts predating Git attribution. Preserve this durable
+    # list so rebuilding on a fresh host never substitutes a newer PR revision.
+    if verdict.get("git_authors") is not None:
+        receipt["git_authors"] = git_authors.validate(verdict["git_authors"])
     return receipt
 
 

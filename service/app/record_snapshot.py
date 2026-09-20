@@ -12,7 +12,7 @@ from urllib.parse import quote
 
 import httpx
 
-from . import contract, github, source_archive
+from . import contract, git_authors, github, source_archive
 from .config import settings
 
 REGISTRY = "records.json"
@@ -225,6 +225,12 @@ def publish_record(sub) -> dict:
                       or (old["contract"] == entry["contract"] and not contract.improves(
                           contract.track(sub.track)["direction"], entry["claim"], old["claim"]))):
                     return {"commit": head, "published": False, "reason": "superseded"}
+            # Modern receipts freeze attribution at admission, before a submitter can
+            # push another revision. Legacy jobs require their head still to match.
+            authors = (sub.detail_dict.get("receipt") or {}).get("git_authors")
+            if authors is None:
+                authors = git_authors.for_pr(repo, sub.pr_number, sub.commit)
+            author_trailers = git_authors.trailers(authors)
             registry["records"][sub.track] = entry
             content = json.dumps(registry, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
             if len(content.encode()) > MAX_REGISTRY_BYTES:
@@ -236,7 +242,8 @@ def publish_record(sub) -> dict:
             new_commit = _sha(_json(client.post(git.url + "/git/commits", json={
                 "message": (f"Record {sub.track}: {sub.claim} (PR #{sub.pr_number})\n\n"
                             f"Checked source: {entry['commit']}\nPull request: {entry['pr_url']}\n"
-                            f"Contract: {entry['contract']}\nTrusted core: {entry['contract_commit']}"),
+                            f"Contract: {entry['contract']}\nTrusted core: {entry['contract_commit']}\n\n"
+                            f"{author_trailers}\n"),
                 "tree": new_tree, "parents": [head],
             })).get("sha"))
             if not sub.current_contract:

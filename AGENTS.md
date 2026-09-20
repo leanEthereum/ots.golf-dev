@@ -252,7 +252,10 @@ GitHub; later jobs wait while publication retries. Pull requests are never merge
 the verifier; a record identifies its exact retained source commit and checked root. After the
 verdict is durable, the bot commits that checked root and its registry entry to submissions `main`.
 It copies only the checked root, preserving other tracks and repository files; it does not merge
-the submitter's branch. GitHub publication failures retry through the outbox without rerunning the
+the submitter's branch. Each record commit credits every Git author and `Co-authored-by` trailer
+from the PR's admitted commits as co-authors, deduplicated by email. These identities are frozen
+in the admission receipt, so later PR edits and pushes do not change that record's attribution.
+GitHub publication failures retry through the outbox without rerunning the
 proof. The retained source tags and bot comments remain the authority for historical results;
 `main` is the convenient current-record snapshot. Other verified submissions appear on their
 solver's page. Submissions never update the trusted core checkout. See `docs/repositories.md` for workspace

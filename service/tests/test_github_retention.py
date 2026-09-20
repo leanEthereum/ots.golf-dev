@@ -105,6 +105,11 @@ class RetentionRefTests(unittest.TestCase):
 
 class HostedAdmissionTests(unittest.TestCase):
     def setUp(self):
+        attribution = patch.object(main.git_authors, "for_pr", return_value=[
+            {"name": "Solver", "email": "solver@example.org"},
+            {"name": "Helper", "email": "helper@example.org"}])
+        self.attribution = attribution.start()
+        self.addCleanup(attribution.stop)
         tmp = tempfile.TemporaryDirectory(prefix="ots-admission-receipt-")
         self.addCleanup(tmp.cleanup)
         for key, value in (("environment", "production"), ("submissions_repo", "org/submissions"),
@@ -135,6 +140,8 @@ class HostedAdmissionTests(unittest.TestCase):
         self.assertEqual(sub.source_repo, "https://github.com/org/submissions.git")
         self.assertEqual(sub.detail_dict["receipt"]["author"]["login"], "solver")
         self.assertEqual(sub.detail_dict["receipt"]["co_authors"], ["helper"])
+        self.assertEqual(sub.detail_dict["receipt"]["git_authors"], self.attribution.return_value)
+        self.attribution.assert_called_once_with("org/submissions", 17, "b" * 40)
         self.assertEqual(sub.detail_dict["receipt"]["created_at"], sub.created_at.isoformat(timespec="microseconds") + "Z")
         self.assertIsNotNone(self.session.get(GithubReport, sub.id))
         self.assertEqual([s.id for s in records.in_flight(self.session)], [sub.id])
@@ -161,6 +168,15 @@ class HostedAdmissionTests(unittest.TestCase):
                 self.queue()
         self.assertEqual(error.exception.status_code, 503)
         self.assertEqual(list(self.session.scalars(select(Submission))), [])
+
+    def test_failed_git_attribution_does_not_admit_or_retain_a_partial_receipt(self):
+        self.attribution.side_effect = ValueError("PR head changed")
+        with patch.object(github, "ensure_source_ref") as pin:
+            with self.assertRaises(HTTPException) as error:
+                self.queue()
+        self.assertEqual(error.exception.status_code, 503)
+        self.assertEqual(list(self.session.scalars(select(Submission))), [])
+        pin.assert_not_called()
 
     def test_comment_escape_expansion_is_included_in_receipt_budget(self):
         with patch.object(github, "ensure_source_ref") as pin:

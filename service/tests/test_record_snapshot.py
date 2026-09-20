@@ -152,7 +152,9 @@ class RecordSnapshotTests(unittest.TestCase):
                     source_repo='https://github.com/owner/entries.git', commit=self.git.source,
                     track='lower-generality-2', submission_root=self.git.root, contract=epoch)
         detail = dict(contract=epoch, source_ref=self.git.ref, source_archive=meta,
-                      receipt={'submission_root': self.git.root, 'contract_commit': 'e' * 40})
+                      receipt={'submission_root': self.git.root, 'contract_commit': 'e' * 40,
+                               'git_authors': [{'name': 'Alice', 'email': 'alice@example.org'},
+                                               {'name': 'Bob', 'email': 'bob@example.org'}]})
         return Submission(id='1' * 32, track='lower-generality-2', status='verified', is_record=True,
                           claim=19, commit=self.git.source, source_repo='https://github.com/owner/entries.git',
                           pr_number=7, pr_url='https://github.com/owner/entries/pull/7',
@@ -182,6 +184,31 @@ class RecordSnapshotTests(unittest.TestCase):
         self.assertIn(self.sub.commit, commit['message'])
         self.assertIn(self.sub.pr_url, commit['message'])
         self.assertIn('e' * 40, commit['message'])
+        self.assertTrue(commit['message'].endswith(
+            '\n\nCo-authored-by: Alice <alice@example.org>\nCo-authored-by: Bob <bob@example.org>\n'))
+
+    def test_frozen_authors_do_not_read_a_moving_pr(self):
+        with patch.object(record_snapshot.git_authors, 'for_pr', side_effect=AssertionError('PR moved')):
+            record_snapshot.publish_record(self.sub)
+
+    def test_legacy_attribution_failure_preserves_main_for_retry(self):
+        detail = self.sub.detail_dict
+        detail['receipt'].pop('git_authors')
+        self.sub.detail = json.dumps(detail)
+        initial = self.git.head
+        with patch.object(record_snapshot.git_authors, 'for_pr', side_effect=ValueError('PR moved')):
+            with self.assertRaisesRegex(ValueError, 'PR moved'):
+                record_snapshot.publish_record(self.sub)
+        self.assertEqual(self.git.head, initial)
+        self.assertEqual(self.writes(), [])
+
+    def test_invalid_frozen_authors_cannot_inject_commit_trailers(self):
+        detail = self.sub.detail_dict
+        detail['receipt']['git_authors'][0]['name'] = 'Alice\nCo-authored-by: Injected'
+        self.sub.detail = json.dumps(detail)
+        with self.assertRaises(ValueError):
+            record_snapshot.publish_record(self.sub)
+        self.assertEqual(self.writes(), [])
 
     def test_retry_is_idempotent_after_success(self):
         first = record_snapshot.publish_record(self.sub)

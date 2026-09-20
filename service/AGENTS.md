@@ -22,7 +22,10 @@ GitHub holds durable source tags `refs/tags/ots-source/<submission-id>` and the 
 receipt/verdict comments. After a new verified record's verdict is durable, the bot commits only
 its checked root and the corresponding root `records.json` entry to submissions `main`. Preserve
 other tracks and repository files. This is a current-record snapshot, never a PR merge; source tags
-and comments remain the historical authority. Keep snapshot publication retryable through the
+and comments remain the historical authority. Record commits include `Co-authored-by` trailers
+for every Git author and co-author of the admitted PR commits. Freeze the deduplicated identities
+in the GitHub admission receipt and preserve them during recovery; never substitute the authors
+of a newer head when publishing an older checked revision. Keep snapshot publication retryable through the
 outbox without rerunning verification. Older-base PRs remain eligible when they change only their
 own admitted root. The server needs no backups: the database and exact source ZIPs are
 rebuildable caches; original logs are disposable. Preserve the admission and verdict publication

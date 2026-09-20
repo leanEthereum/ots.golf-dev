@@ -40,7 +40,10 @@ and lost original logs remain unavailable. `pull/<N>/head` moves and is not a hi
 After a new record's verdict is durable, the bot makes a separate commit to submissions `main`,
 copying only that checked root and updating its `records.json` entry. The registry links the track
 and claim to the original source commit, PR and trusted core. Other tracks and repository files
-are preserved. This current-record snapshot is convenient to clone; protected source tags and
+are preserved. The bot remains the commit author and adds every Git author and co-author of the
+admitted PR commits as `Co-authored-by` trailers, deduplicated by email. Admission freezes these
+identities in the durable receipt; GitHub-only recovery preserves them even if the PR head moves.
+This current-record snapshot is convenient to clone; protected source tags and
 verdict comments remain the historical authority. Failed snapshot writes retry through the outbox
 without rechecking the proof. Submissions never change the model, website, or trusted checkout. Repository
 identity is retained in each PR URL, so moving intake does not send old result comments to an

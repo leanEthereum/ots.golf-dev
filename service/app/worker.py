@@ -25,7 +25,7 @@ from .db import GithubReport, SessionLocal, Submission, init_db, local_lock, sch
 POLL_SECONDS = 3
 TERMINAL_STATUSES = {"verified", "rejected", "policy_rejected", "timeout", "failed"}
 RECEIPT_FIELDS = ("source_ref", "created_at", "author", "description", "co_authors",
-                  "assisted_by", "contract_commit", "submission_root")
+                  "assisted_by", "contract_commit", "submission_root", "git_authors")
 
 
 def _log(msg: str) -> None:

@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import auth, charts, contract, github, literature, records, scheme_art, source_archive
+from . import auth, charts, contract, git_authors, github, literature, records, scheme_art, source_archive
 from .config import settings
 from .visibility import visible
 from .db import (SessionLocal, Submission, User, get_session, init_db, local_lock, pr_submission_id,
@@ -240,6 +240,13 @@ def _queue_submission(session: Session, user: User, track: str, repo: str, commi
         # Longer prose belongs in NOTES.md, which is retained as part of the source commit.
         receipt_entry = dict(receipt, id=sid, track=track, commit=commit, status="pending",
                              contract=contract.contract_id(), source_ref=f"refs/tags/ots-source/{sid}")
+        if len(github.verdict_block([receipt_entry]).encode("utf-8")) > 48 * 1024:
+            raise HTTPException(413, "PR description and attribution are too large; put long prose in NOTES.md")
+        try:
+            receipt["git_authors"] = git_authors.for_pr(base, pr_number, commit)
+        except (httpx.HTTPError, ValueError) as exc:
+            raise HTTPException(503, "could not freeze the PR's Git authors; retry admission") from exc
+        receipt_entry["git_authors"] = receipt["git_authors"]
         if len(github.verdict_block([receipt_entry]).encode("utf-8")) > 48 * 1024:
             raise HTTPException(413, "PR description and attribution are too large; put long prose in NOTES.md")
         try:

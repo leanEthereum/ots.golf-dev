@@ -113,6 +113,20 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(result["restored"], 0)
         verify.assert_not_called()
 
+    def test_frozen_git_authors_survive_github_only_recovery(self):
+        authors = [{'name': 'Original Author', 'email': 'author@example.org'},
+                   {'name': 'Original Helper', 'email': 'helper@example.org'}]
+        with patch('app.resync.github.verify_source_ref'):
+            self.assertEqual(self.restore([self.entry(git_authors=authors)])['restored'], 1)
+        with self.sessions() as session:
+            self.assertEqual(session.get(Submission, self.sid).detail_dict['receipt']['git_authors'], authors)
+
+    def test_invalid_git_authors_cannot_enter_a_rebuilt_receipt(self):
+        with patch('app.resync.github.verify_source_ref'):
+            result = self.restore([self.entry(git_authors=[{'name': 'Bad\nname', 'email': 'a@b'}])])
+        self.assertEqual(result['restored'], 0)
+        self.assertTrue(result['errors'])
+
     def test_malformed_receipt_never_falls_back_to_current_pr(self):
         self.pr["user"] = {"login": "mallory", "id": 7}
         for change in ({"author": None}, {"contract_commit": "unknown"}, {"created_at": "bad"},
