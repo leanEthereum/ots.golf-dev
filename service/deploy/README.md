@@ -353,3 +353,17 @@ submissions repository's `.contract` pin and contributor instructions and remove
 and registry entries. Retained registry entries preserve the identity of their original checks;
 never rewrite their contract fingerprint or source digest. Stop the idle worker before changing
 its trusted checkout. Run the contract build and host checks, then restart web and worker.
+
+### Expanding the key-generation budget
+
+The `2^20` key-generation limit has a new contract fingerprint. The earlier retirement's
+compatibility mapping does not apply: all current records need certificates for the new rules,
+including the lower bound, which now quantifies over more schemes. Archive the prior verified
+results before switching contracts and submit the adapted record proofs through ordinary PRs.
+Preserve the original authors in the PR descriptions and Git co-author trailers. The normal
+receipt, verifier, verdict and record-snapshot pipeline publishes their new identities.
+
+Startup recovery does not requeue unchanged heads listed in the Hall of Fame. New commits to
+those PRs remain eligible. Old source links, diagrams and profiles retain their original pins;
+do not relabel an old certificate with the new contract ID. The Git-backed Hall of Fame and bot
+receipts reconstruct the history on a fresh server.
