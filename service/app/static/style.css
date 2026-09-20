@@ -103,6 +103,45 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 pre.why { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
 .prose { max-width: 78ch; }
 .prose h3 { font-size: 16px; margin: 26px 0 6px; }
+.hall { max-width: 900px; }
+.hall-heading { margin: 34px 0 38px; }
+.hall-heading h1 { font-size: 34px; margin: 0 0 10px; }
+.hall-heading p { color: var(--ink-2); margin: 0; }
+.hall-era + .hall-era { margin-top: 44px; padding-top: 30px; border-top: 1px solid var(--line); }
+.hall-change { margin-bottom: 24px; }
+.hall-change .hall-date { color: var(--muted); font-size: 12px; margin: 0 0 6px; }
+.hall-change h2 { margin: 0 0 6px; font-size: 19px; }
+.hall-change p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.hall-change .hall-rule-links { margin-top: 8px; font-size: 13px; }
+.hall-track { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); margin: 0 0 18px; overflow: hidden; }
+.hall-track-heading { padding: 14px 20px; display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; border-bottom: 1px solid var(--line); }
+.hall-track-heading h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.hall-generality { font-size: 12px; color: var(--muted); }
+.hall-entries { list-style: none; margin: 0; padding: 0; }
+.hall-entry { display: grid; grid-template-columns: 116px minmax(0, 1fr) auto; gap: 24px; align-items: center; padding: 22px 20px; scroll-margin-top: 24px; }
+.hall-entry + .hall-entry { border-top: 1px solid var(--line); }
+.hall-entry:target { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.hall-score { display: flex; flex-direction: column; gap: 3px; }
+.hall-score strong { font-size: 34px; line-height: 1; letter-spacing: -.03em; font-weight: 600; font-variant-numeric: tabular-nums; }
+.hall-score > span { font-size: 12px; color: var(--muted); }
+.hall-author { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.hall-author > span { min-width: 0; }
+.hall-avatar { width: 24px; height: 24px; flex: none; border-radius: 50%; object-fit: cover; background: var(--line); }
+.hall-verified { font-size: 12px; color: var(--muted); margin: 5px 0 0; display: flex; flex-wrap: wrap; gap: 0 4px; }
+.hall-record { margin-left: 5px; color: var(--accent-ink); }
+.hall-assistance { margin: 4px 0 0; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.hall-links { display: flex; gap: 16px; font-size: 13px; white-space: nowrap; }
+nav a[aria-current="page"] { color: var(--ink); }
+@media (max-width: 600px) {
+  .hall-heading { margin: 28px 0; }
+  .hall-heading h1 { font-size: 30px; }
+  .hall-track-heading { padding: 14px 16px; }
+  .hall-entry { grid-template-columns: 72px minmax(0, 1fr); gap: 12px 14px; padding: 20px 16px; }
+  .hall-score strong { font-size: 30px; }
+  .hall-score > span { font-size: 10px; }
+  .hall-links { grid-column: 2; }
+  .hall-record { width: 100%; margin: 2px 0 0; }
+}
 .prose table { width: auto; }
 .avatar { width: 28px; height: 28px; border-radius: 50%; vertical-align: middle; margin-right: 8px; }
 

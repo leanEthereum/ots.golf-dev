@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Hall of Fame · ots.golf{% endblock %}
+{% block content %}
+<div class="hall">
+  <header class="hall-heading">
+    <h1>Hall of Fame</h1>
+    <p>Verified submissions retired after rule changes.</p>
+  </header>
+  {% for retirement in retirements %}
+  <section class="hall-era" aria-labelledby="{{ retirement.id }}">
+    <header class="hall-change">
+      <p class="hall-date">Retired <time datetime="{{ retirement.date }}">{{ retirement.retired_at.strftime('%d %B %Y') }}</time></p>
+      <h2 id="{{ retirement.id }}">{{ retirement.title }}</h2>
+      <p>{{ retirement.reason }}</p>
+      <p class="hall-rule-links"><a href="{{ settings.contract_url }}/blob/{{ retirement.rules_commit }}/AGENTS.md">Original rules ↗</a><span aria-hidden="true"> · </span><a href="{{ settings.contract_url }}/commit/{{ retirement.change_commit }}">Rule change ↗</a></p>
+    </header>
+    {% for track in retirement.tracks %}
+    <section class="hall-track" aria-labelledby="{{ retirement.id }}-{{ track.slug }}">
+      <header class="hall-track-heading">
+        <h3 id="{{ retirement.id }}-{{ track.slug }}">{{ track.kind }} · {{ track.title }}</h3>
+        <span class="hall-generality">Generality {{ track.generality }}</span>
+      </header>
+      <ol class="hall-entries">
+        {% for entry in track.entries %}
+        <li id="{{ entry.id }}" class="hall-entry">
+          <div class="hall-score"><strong>{{ entry.claim }}</strong><span>{{ 'compression' if entry.claim == 1 and track.cost_unit == 'compressions' else track.cost_unit }}</span></div>
+          <div class="hall-credit">
+            <a class="hall-author" href="https://github.com/{{ entry.author }}">{% if entry.avatar_url %}<img class="hall-avatar" src="{{ entry.avatar_url }}" alt="" width="24" height="24" loading="lazy">{% endif %}<span>{{ entry.author }}</span></a>
+            {% for author in entry.co_authors %}<span> · {{ author }}</span>{% endfor %}
+            <p class="hall-verified">Verified <time datetime="{{ entry.verified_at.isoformat() }}" title="{{ entry.verified_at|dt }}">{{ entry.verified_at.strftime('%d %b %Y') }}</time>{% if entry.was_record %}<span class="hall-record">Record at the time</span>{% endif %}</p>
+            {% if entry.assisted_by %}<p class="hall-assistance">Assisted by {{ entry.assisted_by }}</p>{% endif %}
+          </div>
+          <div class="hall-links"><a href="{{ entry.source_url }}" title="Checked source {{ entry.commit }}">Code ↗</a><a href="{{ entry.pr_url }}">PR #{{ entry.pr_number }} ↗</a></div>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+    {% endfor %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

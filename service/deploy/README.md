@@ -328,10 +328,17 @@ trusted checkout.
 ## Retiring lower-bound tracks
 
 The active contract contains whole-word lower bounds and the two upper-bound tracks. Removed
-track roots are refused at admission. Their stored rows are excluded from public pages, queue
+track roots are refused at admission. Their stored rows are excluded from active boards, queue
 limits, worker selection and GitHub publication retries. Recovery skips their receipts. Historical
 GitHub commits, source tags and verdicts remain immutable; do not rewrite their certificates or
 attribute them to the replacement contract.
+
+The Hall of Fame at `/hall-of-fame` preserves real verified submissions in the Git-tracked
+`service/hall-of-fame.json` catalog. At each retirement, append the affected submissions with
+their original attribution, checked source commits, contract IDs and verification dates, grouped
+under the rule change and its reason. Include earlier records and non-record verified submissions;
+exclude demos and failed attempts. The page needs no database restoration, and retired submission
+URLs redirect to their catalog entries. This catalog never participates in admission or scoring.
 
 Removing protected statements and changing track metadata changes the contract fingerprint.
 This retirement leaves every surviving statement, cost, security requirement, dependency and

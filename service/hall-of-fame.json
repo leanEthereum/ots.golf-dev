@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "retirements": [
+    {
+      "id": "lower-tracks-2026-09-20",
+      "date": "2026-09-20",
+      "title": "Two lower-bound tracks retired",
+      "reason": "The competition now keeps Whole-word DAGs as its only lower-bound track.",
+      "rules_commit": "10cc50d78a5c4315d6f4f6986161d637824d08cf",
+      "change_commit": "792ac434fc91d3a38cabcd6e9068dacd36670691",
+      "tracks": [
+        {
+          "slug": "lower-generality-2",
+          "title": "DAGs",
+          "kind": "Lower bound",
+          "generality": "2/3",
+          "cost_unit": "compressions",
+          "entries": [
+            {
+              "id": "3f65d2ee60f65f7845aa99c0b6ff329f",
+              "claim": 18,
+              "status": "verified",
+              "commit": "7d7a2e130cad6362d16e65f0e8c0c6aa84015735",
+              "source_repo": "https://github.com/leanEthereum/ots.golf-submissions",
+              "submission_root": "formal/Submissions/LowerGenerality2",
+              "pr_url": "https://github.com/leanEthereum/ots.golf-submissions/pull/2",
+              "pr_number": 2,
+              "verified_at": "2026-09-19T22:56:54.093407Z",
+              "author": "TomWambsgans",
+              "co_authors": [],
+              "assisted_by": "GPT-6 (submission packaging)",
+              "was_record": true,
+              "contract": "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",
+              "avatar_url": "https://avatars.githubusercontent.com/u/101908066?v=4"
+            }
+          ]
+        },
+        {
+          "slug": "lower-generality-3",
+          "title": "Oracle algorithms",
+          "kind": "Lower bound",
+          "generality": "3/3",
+          "cost_unit": "compressions",
+          "entries": [
+            {
+              "id": "5e5652431676c59f6f6effeaef428d57",
+              "claim": 2,
+              "status": "verified",
+              "commit": "686ced6ce77ef199c696f878bee4ff861a614c3d",
+              "source_repo": "https://github.com/leanEthereum/ots.golf-submissions",
+              "submission_root": "formal/Submissions/LowerGenerality3",
+              "pr_url": "https://github.com/leanEthereum/ots.golf-submissions/pull/10",
+              "pr_number": 10,
+              "verified_at": "2026-09-20T07:48:19.858478Z",
+              "author": "Holindauer",
+              "co_authors": [],
+              "assisted_by": "Claude Fable 5.1",
+              "was_record": true,
+              "contract": "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",
+              "avatar_url": "https://avatars.githubusercontent.com/u/121689074?v=4"
+            },
+            {
+              "id": "a1550173a7966983902549c157be1d38",
+              "claim": 1,
+              "status": "verified",
+              "commit": "2ad0af20a3796bea5b59ecf460da615b5ff7ede0",
+              "source_repo": "https://github.com/leanEthereum/ots.golf-submissions",
+              "submission_root": "formal/Submissions/LowerGenerality3",
+              "pr_url": "https://github.com/leanEthereum/ots.golf-submissions/pull/3",
+              "pr_number": 3,
+              "verified_at": "2026-09-19T22:58:30.148404Z",
+              "author": "TomWambsgans",
+              "co_authors": [],
+              "assisted_by": "GPT-6 (submission packaging)",
+              "was_record": true,
+              "contract": "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",
+              "avatar_url": "https://avatars.githubusercontent.com/u/101908066?v=4"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -16,7 +16,7 @@ import markdown
 import nh3
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -28,6 +28,7 @@ from . import auth, charts, contract, git_authors, github, literature, records, 
 from .config import settings
 from .visibility import visible
 from . import signature_diagram
+from . import hall_of_fame
 from .db import (SessionLocal, Submission, User, get_session, init_db, local_lock, pr_submission_id,
                  schedule_report, stable_id, utcnow)
 
@@ -401,10 +402,17 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
                   art=scheme_art.svg())
 
 
+@app.get("/hall-of-fame", response_class=HTMLResponse)
+def hall_of_fame_page(request: Request):
+    return render(request, "hall_of_fame.html", retirements=hall_of_fame.retirements())
+
+
 @app.get("/submissions/{sub_id}", response_class=HTMLResponse)
 def submission_page(sub_id: str, request: Request, session: Session = Depends(get_session)):
     sub = session.get(Submission, sub_id)
     if sub is None or not visible(sub):
+        if hall_of_fame.contains(sub_id):
+            return RedirectResponse(f"/hall-of-fame#{sub_id}", status_code=302)
         raise HTTPException(404)
     t = contract.track(sub.track)
     return render(request, "submission.html", sub=sub, t=t, framework=contract.framework(t["framework"]),

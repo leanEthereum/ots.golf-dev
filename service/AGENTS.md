@@ -39,7 +39,8 @@ See `deploy/README.md`.
 The lower-bound track covers whole-word DAGs. Its public name is “Whole-word DAGs”; keep
 the stable slug/root `lower-generality-1`/`LowerGenerality1`. There is no lower-framework selector.
 Keep the compression lower bound separate in scope from the unrestricted upper constructions.
-Removed tracks are not admitted or displayed, including stored historical and demo rows.
+Removed tracks are not admitted or displayed on active boards, including stored historical and demo rows.
+The Hall of Fame separately preserves real verified submissions retired by rule changes.
 Preserve `#lower` and `#upper` links.
 
 Upper tracks are admitted through the top-level `upper_tracks` metadata, independently of the
@@ -133,6 +134,15 @@ its machine, refinement, termination and cycle requirements, the cycle bound cov
 execution.
 
 ## Maintainer workflow
+
+The Hall of Fame is a frozen historical catalog in `service/hall-of-fame.json`, grouped by
+rule change. Preserve every real verified submission affected, including earlier records and
+non-record submissions; exclude demos and failed attempts. Freeze authorship, original score,
+checked source SHA/root, verdict contract ID and verification date. Link the original rules
+and the retirement commit. Append future rule changes rather than rewriting prior results.
+This display catalog is independent of admission, current records and the server database;
+a fresh checkout can render it without reconstructing the database. Old submission-page URLs
+redirect to their catalog entry when they are no longer visible on the active site.
 
 Preserve the approved compact RISC-V table: Instruction, Count, Share of run, with HASH price
 in parentheses beside its input length. Do not add summary bars, metrics or explanatory prose.
