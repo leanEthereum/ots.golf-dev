@@ -1,2 +1,1 @@
 - RiscV: 4 cycles instead of 1 for every hash compression (ideally find the correct cost)
-- security definition: the verifier should either output a valid signature 127 bit secure or reject, never issue an insecure signature even if the proba is very low
