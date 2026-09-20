@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "40030e6f1ab38bfad05a86bf4e5258cf",
+      "repository": "leanEthereum/ots.golf-submissions",
+      "commit": "e9bc82671c259152d5a9c1c47fed9c4175e75e8f",
+      "contract": "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",
+      "cycles": 687,
+      "compressions": 170,
+      "module": "Wire",
+      "line": 79,
+      "theorem": "OptimalOTS.RiscvUpperForest.Wire.cost"
+    }
+  ]
+}

@@ -28,6 +28,7 @@ from . import auth, charts, contract, git_authors, github, literature, records, 
 from .config import settings
 from .visibility import visible
 from . import signature_diagram
+from . import riscv_compressions
 from . import hall_of_fame, revalidations
 from .db import (SessionLocal, Submission, User, get_session, init_db, local_lock, pr_submission_id,
                  schedule_report, stable_id, utcnow)
@@ -423,6 +424,7 @@ def submission_page(sub_id: str, request: Request, session: Session = Depends(ge
                   sub=sub, t=t, framework=contract.framework(t["framework"]),
                   framework_title=contract.track_framework_title(t),
                   riscv_breakdown=riscv_breakdown.for_submission(sub),
+                  riscv_compressions=riscv_compressions.for_submission(sub),
                   signature_diagram=signature_diagram.for_submission(sub),
                   queue_position=next((i + 1 for i, s in enumerate(records.in_flight(session)) if s.id == sub.id), None))
 
