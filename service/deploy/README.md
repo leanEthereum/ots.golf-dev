@@ -228,6 +228,12 @@ reconstruct an old revision. The five current proof roots and `records.json` on 
 initial five verified records may be seeded manually from their checked sources; future records
 are committed automatically after their verdicts are durable.
 
+Remote source export first lists the selected root without blob sizes, validates its flat names,
+regular-file modes and file count, then downloads those blobs together in one fetch. Size checks
+and byte-exact export follow locally. Do not run `git ls-tree -l` against missing blobs: Git may
+fetch them one at a time, making otherwise valid multi-module submissions hit the metadata timeout.
+Keep unrelated blobs out of this batch and preserve the per-file and total submission limits.
+
 The verifier retains a deterministic, uncompressed source ZIP under `OTS_DATA_DIR/sources/` before
 running candidate code. ZIPs and their sidecars are local caches. The primary **Code** link opens
 the submitted folder on GitHub at its exact original checked SHA, so browsing checked code does

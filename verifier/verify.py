@@ -205,7 +205,8 @@ def export_submission(source: str, commit: str | None, rel_root: str, dest: Path
         raise PolicyReject("invalid commit revision")
     with tempfile.TemporaryDirectory(prefix="ots-src-", dir=dest.parent) as tmp:
         repo = Path(tmp) / "repo"
-        if Path(source).is_dir():
+        remote_source = not Path(source).is_dir()
+        if not remote_source:
             repo = Path(source)
         else:
             run(["git", "init", "--quiet", str(repo)])
@@ -216,6 +217,30 @@ def export_submission(source: str, commit: str | None, rel_root: str, dest: Path
             raise ContractError("git did not resolve a canonical commit hash")
         # Listing only this tree (not recursively) rejects a nested directory immediately.
         # Reading blobs directly ignores attacker-controlled export-ignore/export-subst.
+        if remote_source:
+            # ls-tree -l needs blob contents to determine their sizes. In a blobless fetch
+            # that would lazily fetch one blob per network connection. Inspect names and
+            # modes without sizes first, then fetch only the admitted root's blobs in one
+            # request. Size checks still precede exporting any bytes to the proof tree.
+            names = bounded_output(["git", "-C", str(repo), "ls-tree", "-z", f"{full}:{rel_root}"],
+                                   max_files * 4096)
+            selected = []
+            for entry in filter(None, names.split(b"\0")):
+                meta, raw_name = entry.split(b"\t", 1)
+                mode, kind, oid = meta.split()
+                name = raw_name.decode("utf-8", errors="replace")
+                if kind != b"blob" or mode not in (b"100644", b"100755"):
+                    raise PolicyReject(f"{name!r}: only regular files are allowed")
+                selected.append((name, oid.decode("ascii")))
+            if not selected:
+                raise PolicyReject(f"the commit has no {rel_root}")
+            check_sizes([(name, 0) for name, _ in selected])
+            # Match Git's own promisor prefetch: no ref updates, tags, submodules or
+            # negotiation over unrelated history. Explicitly wanted blobs survive the filter.
+            oids = list(dict.fromkeys(oid for _, oid in selected))
+            run(["git", "-C", str(repo), "-c", "fetch.negotiationAlgorithm=noop", "fetch",
+                 "--no-tags", "--no-write-fetch-head", "--recurse-submodules=no", "--filter=blob:none",
+                 "--", "origin", *oids])
         tree = bounded_output(["git", "-C", str(repo), "ls-tree", "-l", "-z", f"{full}:{rel_root}"],
                               max_files * 4096)
         blobs = []

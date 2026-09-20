@@ -314,6 +314,90 @@ class VerifierTests(unittest.TestCase):
         with self.assertRaises(PolicyReject):
             self.export_commit(max_file_bytes=2)
 
+    def remote_fixture(self):
+        self.commit()
+        subprocess.run(['git', '-C', str(self.root), 'config', 'uploadpack.allowFilter', 'true'], check=True)
+        return subprocess.check_output(['git', '-C', str(self.root), 'rev-parse', 'HEAD'], text=True).strip()
+
+    def traced_remote_export(self, commit, **kwargs):
+        trace = self.root / 'trace.json'
+        with patch.dict(os.environ, {'GIT_TRACE2_EVENT': str(trace)}):
+            return export_submission(self.root.as_uri(), commit, self.rel, self.root / 'out', **kwargs)
+
+    def remote_fetches(self):
+        events = [json.loads(line) for line in (self.root / 'trace.json').read_text().splitlines()]
+        return [e['argv'] for e in events if e['event'] == 'start' and 'fetch' in e.get('argv', [])]
+
+    def test_blobless_remote_batches_184_modules_without_fetching_other_roots(self):
+        expected = {'claim.txt': b'1\n', 'Solution.lean': (self.sub / 'Solution.lean').read_bytes()}
+        for i in range(183):
+            expected[f'Proof{i:03}.lean'] = f'def value{i} : Nat := {i}\n'.encode()
+        for name, data in expected.items():
+            (self.sub / name).write_bytes(data)
+        outside = self.root / 'unrelated.bin'
+        outside.write_bytes(b'not part of the submission' * 10000)
+        outside_oid = subprocess.check_output(['git', 'hash-object', str(outside)], text=True).strip()
+        commit = self.remote_fixture()
+        probes = []
+
+        def inspect(cmd, limit, timeout=60):
+            if 'ls-tree' in cmd and '-l' in cmd:
+                # The size listing may not lazily download anything. Every selected blob
+                # must already be present, and unrelated blobs must still be absent.
+                repo = cmd[cmd.index('-C') + 1]
+                env = {**os.environ, 'GIT_NO_LAZY_FETCH': '1'}
+                absent = subprocess.run(['git', '-C', repo, 'cat-file', '-e', outside_oid],
+                                        env=env, capture_output=True)
+                self.assertNotEqual(absent.returncode, 0)
+                for name in expected:
+                    subprocess.run(['git', '-C', repo, 'cat-file', '-e', f'{commit}:{self.rel}/{name}'],
+                                   env=env, capture_output=True, check=True)
+                probes.append(True)
+            return bounded_output(cmd, limit, timeout)
+
+        with patch('verify.bounded_output', side_effect=inspect):
+            self.assertEqual(self.traced_remote_export(commit), commit)
+        self.assertEqual(probes, [True])
+        fetches = self.remote_fetches()
+        self.assertEqual(len(fetches), 2, 'one tree fetch plus one batch, no per-blob network requests')
+        self.assertNotIn(outside_oid, fetches[1])
+        for name, data in expected.items():
+            self.assertEqual((self.root / 'out' / self.rel / name).read_bytes(), data)
+
+    def test_remote_rejects_layout_before_fetching_blobs(self):
+        for failure in ['count', 'directory', 'symlink', 'filename']:
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                sub = root / self.rel
+                sub.mkdir(parents=True)
+                (sub / 'claim.txt').write_text('1\n')
+                (sub / 'Solution.lean').write_text('')
+                if failure == 'directory':
+                    (sub / 'nested').mkdir()
+                    (sub / 'nested' / 'Extra.lean').write_text('')
+                elif failure == 'symlink':
+                    (sub / 'Link.lean').symlink_to('/etc/passwd')
+                elif failure == 'filename':
+                    (sub / 'bad.txt').write_text('')
+                old_root, self.root = self.root, root
+                try:
+                    commit = self.remote_fixture()
+                    with self.assertRaises(PolicyReject):
+                        self.traced_remote_export(commit, max_files=1 if failure == 'count' else 200)
+                    self.assertEqual(len(self.remote_fetches()), 1)
+                    self.assertEqual(list((root / 'out' / self.rel).iterdir()), [])
+                finally:
+                    self.root = old_root
+
+    def test_remote_size_limits_still_apply_before_exporting_files(self):
+        commit = self.remote_fixture()
+        for kwargs in [{'max_file_bytes': 2}, {'max_total_bytes': 3}]:
+            with self.subTest(kwargs=kwargs), tempfile.TemporaryDirectory() as temp:
+                out = Path(temp) / 'out'
+                with self.assertRaises(PolicyReject):
+                    export_submission(self.root.as_uri(), commit, self.rel, out, **kwargs)
+                self.assertEqual(list((out / self.rel).iterdir()), [])
+
     def test_git_commit_cannot_inject_an_option(self):
         with self.assertRaises(PolicyReject):
             export_submission(str(self.root), "--help", self.rel, self.root / "out")
