@@ -16,7 +16,7 @@ import markdown
 import nh3
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -27,6 +27,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import auth, charts, contract, git_authors, github, literature, records, riscv_breakdown, scheme_art, source_archive
 from .config import settings
 from .visibility import visible
+from . import signature_diagram
 from .db import (SessionLocal, Submission, User, get_session, init_db, local_lock, pr_submission_id,
                  schedule_report, stable_id, utcnow)
 
@@ -37,9 +38,10 @@ async def lifespan(_app):
         raise RuntimeError("the production website must run with OTS_ROLE=web under its separate Unix identity")
     init_db()
     await run_in_threadpool(prepare_board)
-    task = resync_task = profiles_task = None
+    task = resync_task = profiles_task = diagrams_task = None
     if settings.github_token and settings.submissions_repo:
         profiles_task = asyncio.create_task(riscv_breakdown.refresh_loop())
+        diagrams_task = asyncio.create_task(signature_diagram.refresh_loop())
         if settings.resync_on_start:
             async def resync_once():
                 from .resync import resync
@@ -61,7 +63,7 @@ async def lifespan(_app):
     try:
         yield
     finally:
-        for running in (task, resync_task, profiles_task):
+        for running in (task, resync_task, profiles_task, diagrams_task):
             if running is not None and not running.done():
                 running.cancel()
                 with suppress(asyncio.CancelledError):
@@ -111,11 +113,11 @@ async def security_headers(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Content-Security-Policy"] = (
+    response.headers.setdefault("Content-Security-Policy", (
         "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
         "img-src 'self' https: data:; base-uri 'self'; object-src 'none'; "
         "frame-ancestors 'none'; form-action 'self'"
-    )
+    ))
     return response
 
 
@@ -408,7 +410,45 @@ def submission_page(sub_id: str, request: Request, session: Session = Depends(ge
     return render(request, "submission.html", sub=sub, t=t, framework=contract.framework(t["framework"]),
                   framework_title=contract.track_framework_title(t),
                   riscv_breakdown=riscv_breakdown.for_submission(sub),
+                  signature_diagram=signature_diagram.for_submission(sub),
                   queue_position=next((i + 1 for i, s in enumerate(records.in_flight(session)) if s.id == sub.id), None))
+
+
+@app.get("/diagram-previews/{sub_id}", response_class=HTMLResponse)
+def signature_preview(sub_id: str, request: Request):
+    diagram = signature_diagram.public_preview(sub_id)
+    if diagram is None:
+        raise HTTPException(404)
+    return render(request, "signature_preview.html", signature_diagram=diagram,
+                  diagram_url=f"/diagram-previews/{sub_id}/image.svg")
+
+
+@app.get("/diagram-previews/{sub_id}/image.svg")
+def signature_preview_image(sub_id: str, request: Request):
+    diagram = signature_diagram.public_preview(sub_id)
+    if diagram is None:
+        raise HTTPException(404)
+    return diagram_response(diagram, request)
+
+
+@app.get("/submissions/{sub_id}/signature-diagram.svg")
+def submission_diagram(sub_id: str, request: Request, session: Session = Depends(get_session)):
+    sub = session.get(Submission, sub_id)
+    if sub is None or not visible(sub):
+        raise HTTPException(404)
+    diagram = signature_diagram.for_submission(sub)
+    if diagram is None:
+        raise HTTPException(404)
+    return diagram_response(diagram, request)
+
+
+def diagram_response(diagram: dict, request: Request):
+    etag = f'"{diagram["digest"]}"'
+    headers = {"Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+               "Cache-Control": "no-cache", "ETag": etag}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(diagram["data"], media_type="image/svg+xml", headers=headers)
 
 
 @app.get("/submissions/{sub_id}/source.zip")

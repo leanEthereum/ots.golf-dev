@@ -84,6 +84,12 @@ Maintainers can attach a measured per-instruction table to a checked RISC-V subm
 editing [`riscv-profiles.json`](riscv-profiles.json) on `main`. See [the profile guide](RISCV_PROFILES.md).
 These optional owner profiles do not affect verification or scores and are separate from proof PRs.
 
+## Signature diagrams
+
+Maintainers can attach a drawing to either upper-bound track through
+[`signature-diagrams.json`](signature-diagrams.json) and an SVG in `signature-diagrams/`.
+See [the diagram guide](SIGNATURE_DIAGRAMS.md). Drawings are optional and pinned to exact checked submissions.
+
 ## Credits
 
 The competition and chart were inspired by [better.codes](https://better.codes),

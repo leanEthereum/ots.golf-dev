@@ -1,0 +1,18 @@
+{
+  "440fbe4103a5cfff1f213e25ac09bfd9": {
+    "claim": 102,
+    "commit": "ceeb8503c3950869440af1cb6fa69b52b79044fc",
+    "pr": 6,
+    "login": "saucegodbased",
+    "image": "shallow-102.svg",
+    "alt": "54 chains of 18 steps feed 18 ternary group hashes and then the public key. The low 128 digest bits select a whole disclosure pattern through a fixed enumeration, accepting indices below 45 \u00d7 2\u00b9\u2070\u2079. Signing retries the nonce otherwise. Each cut reveals six group values and 36 chain values with 84 chain hashes remaining. The drawing illustrates an allowed cut, without claiming a particular digest index. Blue dots are revealed values, blue paths are recomputed, and grey branches are unused for this cut."
+  },
+  "ad5f125ca8ee77f306dc5fa1f0854ed9": {
+    "claim": 100,
+    "commit": "2dfaf14e5a570c1ceb9637a55d4b60dcc65c3a13",
+    "pr": 7,
+    "login": "saucegodbased",
+    "image": "shallow-100.svg",
+    "alt": "54 chains of 18 steps feed 18 ternary group hashes and then the public key. The low 127 digest bits select a whole disclosure pattern through a fixed enumeration, accepting indices below 45 \u00d7 2\u00b9\u2070\u2078. Signing retries the nonce otherwise. Each cut reveals six group values and 36 chain values with 82 chain hashes remaining. The drawing illustrates an allowed cut, without claiming a particular digest index. Blue dots are revealed values, blue paths are recomputed, and grey branches are unused for this cut."
+  }
+}

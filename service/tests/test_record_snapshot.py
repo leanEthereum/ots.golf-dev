@@ -33,8 +33,12 @@ class FakeGit:
         self.head = 'b' * 40
         self.original_readme = self.blob(b'current main readme')
         self.original_profiles = self.blob(b'{"version":1,"profiles":{}}')
+        self.original_diagrams = self.blob(b'{"version":1,"diagrams":{}}')
+        self.original_drawing = self.blob(b'<svg/>')
         self.commits[self.head] = self.tree({'README.md': self.original_readme,
             'riscv-profiles.json': self.original_profiles,
+            'signature-diagrams.json': self.original_diagrams,
+            'signature-diagrams': self.directory(self.tree({'test.svg': self.original_drawing})),
             '.contract': {'mode': '160000', 'type': 'commit', 'sha': 'f' * 40}})
         self.before_patch = None
         self.fail_commit = False
@@ -178,6 +182,8 @@ class RecordSnapshotTests(unittest.TestCase):
         self.assertEqual(self.git.at(self.git.root)['sha'], self.git.source_tree)
         self.assertEqual(self.git.at('README.md'), self.git.original_readme)
         self.assertEqual(self.git.at('riscv-profiles.json'), self.git.original_profiles)
+        self.assertEqual(self.git.at('signature-diagrams.json'), self.git.original_diagrams)
+        self.assertEqual(self.git.at('signature-diagrams/test.svg'), self.git.original_drawing)
         self.assertEqual(self.git.at('.contract')['sha'], 'f' * 40)
         self.assertNotIn('outside.txt', self.git.trees[self.git.commits[self.git.head]])
         entry = self.git.registry()['records'][self.sub.track]
@@ -238,15 +244,21 @@ class RecordSnapshotTests(unittest.TestCase):
     def test_concurrent_main_change_is_preserved_when_retrying(self):
         replacement = self.git.blob(b'maintainer changed README while publishing')
         profiles = self.git.blob(b'owner edited profiles while the bot published a record')
+        diagrams = self.git.blob(b'owner edited diagram registry while the bot published a record')
+        drawing = self.git.blob(b'<svg>owner edited drawing</svg>')
         def advance():
             tree = self.git.replace(self.git.commits[self.git.head], 'README.md', replacement)
             tree = self.git.replace(tree, 'riscv-profiles.json', profiles)
+            tree = self.git.replace(tree, 'signature-diagrams.json', diagrams)
+            tree = self.git.replace(tree, 'signature-diagrams/test.svg', drawing)
             self.git.head = identity(['concurrent', tree])
             self.git.commits[self.git.head] = tree
         self.git.before_patch = advance
         self.assertTrue(record_snapshot.publish_record(self.sub)['published'])
         self.assertEqual(self.git.at('README.md'), replacement)
         self.assertEqual(self.git.at('riscv-profiles.json'), profiles)
+        self.assertEqual(self.git.at('signature-diagrams.json'), diagrams)
+        self.assertEqual(self.git.at('signature-diagrams/test.svg'), drawing)
         self.assertEqual(sum(r.method == 'PATCH' for r in self.git.requests), 2)
 
     def test_concurrently_published_newer_record_prevents_retry_rollback(self):

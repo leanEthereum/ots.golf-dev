@@ -348,6 +348,10 @@ table.params th:first-child { width: 44%; }
 .upper-score > .no-record { grid-column: 1 / -1; text-align: right; color: var(--muted); font-size: 15px; }
 .upper-board { padding-top: 24px; }
 .upper-board h3 { margin: 0; }
+.signature-scheme { margin: 32px 0; padding-top: 24px; border-top: 1px solid var(--line); }
+.signature-scheme h2 { font-size: 15px; font-weight: 600; margin: 0 0 12px; }
+.signature-scheme-frame { max-width: 760px; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: #fcfcfb; }
+.signature-scheme-image { display: block; width: 100%; min-width: 640px; height: auto; }
 .cycle-breakdown { margin: 32px 0; padding-top: 24px; border-top: 1px solid var(--line); }
 .cycle-table-title { font-size: 15px; font-weight: 600; margin: 24px 0 12px; }
 .cycle-table-wrap { max-width: 760px; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }

@@ -1,0 +1,1088 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 640" role="img">
+<title>32 hash chains · 15 steps each</title><desc>32 parallel chains, each with 15 hash steps. Blue filled dots mark the 32 values revealed in one signature. Blue paths hash them forward to the chain endpoints, which are used to reconstruct the public key. Grey nodes are unused during verification of this signature. The low 128 digest bits split into 32 four-bit digits; signing tries nonces until their sum is 160. Each digit gives the remaining hash steps for its chain.</desc>
+<style>text{font-family:system-ui,sans-serif;font-size:12px;fill:#6f6d67}.heading{font-size:13px;font-weight:600;fill:#52514e}.edge{fill:none;stroke:#dededa;stroke-width:1.15}.edge.active{stroke:#2a78d6;stroke-width:1.5}.node{fill:#fcfcfb;stroke:#d2d2cb;stroke-width:1.15}.node.active{stroke:#2a78d6;stroke-width:1.5}.node.revealed{fill:#2a78d6;stroke:#fcfcfb;stroke-width:1.4}</style>
+<rect width="760" height="640" fill="#fcfcfb"/>
+<text x="28" y="32" text-anchor="start" class="heading">32 hash chains · 15 steps each</text>
+<text x="732" y="32" text-anchor="end" class="">Hash direction ↓</text>
+<rect x="28" y="53" width="180" height="52" rx="7" fill="#f5f5f2" stroke="#e6e5e1"/>
+<text x="118" y="74" text-anchor="middle" class="heading">Message + nonce</text>
+<text x="118" y="93" text-anchor="middle" class="">384-bit input</text>
+<rect x="238" y="53" width="210" height="52" rx="7" fill="#f5f5f2" stroke="#e6e5e1"/>
+<text x="343" y="74" text-anchor="middle" class="heading">HASH → integer i</text>
+<text x="343" y="93" text-anchor="middle" class="">Low 128 bits of the digest</text>
+<rect x="478" y="53" width="254" height="52" rx="7" fill="#f5f5f2" stroke="#e6e5e1"/>
+<text x="605" y="74" text-anchor="middle" class="heading">Split into 32 four-bit digits</text>
+<text x="605" y="93" text-anchor="middle" class="">0110 | 0010 | 0010 | …</text>
+<text x="223" y="84" text-anchor="middle" class="">→</text>
+<text x="463" y="84" text-anchor="middle" class="">→</text>
+<text x="380" y="129" text-anchor="middle" class="">Accept when the digits sum to 160; otherwise try a new nonce.</text>
+<text x="380" y="151" text-anchor="middle" class="">Each digit is the number of hashes remaining on its chain.</text>
+<text x="70" y="178" text-anchor="middle" class="heading">6</text>
+<text x="90" y="178" text-anchor="middle" class="heading">2</text>
+<text x="110" y="178" text-anchor="middle" class="heading">2</text>
+<text x="130" y="178" text-anchor="middle" class="heading">2</text>
+<text x="150" y="178" text-anchor="middle" class="heading">1</text>
+<text x="170" y="178" text-anchor="middle" class="heading">2</text>
+<text x="190" y="178" text-anchor="middle" class="heading">13</text>
+<text x="210" y="178" text-anchor="middle" class="heading">1</text>
+<text x="230" y="178" text-anchor="middle" class="heading">1</text>
+<text x="250" y="178" text-anchor="middle" class="heading">10</text>
+<text x="270" y="178" text-anchor="middle" class="heading">12</text>
+<text x="290" y="178" text-anchor="middle" class="heading">3</text>
+<text x="310" y="178" text-anchor="middle" class="heading">8</text>
+<text x="330" y="178" text-anchor="middle" class="heading">3</text>
+<text x="350" y="178" text-anchor="middle" class="heading">2</text>
+<text x="370" y="178" text-anchor="middle" class="heading">9</text>
+<text x="390" y="178" text-anchor="middle" class="heading">0</text>
+<text x="410" y="178" text-anchor="middle" class="heading">9</text>
+<text x="430" y="178" text-anchor="middle" class="heading">1</text>
+<text x="450" y="178" text-anchor="middle" class="heading">2</text>
+<text x="470" y="178" text-anchor="middle" class="heading">4</text>
+<text x="490" y="178" text-anchor="middle" class="heading">11</text>
+<text x="510" y="178" text-anchor="middle" class="heading">8</text>
+<text x="530" y="178" text-anchor="middle" class="heading">2</text>
+<text x="550" y="178" text-anchor="middle" class="heading">9</text>
+<text x="570" y="178" text-anchor="middle" class="heading">3</text>
+<text x="590" y="178" text-anchor="middle" class="heading">9</text>
+<text x="610" y="178" text-anchor="middle" class="heading">14</text>
+<text x="630" y="178" text-anchor="middle" class="heading">2</text>
+<text x="650" y="178" text-anchor="middle" class="heading">6</text>
+<text x="670" y="178" text-anchor="middle" class="heading">0</text>
+<text x="690" y="178" text-anchor="middle" class="heading">3</text>
+<path d="M28 196 H732" stroke="#e6e5e1"/><g transform="translate(0 160)">
+<path class="edge" d="M70 70 L70 85"/>
+<path class="edge" d="M70 85 L70 100"/>
+<path class="edge" d="M70 100 L70 115"/>
+<path class="edge" d="M70 115 L70 130"/>
+<path class="edge" d="M70 130 L70 145"/>
+<path class="edge" d="M70 145 L70 160"/>
+<path class="edge" d="M70 160 L70 175"/>
+<path class="edge" d="M70 175 L70 190"/>
+<path class="edge" d="M70 190 L70 205"/>
+<path class="edge active" d="M70 205 L70 220"/>
+<path class="edge active" d="M70 220 L70 235"/>
+<path class="edge active" d="M70 235 L70 250"/>
+<path class="edge active" d="M70 250 L70 265"/>
+<path class="edge active" d="M70 265 L70 280"/>
+<path class="edge active" d="M70 280 L70 295"/>
+<path class="edge active" d="M70 295 L70 325"/>
+<circle class="node " cx="70" cy="70" r="2.6"/>
+<circle class="node " cx="70" cy="85" r="2.6"/>
+<circle class="node " cx="70" cy="100" r="2.6"/>
+<circle class="node " cx="70" cy="115" r="2.6"/>
+<circle class="node " cx="70" cy="130" r="2.6"/>
+<circle class="node " cx="70" cy="145" r="2.6"/>
+<circle class="node " cx="70" cy="160" r="2.6"/>
+<circle class="node " cx="70" cy="175" r="2.6"/>
+<circle class="node " cx="70" cy="190" r="2.6"/>
+<circle class="node revealed" cx="70" cy="205" r="4.8"/>
+<circle class="node active" cx="70" cy="220" r="2.6"/>
+<circle class="node active" cx="70" cy="235" r="2.6"/>
+<circle class="node active" cx="70" cy="250" r="2.6"/>
+<circle class="node active" cx="70" cy="265" r="2.6"/>
+<circle class="node active" cx="70" cy="280" r="2.6"/>
+<circle class="node active" cx="70" cy="295" r="2.6"/>
+<path class="edge" d="M90 70 L90 85"/>
+<path class="edge" d="M90 85 L90 100"/>
+<path class="edge" d="M90 100 L90 115"/>
+<path class="edge" d="M90 115 L90 130"/>
+<path class="edge" d="M90 130 L90 145"/>
+<path class="edge" d="M90 145 L90 160"/>
+<path class="edge" d="M90 160 L90 175"/>
+<path class="edge" d="M90 175 L90 190"/>
+<path class="edge" d="M90 190 L90 205"/>
+<path class="edge" d="M90 205 L90 220"/>
+<path class="edge" d="M90 220 L90 235"/>
+<path class="edge" d="M90 235 L90 250"/>
+<path class="edge" d="M90 250 L90 265"/>
+<path class="edge active" d="M90 265 L90 280"/>
+<path class="edge active" d="M90 280 L90 295"/>
+<path class="edge active" d="M90 295 L90 325"/>
+<circle class="node " cx="90" cy="70" r="2.6"/>
+<circle class="node " cx="90" cy="85" r="2.6"/>
+<circle class="node " cx="90" cy="100" r="2.6"/>
+<circle class="node " cx="90" cy="115" r="2.6"/>
+<circle class="node " cx="90" cy="130" r="2.6"/>
+<circle class="node " cx="90" cy="145" r="2.6"/>
+<circle class="node " cx="90" cy="160" r="2.6"/>
+<circle class="node " cx="90" cy="175" r="2.6"/>
+<circle class="node " cx="90" cy="190" r="2.6"/>
+<circle class="node " cx="90" cy="205" r="2.6"/>
+<circle class="node " cx="90" cy="220" r="2.6"/>
+<circle class="node " cx="90" cy="235" r="2.6"/>
+<circle class="node " cx="90" cy="250" r="2.6"/>
+<circle class="node revealed" cx="90" cy="265" r="4.8"/>
+<circle class="node active" cx="90" cy="280" r="2.6"/>
+<circle class="node active" cx="90" cy="295" r="2.6"/>
+<path class="edge" d="M110 70 L110 85"/>
+<path class="edge" d="M110 85 L110 100"/>
+<path class="edge" d="M110 100 L110 115"/>
+<path class="edge" d="M110 115 L110 130"/>
+<path class="edge" d="M110 130 L110 145"/>
+<path class="edge" d="M110 145 L110 160"/>
+<path class="edge" d="M110 160 L110 175"/>
+<path class="edge" d="M110 175 L110 190"/>
+<path class="edge" d="M110 190 L110 205"/>
+<path class="edge" d="M110 205 L110 220"/>
+<path class="edge" d="M110 220 L110 235"/>
+<path class="edge" d="M110 235 L110 250"/>
+<path class="edge" d="M110 250 L110 265"/>
+<path class="edge active" d="M110 265 L110 280"/>
+<path class="edge active" d="M110 280 L110 295"/>
+<path class="edge active" d="M110 295 L110 325"/>
+<circle class="node " cx="110" cy="70" r="2.6"/>
+<circle class="node " cx="110" cy="85" r="2.6"/>
+<circle class="node " cx="110" cy="100" r="2.6"/>
+<circle class="node " cx="110" cy="115" r="2.6"/>
+<circle class="node " cx="110" cy="130" r="2.6"/>
+<circle class="node " cx="110" cy="145" r="2.6"/>
+<circle class="node " cx="110" cy="160" r="2.6"/>
+<circle class="node " cx="110" cy="175" r="2.6"/>
+<circle class="node " cx="110" cy="190" r="2.6"/>
+<circle class="node " cx="110" cy="205" r="2.6"/>
+<circle class="node " cx="110" cy="220" r="2.6"/>
+<circle class="node " cx="110" cy="235" r="2.6"/>
+<circle class="node " cx="110" cy="250" r="2.6"/>
+<circle class="node revealed" cx="110" cy="265" r="4.8"/>
+<circle class="node active" cx="110" cy="280" r="2.6"/>
+<circle class="node active" cx="110" cy="295" r="2.6"/>
+<path class="edge" d="M130 70 L130 85"/>
+<path class="edge" d="M130 85 L130 100"/>
+<path class="edge" d="M130 100 L130 115"/>
+<path class="edge" d="M130 115 L130 130"/>
+<path class="edge" d="M130 130 L130 145"/>
+<path class="edge" d="M130 145 L130 160"/>
+<path class="edge" d="M130 160 L130 175"/>
+<path class="edge" d="M130 175 L130 190"/>
+<path class="edge" d="M130 190 L130 205"/>
+<path class="edge" d="M130 205 L130 220"/>
+<path class="edge" d="M130 220 L130 235"/>
+<path class="edge" d="M130 235 L130 250"/>
+<path class="edge" d="M130 250 L130 265"/>
+<path class="edge active" d="M130 265 L130 280"/>
+<path class="edge active" d="M130 280 L130 295"/>
+<path class="edge active" d="M130 295 L130 325"/>
+<circle class="node " cx="130" cy="70" r="2.6"/>
+<circle class="node " cx="130" cy="85" r="2.6"/>
+<circle class="node " cx="130" cy="100" r="2.6"/>
+<circle class="node " cx="130" cy="115" r="2.6"/>
+<circle class="node " cx="130" cy="130" r="2.6"/>
+<circle class="node " cx="130" cy="145" r="2.6"/>
+<circle class="node " cx="130" cy="160" r="2.6"/>
+<circle class="node " cx="130" cy="175" r="2.6"/>
+<circle class="node " cx="130" cy="190" r="2.6"/>
+<circle class="node " cx="130" cy="205" r="2.6"/>
+<circle class="node " cx="130" cy="220" r="2.6"/>
+<circle class="node " cx="130" cy="235" r="2.6"/>
+<circle class="node " cx="130" cy="250" r="2.6"/>
+<circle class="node revealed" cx="130" cy="265" r="4.8"/>
+<circle class="node active" cx="130" cy="280" r="2.6"/>
+<circle class="node active" cx="130" cy="295" r="2.6"/>
+<path class="edge" d="M150 70 L150 85"/>
+<path class="edge" d="M150 85 L150 100"/>
+<path class="edge" d="M150 100 L150 115"/>
+<path class="edge" d="M150 115 L150 130"/>
+<path class="edge" d="M150 130 L150 145"/>
+<path class="edge" d="M150 145 L150 160"/>
+<path class="edge" d="M150 160 L150 175"/>
+<path class="edge" d="M150 175 L150 190"/>
+<path class="edge" d="M150 190 L150 205"/>
+<path class="edge" d="M150 205 L150 220"/>
+<path class="edge" d="M150 220 L150 235"/>
+<path class="edge" d="M150 235 L150 250"/>
+<path class="edge" d="M150 250 L150 265"/>
+<path class="edge" d="M150 265 L150 280"/>
+<path class="edge active" d="M150 280 L150 295"/>
+<path class="edge active" d="M150 295 L150 325"/>
+<circle class="node " cx="150" cy="70" r="2.6"/>
+<circle class="node " cx="150" cy="85" r="2.6"/>
+<circle class="node " cx="150" cy="100" r="2.6"/>
+<circle class="node " cx="150" cy="115" r="2.6"/>
+<circle class="node " cx="150" cy="130" r="2.6"/>
+<circle class="node " cx="150" cy="145" r="2.6"/>
+<circle class="node " cx="150" cy="160" r="2.6"/>
+<circle class="node " cx="150" cy="175" r="2.6"/>
+<circle class="node " cx="150" cy="190" r="2.6"/>
+<circle class="node " cx="150" cy="205" r="2.6"/>
+<circle class="node " cx="150" cy="220" r="2.6"/>
+<circle class="node " cx="150" cy="235" r="2.6"/>
+<circle class="node " cx="150" cy="250" r="2.6"/>
+<circle class="node " cx="150" cy="265" r="2.6"/>
+<circle class="node revealed" cx="150" cy="280" r="4.8"/>
+<circle class="node active" cx="150" cy="295" r="2.6"/>
+<path class="edge" d="M170 70 L170 85"/>
+<path class="edge" d="M170 85 L170 100"/>
+<path class="edge" d="M170 100 L170 115"/>
+<path class="edge" d="M170 115 L170 130"/>
+<path class="edge" d="M170 130 L170 145"/>
+<path class="edge" d="M170 145 L170 160"/>
+<path class="edge" d="M170 160 L170 175"/>
+<path class="edge" d="M170 175 L170 190"/>
+<path class="edge" d="M170 190 L170 205"/>
+<path class="edge" d="M170 205 L170 220"/>
+<path class="edge" d="M170 220 L170 235"/>
+<path class="edge" d="M170 235 L170 250"/>
+<path class="edge" d="M170 250 L170 265"/>
+<path class="edge active" d="M170 265 L170 280"/>
+<path class="edge active" d="M170 280 L170 295"/>
+<path class="edge active" d="M170 295 L170 325"/>
+<circle class="node " cx="170" cy="70" r="2.6"/>
+<circle class="node " cx="170" cy="85" r="2.6"/>
+<circle class="node " cx="170" cy="100" r="2.6"/>
+<circle class="node " cx="170" cy="115" r="2.6"/>
+<circle class="node " cx="170" cy="130" r="2.6"/>
+<circle class="node " cx="170" cy="145" r="2.6"/>
+<circle class="node " cx="170" cy="160" r="2.6"/>
+<circle class="node " cx="170" cy="175" r="2.6"/>
+<circle class="node " cx="170" cy="190" r="2.6"/>
+<circle class="node " cx="170" cy="205" r="2.6"/>
+<circle class="node " cx="170" cy="220" r="2.6"/>
+<circle class="node " cx="170" cy="235" r="2.6"/>
+<circle class="node " cx="170" cy="250" r="2.6"/>
+<circle class="node revealed" cx="170" cy="265" r="4.8"/>
+<circle class="node active" cx="170" cy="280" r="2.6"/>
+<circle class="node active" cx="170" cy="295" r="2.6"/>
+<path class="edge" d="M190 70 L190 85"/>
+<path class="edge" d="M190 85 L190 100"/>
+<path class="edge active" d="M190 100 L190 115"/>
+<path class="edge active" d="M190 115 L190 130"/>
+<path class="edge active" d="M190 130 L190 145"/>
+<path class="edge active" d="M190 145 L190 160"/>
+<path class="edge active" d="M190 160 L190 175"/>
+<path class="edge active" d="M190 175 L190 190"/>
+<path class="edge active" d="M190 190 L190 205"/>
+<path class="edge active" d="M190 205 L190 220"/>
+<path class="edge active" d="M190 220 L190 235"/>
+<path class="edge active" d="M190 235 L190 250"/>
+<path class="edge active" d="M190 250 L190 265"/>
+<path class="edge active" d="M190 265 L190 280"/>
+<path class="edge active" d="M190 280 L190 295"/>
+<path class="edge active" d="M190 295 L190 325"/>
+<circle class="node " cx="190" cy="70" r="2.6"/>
+<circle class="node " cx="190" cy="85" r="2.6"/>
+<circle class="node revealed" cx="190" cy="100" r="4.8"/>
+<circle class="node active" cx="190" cy="115" r="2.6"/>
+<circle class="node active" cx="190" cy="130" r="2.6"/>
+<circle class="node active" cx="190" cy="145" r="2.6"/>
+<circle class="node active" cx="190" cy="160" r="2.6"/>
+<circle class="node active" cx="190" cy="175" r="2.6"/>
+<circle class="node active" cx="190" cy="190" r="2.6"/>
+<circle class="node active" cx="190" cy="205" r="2.6"/>
+<circle class="node active" cx="190" cy="220" r="2.6"/>
+<circle class="node active" cx="190" cy="235" r="2.6"/>
+<circle class="node active" cx="190" cy="250" r="2.6"/>
+<circle class="node active" cx="190" cy="265" r="2.6"/>
+<circle class="node active" cx="190" cy="280" r="2.6"/>
+<circle class="node active" cx="190" cy="295" r="2.6"/>
+<path class="edge" d="M210 70 L210 85"/>
+<path class="edge" d="M210 85 L210 100"/>
+<path class="edge" d="M210 100 L210 115"/>
+<path class="edge" d="M210 115 L210 130"/>
+<path class="edge" d="M210 130 L210 145"/>
+<path class="edge" d="M210 145 L210 160"/>
+<path class="edge" d="M210 160 L210 175"/>
+<path class="edge" d="M210 175 L210 190"/>
+<path class="edge" d="M210 190 L210 205"/>
+<path class="edge" d="M210 205 L210 220"/>
+<path class="edge" d="M210 220 L210 235"/>
+<path class="edge" d="M210 235 L210 250"/>
+<path class="edge" d="M210 250 L210 265"/>
+<path class="edge" d="M210 265 L210 280"/>
+<path class="edge active" d="M210 280 L210 295"/>
+<path class="edge active" d="M210 295 L210 325"/>
+<circle class="node " cx="210" cy="70" r="2.6"/>
+<circle class="node " cx="210" cy="85" r="2.6"/>
+<circle class="node " cx="210" cy="100" r="2.6"/>
+<circle class="node " cx="210" cy="115" r="2.6"/>
+<circle class="node " cx="210" cy="130" r="2.6"/>
+<circle class="node " cx="210" cy="145" r="2.6"/>
+<circle class="node " cx="210" cy="160" r="2.6"/>
+<circle class="node " cx="210" cy="175" r="2.6"/>
+<circle class="node " cx="210" cy="190" r="2.6"/>
+<circle class="node " cx="210" cy="205" r="2.6"/>
+<circle class="node " cx="210" cy="220" r="2.6"/>
+<circle class="node " cx="210" cy="235" r="2.6"/>
+<circle class="node " cx="210" cy="250" r="2.6"/>
+<circle class="node " cx="210" cy="265" r="2.6"/>
+<circle class="node revealed" cx="210" cy="280" r="4.8"/>
+<circle class="node active" cx="210" cy="295" r="2.6"/>
+<path class="edge" d="M230 70 L230 85"/>
+<path class="edge" d="M230 85 L230 100"/>
+<path class="edge" d="M230 100 L230 115"/>
+<path class="edge" d="M230 115 L230 130"/>
+<path class="edge" d="M230 130 L230 145"/>
+<path class="edge" d="M230 145 L230 160"/>
+<path class="edge" d="M230 160 L230 175"/>
+<path class="edge" d="M230 175 L230 190"/>
+<path class="edge" d="M230 190 L230 205"/>
+<path class="edge" d="M230 205 L230 220"/>
+<path class="edge" d="M230 220 L230 235"/>
+<path class="edge" d="M230 235 L230 250"/>
+<path class="edge" d="M230 250 L230 265"/>
+<path class="edge" d="M230 265 L230 280"/>
+<path class="edge active" d="M230 280 L230 295"/>
+<path class="edge active" d="M230 295 L230 325"/>
+<circle class="node " cx="230" cy="70" r="2.6"/>
+<circle class="node " cx="230" cy="85" r="2.6"/>
+<circle class="node " cx="230" cy="100" r="2.6"/>
+<circle class="node " cx="230" cy="115" r="2.6"/>
+<circle class="node " cx="230" cy="130" r="2.6"/>
+<circle class="node " cx="230" cy="145" r="2.6"/>
+<circle class="node " cx="230" cy="160" r="2.6"/>
+<circle class="node " cx="230" cy="175" r="2.6"/>
+<circle class="node " cx="230" cy="190" r="2.6"/>
+<circle class="node " cx="230" cy="205" r="2.6"/>
+<circle class="node " cx="230" cy="220" r="2.6"/>
+<circle class="node " cx="230" cy="235" r="2.6"/>
+<circle class="node " cx="230" cy="250" r="2.6"/>
+<circle class="node " cx="230" cy="265" r="2.6"/>
+<circle class="node revealed" cx="230" cy="280" r="4.8"/>
+<circle class="node active" cx="230" cy="295" r="2.6"/>
+<path class="edge" d="M250 70 L250 85"/>
+<path class="edge" d="M250 85 L250 100"/>
+<path class="edge" d="M250 100 L250 115"/>
+<path class="edge" d="M250 115 L250 130"/>
+<path class="edge" d="M250 130 L250 145"/>
+<path class="edge active" d="M250 145 L250 160"/>
+<path class="edge active" d="M250 160 L250 175"/>
+<path class="edge active" d="M250 175 L250 190"/>
+<path class="edge active" d="M250 190 L250 205"/>
+<path class="edge active" d="M250 205 L250 220"/>
+<path class="edge active" d="M250 220 L250 235"/>
+<path class="edge active" d="M250 235 L250 250"/>
+<path class="edge active" d="M250 250 L250 265"/>
+<path class="edge active" d="M250 265 L250 280"/>
+<path class="edge active" d="M250 280 L250 295"/>
+<path class="edge active" d="M250 295 L250 325"/>
+<circle class="node " cx="250" cy="70" r="2.6"/>
+<circle class="node " cx="250" cy="85" r="2.6"/>
+<circle class="node " cx="250" cy="100" r="2.6"/>
+<circle class="node " cx="250" cy="115" r="2.6"/>
+<circle class="node " cx="250" cy="130" r="2.6"/>
+<circle class="node revealed" cx="250" cy="145" r="4.8"/>
+<circle class="node active" cx="250" cy="160" r="2.6"/>
+<circle class="node active" cx="250" cy="175" r="2.6"/>
+<circle class="node active" cx="250" cy="190" r="2.6"/>
+<circle class="node active" cx="250" cy="205" r="2.6"/>
+<circle class="node active" cx="250" cy="220" r="2.6"/>
+<circle class="node active" cx="250" cy="235" r="2.6"/>
+<circle class="node active" cx="250" cy="250" r="2.6"/>
+<circle class="node active" cx="250" cy="265" r="2.6"/>
+<circle class="node active" cx="250" cy="280" r="2.6"/>
+<circle class="node active" cx="250" cy="295" r="2.6"/>
+<path class="edge" d="M270 70 L270 85"/>
+<path class="edge" d="M270 85 L270 100"/>
+<path class="edge" d="M270 100 L270 115"/>
+<path class="edge active" d="M270 115 L270 130"/>
+<path class="edge active" d="M270 130 L270 145"/>
+<path class="edge active" d="M270 145 L270 160"/>
+<path class="edge active" d="M270 160 L270 175"/>
+<path class="edge active" d="M270 175 L270 190"/>
+<path class="edge active" d="M270 190 L270 205"/>
+<path class="edge active" d="M270 205 L270 220"/>
+<path class="edge active" d="M270 220 L270 235"/>
+<path class="edge active" d="M270 235 L270 250"/>
+<path class="edge active" d="M270 250 L270 265"/>
+<path class="edge active" d="M270 265 L270 280"/>
+<path class="edge active" d="M270 280 L270 295"/>
+<path class="edge active" d="M270 295 L270 325"/>
+<circle class="node " cx="270" cy="70" r="2.6"/>
+<circle class="node " cx="270" cy="85" r="2.6"/>
+<circle class="node " cx="270" cy="100" r="2.6"/>
+<circle class="node revealed" cx="270" cy="115" r="4.8"/>
+<circle class="node active" cx="270" cy="130" r="2.6"/>
+<circle class="node active" cx="270" cy="145" r="2.6"/>
+<circle class="node active" cx="270" cy="160" r="2.6"/>
+<circle class="node active" cx="270" cy="175" r="2.6"/>
+<circle class="node active" cx="270" cy="190" r="2.6"/>
+<circle class="node active" cx="270" cy="205" r="2.6"/>
+<circle class="node active" cx="270" cy="220" r="2.6"/>
+<circle class="node active" cx="270" cy="235" r="2.6"/>
+<circle class="node active" cx="270" cy="250" r="2.6"/>
+<circle class="node active" cx="270" cy="265" r="2.6"/>
+<circle class="node active" cx="270" cy="280" r="2.6"/>
+<circle class="node active" cx="270" cy="295" r="2.6"/>
+<path class="edge" d="M290 70 L290 85"/>
+<path class="edge" d="M290 85 L290 100"/>
+<path class="edge" d="M290 100 L290 115"/>
+<path class="edge" d="M290 115 L290 130"/>
+<path class="edge" d="M290 130 L290 145"/>
+<path class="edge" d="M290 145 L290 160"/>
+<path class="edge" d="M290 160 L290 175"/>
+<path class="edge" d="M290 175 L290 190"/>
+<path class="edge" d="M290 190 L290 205"/>
+<path class="edge" d="M290 205 L290 220"/>
+<path class="edge" d="M290 220 L290 235"/>
+<path class="edge" d="M290 235 L290 250"/>
+<path class="edge active" d="M290 250 L290 265"/>
+<path class="edge active" d="M290 265 L290 280"/>
+<path class="edge active" d="M290 280 L290 295"/>
+<path class="edge active" d="M290 295 L290 325"/>
+<circle class="node " cx="290" cy="70" r="2.6"/>
+<circle class="node " cx="290" cy="85" r="2.6"/>
+<circle class="node " cx="290" cy="100" r="2.6"/>
+<circle class="node " cx="290" cy="115" r="2.6"/>
+<circle class="node " cx="290" cy="130" r="2.6"/>
+<circle class="node " cx="290" cy="145" r="2.6"/>
+<circle class="node " cx="290" cy="160" r="2.6"/>
+<circle class="node " cx="290" cy="175" r="2.6"/>
+<circle class="node " cx="290" cy="190" r="2.6"/>
+<circle class="node " cx="290" cy="205" r="2.6"/>
+<circle class="node " cx="290" cy="220" r="2.6"/>
+<circle class="node " cx="290" cy="235" r="2.6"/>
+<circle class="node revealed" cx="290" cy="250" r="4.8"/>
+<circle class="node active" cx="290" cy="265" r="2.6"/>
+<circle class="node active" cx="290" cy="280" r="2.6"/>
+<circle class="node active" cx="290" cy="295" r="2.6"/>
+<path class="edge" d="M310 70 L310 85"/>
+<path class="edge" d="M310 85 L310 100"/>
+<path class="edge" d="M310 100 L310 115"/>
+<path class="edge" d="M310 115 L310 130"/>
+<path class="edge" d="M310 130 L310 145"/>
+<path class="edge" d="M310 145 L310 160"/>
+<path class="edge" d="M310 160 L310 175"/>
+<path class="edge active" d="M310 175 L310 190"/>
+<path class="edge active" d="M310 190 L310 205"/>
+<path class="edge active" d="M310 205 L310 220"/>
+<path class="edge active" d="M310 220 L310 235"/>
+<path class="edge active" d="M310 235 L310 250"/>
+<path class="edge active" d="M310 250 L310 265"/>
+<path class="edge active" d="M310 265 L310 280"/>
+<path class="edge active" d="M310 280 L310 295"/>
+<path class="edge active" d="M310 295 L310 325"/>
+<circle class="node " cx="310" cy="70" r="2.6"/>
+<circle class="node " cx="310" cy="85" r="2.6"/>
+<circle class="node " cx="310" cy="100" r="2.6"/>
+<circle class="node " cx="310" cy="115" r="2.6"/>
+<circle class="node " cx="310" cy="130" r="2.6"/>
+<circle class="node " cx="310" cy="145" r="2.6"/>
+<circle class="node " cx="310" cy="160" r="2.6"/>
+<circle class="node revealed" cx="310" cy="175" r="4.8"/>
+<circle class="node active" cx="310" cy="190" r="2.6"/>
+<circle class="node active" cx="310" cy="205" r="2.6"/>
+<circle class="node active" cx="310" cy="220" r="2.6"/>
+<circle class="node active" cx="310" cy="235" r="2.6"/>
+<circle class="node active" cx="310" cy="250" r="2.6"/>
+<circle class="node active" cx="310" cy="265" r="2.6"/>
+<circle class="node active" cx="310" cy="280" r="2.6"/>
+<circle class="node active" cx="310" cy="295" r="2.6"/>
+<path class="edge" d="M330 70 L330 85"/>
+<path class="edge" d="M330 85 L330 100"/>
+<path class="edge" d="M330 100 L330 115"/>
+<path class="edge" d="M330 115 L330 130"/>
+<path class="edge" d="M330 130 L330 145"/>
+<path class="edge" d="M330 145 L330 160"/>
+<path class="edge" d="M330 160 L330 175"/>
+<path class="edge" d="M330 175 L330 190"/>
+<path class="edge" d="M330 190 L330 205"/>
+<path class="edge" d="M330 205 L330 220"/>
+<path class="edge" d="M330 220 L330 235"/>
+<path class="edge" d="M330 235 L330 250"/>
+<path class="edge active" d="M330 250 L330 265"/>
+<path class="edge active" d="M330 265 L330 280"/>
+<path class="edge active" d="M330 280 L330 295"/>
+<path class="edge active" d="M330 295 L330 325"/>
+<circle class="node " cx="330" cy="70" r="2.6"/>
+<circle class="node " cx="330" cy="85" r="2.6"/>
+<circle class="node " cx="330" cy="100" r="2.6"/>
+<circle class="node " cx="330" cy="115" r="2.6"/>
+<circle class="node " cx="330" cy="130" r="2.6"/>
+<circle class="node " cx="330" cy="145" r="2.6"/>
+<circle class="node " cx="330" cy="160" r="2.6"/>
+<circle class="node " cx="330" cy="175" r="2.6"/>
+<circle class="node " cx="330" cy="190" r="2.6"/>
+<circle class="node " cx="330" cy="205" r="2.6"/>
+<circle class="node " cx="330" cy="220" r="2.6"/>
+<circle class="node " cx="330" cy="235" r="2.6"/>
+<circle class="node revealed" cx="330" cy="250" r="4.8"/>
+<circle class="node active" cx="330" cy="265" r="2.6"/>
+<circle class="node active" cx="330" cy="280" r="2.6"/>
+<circle class="node active" cx="330" cy="295" r="2.6"/>
+<path class="edge" d="M350 70 L350 85"/>
+<path class="edge" d="M350 85 L350 100"/>
+<path class="edge" d="M350 100 L350 115"/>
+<path class="edge" d="M350 115 L350 130"/>
+<path class="edge" d="M350 130 L350 145"/>
+<path class="edge" d="M350 145 L350 160"/>
+<path class="edge" d="M350 160 L350 175"/>
+<path class="edge" d="M350 175 L350 190"/>
+<path class="edge" d="M350 190 L350 205"/>
+<path class="edge" d="M350 205 L350 220"/>
+<path class="edge" d="M350 220 L350 235"/>
+<path class="edge" d="M350 235 L350 250"/>
+<path class="edge" d="M350 250 L350 265"/>
+<path class="edge active" d="M350 265 L350 280"/>
+<path class="edge active" d="M350 280 L350 295"/>
+<path class="edge active" d="M350 295 L350 325"/>
+<circle class="node " cx="350" cy="70" r="2.6"/>
+<circle class="node " cx="350" cy="85" r="2.6"/>
+<circle class="node " cx="350" cy="100" r="2.6"/>
+<circle class="node " cx="350" cy="115" r="2.6"/>
+<circle class="node " cx="350" cy="130" r="2.6"/>
+<circle class="node " cx="350" cy="145" r="2.6"/>
+<circle class="node " cx="350" cy="160" r="2.6"/>
+<circle class="node " cx="350" cy="175" r="2.6"/>
+<circle class="node " cx="350" cy="190" r="2.6"/>
+<circle class="node " cx="350" cy="205" r="2.6"/>
+<circle class="node " cx="350" cy="220" r="2.6"/>
+<circle class="node " cx="350" cy="235" r="2.6"/>
+<circle class="node " cx="350" cy="250" r="2.6"/>
+<circle class="node revealed" cx="350" cy="265" r="4.8"/>
+<circle class="node active" cx="350" cy="280" r="2.6"/>
+<circle class="node active" cx="350" cy="295" r="2.6"/>
+<path class="edge" d="M370 70 L370 85"/>
+<path class="edge" d="M370 85 L370 100"/>
+<path class="edge" d="M370 100 L370 115"/>
+<path class="edge" d="M370 115 L370 130"/>
+<path class="edge" d="M370 130 L370 145"/>
+<path class="edge" d="M370 145 L370 160"/>
+<path class="edge active" d="M370 160 L370 175"/>
+<path class="edge active" d="M370 175 L370 190"/>
+<path class="edge active" d="M370 190 L370 205"/>
+<path class="edge active" d="M370 205 L370 220"/>
+<path class="edge active" d="M370 220 L370 235"/>
+<path class="edge active" d="M370 235 L370 250"/>
+<path class="edge active" d="M370 250 L370 265"/>
+<path class="edge active" d="M370 265 L370 280"/>
+<path class="edge active" d="M370 280 L370 295"/>
+<path class="edge active" d="M370 295 L370 325"/>
+<circle class="node " cx="370" cy="70" r="2.6"/>
+<circle class="node " cx="370" cy="85" r="2.6"/>
+<circle class="node " cx="370" cy="100" r="2.6"/>
+<circle class="node " cx="370" cy="115" r="2.6"/>
+<circle class="node " cx="370" cy="130" r="2.6"/>
+<circle class="node " cx="370" cy="145" r="2.6"/>
+<circle class="node revealed" cx="370" cy="160" r="4.8"/>
+<circle class="node active" cx="370" cy="175" r="2.6"/>
+<circle class="node active" cx="370" cy="190" r="2.6"/>
+<circle class="node active" cx="370" cy="205" r="2.6"/>
+<circle class="node active" cx="370" cy="220" r="2.6"/>
+<circle class="node active" cx="370" cy="235" r="2.6"/>
+<circle class="node active" cx="370" cy="250" r="2.6"/>
+<circle class="node active" cx="370" cy="265" r="2.6"/>
+<circle class="node active" cx="370" cy="280" r="2.6"/>
+<circle class="node active" cx="370" cy="295" r="2.6"/>
+<path class="edge" d="M390 70 L390 85"/>
+<path class="edge" d="M390 85 L390 100"/>
+<path class="edge" d="M390 100 L390 115"/>
+<path class="edge" d="M390 115 L390 130"/>
+<path class="edge" d="M390 130 L390 145"/>
+<path class="edge" d="M390 145 L390 160"/>
+<path class="edge" d="M390 160 L390 175"/>
+<path class="edge" d="M390 175 L390 190"/>
+<path class="edge" d="M390 190 L390 205"/>
+<path class="edge" d="M390 205 L390 220"/>
+<path class="edge" d="M390 220 L390 235"/>
+<path class="edge" d="M390 235 L390 250"/>
+<path class="edge" d="M390 250 L390 265"/>
+<path class="edge" d="M390 265 L390 280"/>
+<path class="edge" d="M390 280 L390 295"/>
+<path class="edge active" d="M390 295 L390 325"/>
+<circle class="node " cx="390" cy="70" r="2.6"/>
+<circle class="node " cx="390" cy="85" r="2.6"/>
+<circle class="node " cx="390" cy="100" r="2.6"/>
+<circle class="node " cx="390" cy="115" r="2.6"/>
+<circle class="node " cx="390" cy="130" r="2.6"/>
+<circle class="node " cx="390" cy="145" r="2.6"/>
+<circle class="node " cx="390" cy="160" r="2.6"/>
+<circle class="node " cx="390" cy="175" r="2.6"/>
+<circle class="node " cx="390" cy="190" r="2.6"/>
+<circle class="node " cx="390" cy="205" r="2.6"/>
+<circle class="node " cx="390" cy="220" r="2.6"/>
+<circle class="node " cx="390" cy="235" r="2.6"/>
+<circle class="node " cx="390" cy="250" r="2.6"/>
+<circle class="node " cx="390" cy="265" r="2.6"/>
+<circle class="node " cx="390" cy="280" r="2.6"/>
+<circle class="node revealed" cx="390" cy="295" r="4.8"/>
+<path class="edge" d="M410 70 L410 85"/>
+<path class="edge" d="M410 85 L410 100"/>
+<path class="edge" d="M410 100 L410 115"/>
+<path class="edge" d="M410 115 L410 130"/>
+<path class="edge" d="M410 130 L410 145"/>
+<path class="edge" d="M410 145 L410 160"/>
+<path class="edge active" d="M410 160 L410 175"/>
+<path class="edge active" d="M410 175 L410 190"/>
+<path class="edge active" d="M410 190 L410 205"/>
+<path class="edge active" d="M410 205 L410 220"/>
+<path class="edge active" d="M410 220 L410 235"/>
+<path class="edge active" d="M410 235 L410 250"/>
+<path class="edge active" d="M410 250 L410 265"/>
+<path class="edge active" d="M410 265 L410 280"/>
+<path class="edge active" d="M410 280 L410 295"/>
+<path class="edge active" d="M410 295 L410 325"/>
+<circle class="node " cx="410" cy="70" r="2.6"/>
+<circle class="node " cx="410" cy="85" r="2.6"/>
+<circle class="node " cx="410" cy="100" r="2.6"/>
+<circle class="node " cx="410" cy="115" r="2.6"/>
+<circle class="node " cx="410" cy="130" r="2.6"/>
+<circle class="node " cx="410" cy="145" r="2.6"/>
+<circle class="node revealed" cx="410" cy="160" r="4.8"/>
+<circle class="node active" cx="410" cy="175" r="2.6"/>
+<circle class="node active" cx="410" cy="190" r="2.6"/>
+<circle class="node active" cx="410" cy="205" r="2.6"/>
+<circle class="node active" cx="410" cy="220" r="2.6"/>
+<circle class="node active" cx="410" cy="235" r="2.6"/>
+<circle class="node active" cx="410" cy="250" r="2.6"/>
+<circle class="node active" cx="410" cy="265" r="2.6"/>
+<circle class="node active" cx="410" cy="280" r="2.6"/>
+<circle class="node active" cx="410" cy="295" r="2.6"/>
+<path class="edge" d="M430 70 L430 85"/>
+<path class="edge" d="M430 85 L430 100"/>
+<path class="edge" d="M430 100 L430 115"/>
+<path class="edge" d="M430 115 L430 130"/>
+<path class="edge" d="M430 130 L430 145"/>
+<path class="edge" d="M430 145 L430 160"/>
+<path class="edge" d="M430 160 L430 175"/>
+<path class="edge" d="M430 175 L430 190"/>
+<path class="edge" d="M430 190 L430 205"/>
+<path class="edge" d="M430 205 L430 220"/>
+<path class="edge" d="M430 220 L430 235"/>
+<path class="edge" d="M430 235 L430 250"/>
+<path class="edge" d="M430 250 L430 265"/>
+<path class="edge" d="M430 265 L430 280"/>
+<path class="edge active" d="M430 280 L430 295"/>
+<path class="edge active" d="M430 295 L430 325"/>
+<circle class="node " cx="430" cy="70" r="2.6"/>
+<circle class="node " cx="430" cy="85" r="2.6"/>
+<circle class="node " cx="430" cy="100" r="2.6"/>
+<circle class="node " cx="430" cy="115" r="2.6"/>
+<circle class="node " cx="430" cy="130" r="2.6"/>
+<circle class="node " cx="430" cy="145" r="2.6"/>
+<circle class="node " cx="430" cy="160" r="2.6"/>
+<circle class="node " cx="430" cy="175" r="2.6"/>
+<circle class="node " cx="430" cy="190" r="2.6"/>
+<circle class="node " cx="430" cy="205" r="2.6"/>
+<circle class="node " cx="430" cy="220" r="2.6"/>
+<circle class="node " cx="430" cy="235" r="2.6"/>
+<circle class="node " cx="430" cy="250" r="2.6"/>
+<circle class="node " cx="430" cy="265" r="2.6"/>
+<circle class="node revealed" cx="430" cy="280" r="4.8"/>
+<circle class="node active" cx="430" cy="295" r="2.6"/>
+<path class="edge" d="M450 70 L450 85"/>
+<path class="edge" d="M450 85 L450 100"/>
+<path class="edge" d="M450 100 L450 115"/>
+<path class="edge" d="M450 115 L450 130"/>
+<path class="edge" d="M450 130 L450 145"/>
+<path class="edge" d="M450 145 L450 160"/>
+<path class="edge" d="M450 160 L450 175"/>
+<path class="edge" d="M450 175 L450 190"/>
+<path class="edge" d="M450 190 L450 205"/>
+<path class="edge" d="M450 205 L450 220"/>
+<path class="edge" d="M450 220 L450 235"/>
+<path class="edge" d="M450 235 L450 250"/>
+<path class="edge" d="M450 250 L450 265"/>
+<path class="edge active" d="M450 265 L450 280"/>
+<path class="edge active" d="M450 280 L450 295"/>
+<path class="edge active" d="M450 295 L450 325"/>
+<circle class="node " cx="450" cy="70" r="2.6"/>
+<circle class="node " cx="450" cy="85" r="2.6"/>
+<circle class="node " cx="450" cy="100" r="2.6"/>
+<circle class="node " cx="450" cy="115" r="2.6"/>
+<circle class="node " cx="450" cy="130" r="2.6"/>
+<circle class="node " cx="450" cy="145" r="2.6"/>
+<circle class="node " cx="450" cy="160" r="2.6"/>
+<circle class="node " cx="450" cy="175" r="2.6"/>
+<circle class="node " cx="450" cy="190" r="2.6"/>
+<circle class="node " cx="450" cy="205" r="2.6"/>
+<circle class="node " cx="450" cy="220" r="2.6"/>
+<circle class="node " cx="450" cy="235" r="2.6"/>
+<circle class="node " cx="450" cy="250" r="2.6"/>
+<circle class="node revealed" cx="450" cy="265" r="4.8"/>
+<circle class="node active" cx="450" cy="280" r="2.6"/>
+<circle class="node active" cx="450" cy="295" r="2.6"/>
+<path class="edge" d="M470 70 L470 85"/>
+<path class="edge" d="M470 85 L470 100"/>
+<path class="edge" d="M470 100 L470 115"/>
+<path class="edge" d="M470 115 L470 130"/>
+<path class="edge" d="M470 130 L470 145"/>
+<path class="edge" d="M470 145 L470 160"/>
+<path class="edge" d="M470 160 L470 175"/>
+<path class="edge" d="M470 175 L470 190"/>
+<path class="edge" d="M470 190 L470 205"/>
+<path class="edge" d="M470 205 L470 220"/>
+<path class="edge" d="M470 220 L470 235"/>
+<path class="edge active" d="M470 235 L470 250"/>
+<path class="edge active" d="M470 250 L470 265"/>
+<path class="edge active" d="M470 265 L470 280"/>
+<path class="edge active" d="M470 280 L470 295"/>
+<path class="edge active" d="M470 295 L470 325"/>
+<circle class="node " cx="470" cy="70" r="2.6"/>
+<circle class="node " cx="470" cy="85" r="2.6"/>
+<circle class="node " cx="470" cy="100" r="2.6"/>
+<circle class="node " cx="470" cy="115" r="2.6"/>
+<circle class="node " cx="470" cy="130" r="2.6"/>
+<circle class="node " cx="470" cy="145" r="2.6"/>
+<circle class="node " cx="470" cy="160" r="2.6"/>
+<circle class="node " cx="470" cy="175" r="2.6"/>
+<circle class="node " cx="470" cy="190" r="2.6"/>
+<circle class="node " cx="470" cy="205" r="2.6"/>
+<circle class="node " cx="470" cy="220" r="2.6"/>
+<circle class="node revealed" cx="470" cy="235" r="4.8"/>
+<circle class="node active" cx="470" cy="250" r="2.6"/>
+<circle class="node active" cx="470" cy="265" r="2.6"/>
+<circle class="node active" cx="470" cy="280" r="2.6"/>
+<circle class="node active" cx="470" cy="295" r="2.6"/>
+<path class="edge" d="M490 70 L490 85"/>
+<path class="edge" d="M490 85 L490 100"/>
+<path class="edge" d="M490 100 L490 115"/>
+<path class="edge" d="M490 115 L490 130"/>
+<path class="edge active" d="M490 130 L490 145"/>
+<path class="edge active" d="M490 145 L490 160"/>
+<path class="edge active" d="M490 160 L490 175"/>
+<path class="edge active" d="M490 175 L490 190"/>
+<path class="edge active" d="M490 190 L490 205"/>
+<path class="edge active" d="M490 205 L490 220"/>
+<path class="edge active" d="M490 220 L490 235"/>
+<path class="edge active" d="M490 235 L490 250"/>
+<path class="edge active" d="M490 250 L490 265"/>
+<path class="edge active" d="M490 265 L490 280"/>
+<path class="edge active" d="M490 280 L490 295"/>
+<path class="edge active" d="M490 295 L490 325"/>
+<circle class="node " cx="490" cy="70" r="2.6"/>
+<circle class="node " cx="490" cy="85" r="2.6"/>
+<circle class="node " cx="490" cy="100" r="2.6"/>
+<circle class="node " cx="490" cy="115" r="2.6"/>
+<circle class="node revealed" cx="490" cy="130" r="4.8"/>
+<circle class="node active" cx="490" cy="145" r="2.6"/>
+<circle class="node active" cx="490" cy="160" r="2.6"/>
+<circle class="node active" cx="490" cy="175" r="2.6"/>
+<circle class="node active" cx="490" cy="190" r="2.6"/>
+<circle class="node active" cx="490" cy="205" r="2.6"/>
+<circle class="node active" cx="490" cy="220" r="2.6"/>
+<circle class="node active" cx="490" cy="235" r="2.6"/>
+<circle class="node active" cx="490" cy="250" r="2.6"/>
+<circle class="node active" cx="490" cy="265" r="2.6"/>
+<circle class="node active" cx="490" cy="280" r="2.6"/>
+<circle class="node active" cx="490" cy="295" r="2.6"/>
+<path class="edge" d="M510 70 L510 85"/>
+<path class="edge" d="M510 85 L510 100"/>
+<path class="edge" d="M510 100 L510 115"/>
+<path class="edge" d="M510 115 L510 130"/>
+<path class="edge" d="M510 130 L510 145"/>
+<path class="edge" d="M510 145 L510 160"/>
+<path class="edge" d="M510 160 L510 175"/>
+<path class="edge active" d="M510 175 L510 190"/>
+<path class="edge active" d="M510 190 L510 205"/>
+<path class="edge active" d="M510 205 L510 220"/>
+<path class="edge active" d="M510 220 L510 235"/>
+<path class="edge active" d="M510 235 L510 250"/>
+<path class="edge active" d="M510 250 L510 265"/>
+<path class="edge active" d="M510 265 L510 280"/>
+<path class="edge active" d="M510 280 L510 295"/>
+<path class="edge active" d="M510 295 L510 325"/>
+<circle class="node " cx="510" cy="70" r="2.6"/>
+<circle class="node " cx="510" cy="85" r="2.6"/>
+<circle class="node " cx="510" cy="100" r="2.6"/>
+<circle class="node " cx="510" cy="115" r="2.6"/>
+<circle class="node " cx="510" cy="130" r="2.6"/>
+<circle class="node " cx="510" cy="145" r="2.6"/>
+<circle class="node " cx="510" cy="160" r="2.6"/>
+<circle class="node revealed" cx="510" cy="175" r="4.8"/>
+<circle class="node active" cx="510" cy="190" r="2.6"/>
+<circle class="node active" cx="510" cy="205" r="2.6"/>
+<circle class="node active" cx="510" cy="220" r="2.6"/>
+<circle class="node active" cx="510" cy="235" r="2.6"/>
+<circle class="node active" cx="510" cy="250" r="2.6"/>
+<circle class="node active" cx="510" cy="265" r="2.6"/>
+<circle class="node active" cx="510" cy="280" r="2.6"/>
+<circle class="node active" cx="510" cy="295" r="2.6"/>
+<path class="edge" d="M530 70 L530 85"/>
+<path class="edge" d="M530 85 L530 100"/>
+<path class="edge" d="M530 100 L530 115"/>
+<path class="edge" d="M530 115 L530 130"/>
+<path class="edge" d="M530 130 L530 145"/>
+<path class="edge" d="M530 145 L530 160"/>
+<path class="edge" d="M530 160 L530 175"/>
+<path class="edge" d="M530 175 L530 190"/>
+<path class="edge" d="M530 190 L530 205"/>
+<path class="edge" d="M530 205 L530 220"/>
+<path class="edge" d="M530 220 L530 235"/>
+<path class="edge" d="M530 235 L530 250"/>
+<path class="edge" d="M530 250 L530 265"/>
+<path class="edge active" d="M530 265 L530 280"/>
+<path class="edge active" d="M530 280 L530 295"/>
+<path class="edge active" d="M530 295 L530 325"/>
+<circle class="node " cx="530" cy="70" r="2.6"/>
+<circle class="node " cx="530" cy="85" r="2.6"/>
+<circle class="node " cx="530" cy="100" r="2.6"/>
+<circle class="node " cx="530" cy="115" r="2.6"/>
+<circle class="node " cx="530" cy="130" r="2.6"/>
+<circle class="node " cx="530" cy="145" r="2.6"/>
+<circle class="node " cx="530" cy="160" r="2.6"/>
+<circle class="node " cx="530" cy="175" r="2.6"/>
+<circle class="node " cx="530" cy="190" r="2.6"/>
+<circle class="node " cx="530" cy="205" r="2.6"/>
+<circle class="node " cx="530" cy="220" r="2.6"/>
+<circle class="node " cx="530" cy="235" r="2.6"/>
+<circle class="node " cx="530" cy="250" r="2.6"/>
+<circle class="node revealed" cx="530" cy="265" r="4.8"/>
+<circle class="node active" cx="530" cy="280" r="2.6"/>
+<circle class="node active" cx="530" cy="295" r="2.6"/>
+<path class="edge" d="M550 70 L550 85"/>
+<path class="edge" d="M550 85 L550 100"/>
+<path class="edge" d="M550 100 L550 115"/>
+<path class="edge" d="M550 115 L550 130"/>
+<path class="edge" d="M550 130 L550 145"/>
+<path class="edge" d="M550 145 L550 160"/>
+<path class="edge active" d="M550 160 L550 175"/>
+<path class="edge active" d="M550 175 L550 190"/>
+<path class="edge active" d="M550 190 L550 205"/>
+<path class="edge active" d="M550 205 L550 220"/>
+<path class="edge active" d="M550 220 L550 235"/>
+<path class="edge active" d="M550 235 L550 250"/>
+<path class="edge active" d="M550 250 L550 265"/>
+<path class="edge active" d="M550 265 L550 280"/>
+<path class="edge active" d="M550 280 L550 295"/>
+<path class="edge active" d="M550 295 L550 325"/>
+<circle class="node " cx="550" cy="70" r="2.6"/>
+<circle class="node " cx="550" cy="85" r="2.6"/>
+<circle class="node " cx="550" cy="100" r="2.6"/>
+<circle class="node " cx="550" cy="115" r="2.6"/>
+<circle class="node " cx="550" cy="130" r="2.6"/>
+<circle class="node " cx="550" cy="145" r="2.6"/>
+<circle class="node revealed" cx="550" cy="160" r="4.8"/>
+<circle class="node active" cx="550" cy="175" r="2.6"/>
+<circle class="node active" cx="550" cy="190" r="2.6"/>
+<circle class="node active" cx="550" cy="205" r="2.6"/>
+<circle class="node active" cx="550" cy="220" r="2.6"/>
+<circle class="node active" cx="550" cy="235" r="2.6"/>
+<circle class="node active" cx="550" cy="250" r="2.6"/>
+<circle class="node active" cx="550" cy="265" r="2.6"/>
+<circle class="node active" cx="550" cy="280" r="2.6"/>
+<circle class="node active" cx="550" cy="295" r="2.6"/>
+<path class="edge" d="M570 70 L570 85"/>
+<path class="edge" d="M570 85 L570 100"/>
+<path class="edge" d="M570 100 L570 115"/>
+<path class="edge" d="M570 115 L570 130"/>
+<path class="edge" d="M570 130 L570 145"/>
+<path class="edge" d="M570 145 L570 160"/>
+<path class="edge" d="M570 160 L570 175"/>
+<path class="edge" d="M570 175 L570 190"/>
+<path class="edge" d="M570 190 L570 205"/>
+<path class="edge" d="M570 205 L570 220"/>
+<path class="edge" d="M570 220 L570 235"/>
+<path class="edge" d="M570 235 L570 250"/>
+<path class="edge active" d="M570 250 L570 265"/>
+<path class="edge active" d="M570 265 L570 280"/>
+<path class="edge active" d="M570 280 L570 295"/>
+<path class="edge active" d="M570 295 L570 325"/>
+<circle class="node " cx="570" cy="70" r="2.6"/>
+<circle class="node " cx="570" cy="85" r="2.6"/>
+<circle class="node " cx="570" cy="100" r="2.6"/>
+<circle class="node " cx="570" cy="115" r="2.6"/>
+<circle class="node " cx="570" cy="130" r="2.6"/>
+<circle class="node " cx="570" cy="145" r="2.6"/>
+<circle class="node " cx="570" cy="160" r="2.6"/>
+<circle class="node " cx="570" cy="175" r="2.6"/>
+<circle class="node " cx="570" cy="190" r="2.6"/>
+<circle class="node " cx="570" cy="205" r="2.6"/>
+<circle class="node " cx="570" cy="220" r="2.6"/>
+<circle class="node " cx="570" cy="235" r="2.6"/>
+<circle class="node revealed" cx="570" cy="250" r="4.8"/>
+<circle class="node active" cx="570" cy="265" r="2.6"/>
+<circle class="node active" cx="570" cy="280" r="2.6"/>
+<circle class="node active" cx="570" cy="295" r="2.6"/>
+<path class="edge" d="M590 70 L590 85"/>
+<path class="edge" d="M590 85 L590 100"/>
+<path class="edge" d="M590 100 L590 115"/>
+<path class="edge" d="M590 115 L590 130"/>
+<path class="edge" d="M590 130 L590 145"/>
+<path class="edge" d="M590 145 L590 160"/>
+<path class="edge active" d="M590 160 L590 175"/>
+<path class="edge active" d="M590 175 L590 190"/>
+<path class="edge active" d="M590 190 L590 205"/>
+<path class="edge active" d="M590 205 L590 220"/>
+<path class="edge active" d="M590 220 L590 235"/>
+<path class="edge active" d="M590 235 L590 250"/>
+<path class="edge active" d="M590 250 L590 265"/>
+<path class="edge active" d="M590 265 L590 280"/>
+<path class="edge active" d="M590 280 L590 295"/>
+<path class="edge active" d="M590 295 L590 325"/>
+<circle class="node " cx="590" cy="70" r="2.6"/>
+<circle class="node " cx="590" cy="85" r="2.6"/>
+<circle class="node " cx="590" cy="100" r="2.6"/>
+<circle class="node " cx="590" cy="115" r="2.6"/>
+<circle class="node " cx="590" cy="130" r="2.6"/>
+<circle class="node " cx="590" cy="145" r="2.6"/>
+<circle class="node revealed" cx="590" cy="160" r="4.8"/>
+<circle class="node active" cx="590" cy="175" r="2.6"/>
+<circle class="node active" cx="590" cy="190" r="2.6"/>
+<circle class="node active" cx="590" cy="205" r="2.6"/>
+<circle class="node active" cx="590" cy="220" r="2.6"/>
+<circle class="node active" cx="590" cy="235" r="2.6"/>
+<circle class="node active" cx="590" cy="250" r="2.6"/>
+<circle class="node active" cx="590" cy="265" r="2.6"/>
+<circle class="node active" cx="590" cy="280" r="2.6"/>
+<circle class="node active" cx="590" cy="295" r="2.6"/>
+<path class="edge" d="M610 70 L610 85"/>
+<path class="edge active" d="M610 85 L610 100"/>
+<path class="edge active" d="M610 100 L610 115"/>
+<path class="edge active" d="M610 115 L610 130"/>
+<path class="edge active" d="M610 130 L610 145"/>
+<path class="edge active" d="M610 145 L610 160"/>
+<path class="edge active" d="M610 160 L610 175"/>
+<path class="edge active" d="M610 175 L610 190"/>
+<path class="edge active" d="M610 190 L610 205"/>
+<path class="edge active" d="M610 205 L610 220"/>
+<path class="edge active" d="M610 220 L610 235"/>
+<path class="edge active" d="M610 235 L610 250"/>
+<path class="edge active" d="M610 250 L610 265"/>
+<path class="edge active" d="M610 265 L610 280"/>
+<path class="edge active" d="M610 280 L610 295"/>
+<path class="edge active" d="M610 295 L610 325"/>
+<circle class="node " cx="610" cy="70" r="2.6"/>
+<circle class="node revealed" cx="610" cy="85" r="4.8"/>
+<circle class="node active" cx="610" cy="100" r="2.6"/>
+<circle class="node active" cx="610" cy="115" r="2.6"/>
+<circle class="node active" cx="610" cy="130" r="2.6"/>
+<circle class="node active" cx="610" cy="145" r="2.6"/>
+<circle class="node active" cx="610" cy="160" r="2.6"/>
+<circle class="node active" cx="610" cy="175" r="2.6"/>
+<circle class="node active" cx="610" cy="190" r="2.6"/>
+<circle class="node active" cx="610" cy="205" r="2.6"/>
+<circle class="node active" cx="610" cy="220" r="2.6"/>
+<circle class="node active" cx="610" cy="235" r="2.6"/>
+<circle class="node active" cx="610" cy="250" r="2.6"/>
+<circle class="node active" cx="610" cy="265" r="2.6"/>
+<circle class="node active" cx="610" cy="280" r="2.6"/>
+<circle class="node active" cx="610" cy="295" r="2.6"/>
+<path class="edge" d="M630 70 L630 85"/>
+<path class="edge" d="M630 85 L630 100"/>
+<path class="edge" d="M630 100 L630 115"/>
+<path class="edge" d="M630 115 L630 130"/>
+<path class="edge" d="M630 130 L630 145"/>
+<path class="edge" d="M630 145 L630 160"/>
+<path class="edge" d="M630 160 L630 175"/>
+<path class="edge" d="M630 175 L630 190"/>
+<path class="edge" d="M630 190 L630 205"/>
+<path class="edge" d="M630 205 L630 220"/>
+<path class="edge" d="M630 220 L630 235"/>
+<path class="edge" d="M630 235 L630 250"/>
+<path class="edge" d="M630 250 L630 265"/>
+<path class="edge active" d="M630 265 L630 280"/>
+<path class="edge active" d="M630 280 L630 295"/>
+<path class="edge active" d="M630 295 L630 325"/>
+<circle class="node " cx="630" cy="70" r="2.6"/>
+<circle class="node " cx="630" cy="85" r="2.6"/>
+<circle class="node " cx="630" cy="100" r="2.6"/>
+<circle class="node " cx="630" cy="115" r="2.6"/>
+<circle class="node " cx="630" cy="130" r="2.6"/>
+<circle class="node " cx="630" cy="145" r="2.6"/>
+<circle class="node " cx="630" cy="160" r="2.6"/>
+<circle class="node " cx="630" cy="175" r="2.6"/>
+<circle class="node " cx="630" cy="190" r="2.6"/>
+<circle class="node " cx="630" cy="205" r="2.6"/>
+<circle class="node " cx="630" cy="220" r="2.6"/>
+<circle class="node " cx="630" cy="235" r="2.6"/>
+<circle class="node " cx="630" cy="250" r="2.6"/>
+<circle class="node revealed" cx="630" cy="265" r="4.8"/>
+<circle class="node active" cx="630" cy="280" r="2.6"/>
+<circle class="node active" cx="630" cy="295" r="2.6"/>
+<path class="edge" d="M650 70 L650 85"/>
+<path class="edge" d="M650 85 L650 100"/>
+<path class="edge" d="M650 100 L650 115"/>
+<path class="edge" d="M650 115 L650 130"/>
+<path class="edge" d="M650 130 L650 145"/>
+<path class="edge" d="M650 145 L650 160"/>
+<path class="edge" d="M650 160 L650 175"/>
+<path class="edge" d="M650 175 L650 190"/>
+<path class="edge" d="M650 190 L650 205"/>
+<path class="edge active" d="M650 205 L650 220"/>
+<path class="edge active" d="M650 220 L650 235"/>
+<path class="edge active" d="M650 235 L650 250"/>
+<path class="edge active" d="M650 250 L650 265"/>
+<path class="edge active" d="M650 265 L650 280"/>
+<path class="edge active" d="M650 280 L650 295"/>
+<path class="edge active" d="M650 295 L650 325"/>
+<circle class="node " cx="650" cy="70" r="2.6"/>
+<circle class="node " cx="650" cy="85" r="2.6"/>
+<circle class="node " cx="650" cy="100" r="2.6"/>
+<circle class="node " cx="650" cy="115" r="2.6"/>
+<circle class="node " cx="650" cy="130" r="2.6"/>
+<circle class="node " cx="650" cy="145" r="2.6"/>
+<circle class="node " cx="650" cy="160" r="2.6"/>
+<circle class="node " cx="650" cy="175" r="2.6"/>
+<circle class="node " cx="650" cy="190" r="2.6"/>
+<circle class="node revealed" cx="650" cy="205" r="4.8"/>
+<circle class="node active" cx="650" cy="220" r="2.6"/>
+<circle class="node active" cx="650" cy="235" r="2.6"/>
+<circle class="node active" cx="650" cy="250" r="2.6"/>
+<circle class="node active" cx="650" cy="265" r="2.6"/>
+<circle class="node active" cx="650" cy="280" r="2.6"/>
+<circle class="node active" cx="650" cy="295" r="2.6"/>
+<path class="edge" d="M670 70 L670 85"/>
+<path class="edge" d="M670 85 L670 100"/>
+<path class="edge" d="M670 100 L670 115"/>
+<path class="edge" d="M670 115 L670 130"/>
+<path class="edge" d="M670 130 L670 145"/>
+<path class="edge" d="M670 145 L670 160"/>
+<path class="edge" d="M670 160 L670 175"/>
+<path class="edge" d="M670 175 L670 190"/>
+<path class="edge" d="M670 190 L670 205"/>
+<path class="edge" d="M670 205 L670 220"/>
+<path class="edge" d="M670 220 L670 235"/>
+<path class="edge" d="M670 235 L670 250"/>
+<path class="edge" d="M670 250 L670 265"/>
+<path class="edge" d="M670 265 L670 280"/>
+<path class="edge" d="M670 280 L670 295"/>
+<path class="edge active" d="M670 295 L670 325"/>
+<circle class="node " cx="670" cy="70" r="2.6"/>
+<circle class="node " cx="670" cy="85" r="2.6"/>
+<circle class="node " cx="670" cy="100" r="2.6"/>
+<circle class="node " cx="670" cy="115" r="2.6"/>
+<circle class="node " cx="670" cy="130" r="2.6"/>
+<circle class="node " cx="670" cy="145" r="2.6"/>
+<circle class="node " cx="670" cy="160" r="2.6"/>
+<circle class="node " cx="670" cy="175" r="2.6"/>
+<circle class="node " cx="670" cy="190" r="2.6"/>
+<circle class="node " cx="670" cy="205" r="2.6"/>
+<circle class="node " cx="670" cy="220" r="2.6"/>
+<circle class="node " cx="670" cy="235" r="2.6"/>
+<circle class="node " cx="670" cy="250" r="2.6"/>
+<circle class="node " cx="670" cy="265" r="2.6"/>
+<circle class="node " cx="670" cy="280" r="2.6"/>
+<circle class="node revealed" cx="670" cy="295" r="4.8"/>
+<path class="edge" d="M690 70 L690 85"/>
+<path class="edge" d="M690 85 L690 100"/>
+<path class="edge" d="M690 100 L690 115"/>
+<path class="edge" d="M690 115 L690 130"/>
+<path class="edge" d="M690 130 L690 145"/>
+<path class="edge" d="M690 145 L690 160"/>
+<path class="edge" d="M690 160 L690 175"/>
+<path class="edge" d="M690 175 L690 190"/>
+<path class="edge" d="M690 190 L690 205"/>
+<path class="edge" d="M690 205 L690 220"/>
+<path class="edge" d="M690 220 L690 235"/>
+<path class="edge" d="M690 235 L690 250"/>
+<path class="edge active" d="M690 250 L690 265"/>
+<path class="edge active" d="M690 265 L690 280"/>
+<path class="edge active" d="M690 280 L690 295"/>
+<path class="edge active" d="M690 295 L690 325"/>
+<circle class="node " cx="690" cy="70" r="2.6"/>
+<circle class="node " cx="690" cy="85" r="2.6"/>
+<circle class="node " cx="690" cy="100" r="2.6"/>
+<circle class="node " cx="690" cy="115" r="2.6"/>
+<circle class="node " cx="690" cy="130" r="2.6"/>
+<circle class="node " cx="690" cy="145" r="2.6"/>
+<circle class="node " cx="690" cy="160" r="2.6"/>
+<circle class="node " cx="690" cy="175" r="2.6"/>
+<circle class="node " cx="690" cy="190" r="2.6"/>
+<circle class="node " cx="690" cy="205" r="2.6"/>
+<circle class="node " cx="690" cy="220" r="2.6"/>
+<circle class="node " cx="690" cy="235" r="2.6"/>
+<circle class="node revealed" cx="690" cy="250" r="4.8"/>
+<circle class="node active" cx="690" cy="265" r="2.6"/>
+<circle class="node active" cx="690" cy="280" r="2.6"/>
+<circle class="node active" cx="690" cy="295" r="2.6"/>
+<path class="edge active" d="M70 325 L690 325"/>
+<path class="edge active" d="M380 325 L380 373"/>
+<rect x="323" y="373" width="114" height="30" rx="15" fill="#e5effc" stroke="#2a78d6"/>
+<text x="380" y="393" text-anchor="middle" class="heading">Public key</text>
+<path d="M28 432 H732" stroke="#e6e5e1"/>
+<circle class="node revealed" cx="34" cy="454" r="4.8"/>
+<text x="46" y="458" text-anchor="start" class="">Revealed in signature</text>
+<circle class="node active" cx="275" cy="454" r="3.4"/>
+<text x="287" y="458" text-anchor="start" class="">Computed by verifier</text>
+<circle class="node " cx="513" cy="454" r="3.4"/>
+<text x="525" y="458" text-anchor="start" class="">Unused in verification</text>
+</g></svg>

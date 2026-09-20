@@ -61,6 +61,10 @@ sources. GitHub retries do not rerun a finished proof. Original logs are disposa
 [deployment guide](service/deploy/README.md#rebuilding-the-server-from-nothing) for the credentialed
 rebuild command, source-tag protection and launch checks.
 
+Maintainers can add optional [signature diagrams](tools/submissions_template/SIGNATURE_DIAGRAMS.md)
+and [RISC-V instruction tables](tools/submissions_template/RISCV_PROFILES.md) by committing owner
+metadata to submissions `main`. They are pinned to exact checked submissions and refresh automatically.
+
 ## Repository map
 
 | Path | Contents |

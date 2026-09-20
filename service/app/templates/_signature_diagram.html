@@ -1,0 +1,7 @@
+<section class="signature-scheme" aria-labelledby="signature-scheme-title">
+  <h2 id="signature-scheme-title">Signature scheme</h2>
+  <div class="signature-scheme-frame" tabindex="0" role="region" aria-label="Signature scheme drawing">
+    <img class="signature-scheme-image" src="{{ diagram_url if diagram_url is defined else '/submissions/' ~ sub.id ~ '/signature-diagram.svg' }}"
+         alt="{{ signature_diagram.alt }}" width="{{ signature_diagram.width|int }}" height="{{ signature_diagram.height|int }}">
+  </div>
+</section>

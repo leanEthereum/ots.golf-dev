@@ -283,6 +283,12 @@ Monitor local cache growth and free space. The archive writer reserves 64 MiB to
 failure reporting. Cache or log loss does not require restoring a server image: reconstruct source
 caches from GitHub and leave lost transcripts unavailable.
 
+Optional RISC-V profiles and upper-track signature drawings are also durable on submissions
+`main`, in `riscv-profiles.json`, `signature-diagrams.json` and `signature-diagrams/`.
+The web process rebuilds these bounded in-memory caches on startup and refreshes them every
+60 seconds. They need no backup or explicit rebuild command. Drawings are loaded at one immutable
+main revision, pinned to the submission's checked source and contract, and served as sandboxed images.
+
 ### Updating the live deployment
 
 The maintainer workflow is **commit, push, then update `h2`**. No localhost preview or refresh is

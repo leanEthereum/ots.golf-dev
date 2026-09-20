@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ signature_diagram.claim }} compressions · Diagram preview · ots.golf{% endblock %}
+{% block content %}
+<p class="muted">Local diagram preview</p>
+<h1>Upper bound · {{ signature_diagram.claim }} compressions</h1>
+<p>By <a href="https://github.com/{{ signature_diagram.login }}">{{ signature_diagram.login }}</a>
+  · <a href="https://github.com/leanEthereum/ots.golf-submissions/pull/{{ signature_diagram.pr }}">PR #{{ signature_diagram.pr }}</a>
+  · <a href="https://github.com/leanEthereum/ots.golf-submissions/tree/{{ signature_diagram.commit }}/formal/Submissions/UpperCompressions"><code>{{ signature_diagram.commit[:10] }}</code></a></p>
+{% include "_signature_diagram.html" %}
+{% endblock %}

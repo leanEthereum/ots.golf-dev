@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "diagrams": {
+    "upper-riscv-satoshi-nakamoto-2": {
+      "track": "upper-riscv",
+      "image": "flat-chains.svg",
+      "alt": "32 parallel chains, each with 15 hash steps. Blue filled dots mark the 32 values revealed in one signature. Blue paths hash them forward to the chain endpoints, which are used to reconstruct the public key. Grey nodes are unused during verification of this signature. The low 128 digest bits split into 32 four-bit digits; signing tries nonces until their sum is 160. Each digit gives the remaining hash steps for its chain."
+    },
+    "upper-compressions-satoshi-nakamoto-6": {
+      "track": "upper-compressions",
+      "image": "forest.svg",
+      "alt": "A forest of 54 chains with 14 hash steps each. Groups of three chain endpoints are hashed into 18 group digests; groups of three digests into six subtree digests; these form the public key. A sample disclosure cut is highlighted: blue filled dots are revealed values, blue outlined nodes are recomputed, and grey branches are unused for this cut. The low 128 digest bits select an index below 2^115 in a fixed enumeration of disclosure cuts, each revealing at most 42 values. The drawn cut illustrates this family without claiming a particular digest index."
+    }
+  }
+}

@@ -31,3 +31,7 @@ The submission page's Code link opens the exact checked folder at its original G
 `riscv-profiles.json` and `RISCV_PROFILES.md` are owner-maintained display metadata. Keep them
 out of proof PRs. Maintainers add optional tables for exact checked submissions by following
 `RISCV_PROFILES.md`; the record bot preserves those files.
+
+Likewise, `signature-diagrams.json`, `signature-diagrams/` and `SIGNATURE_DIAGRAMS.md` are
+owner-maintained drawings, outside the proof roots. Follow `SIGNATURE_DIAGRAMS.md` to attach
+one to an exact upper-bound submission; do not include drawings in proof PRs. The bot preserves them.
