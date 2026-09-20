@@ -25,7 +25,8 @@ def _time_ticks(t0: datetime, t1: datetime, n: int = 5) -> list[datetime]:
 
 
 def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions",
-                 chart_id: str = "record-chart", title: str = "Verification bounds across three frameworks") -> dict:
+                 chart_id: str = "record-chart", title: str = "Verification bounds across three frameworks",
+                 references: tuple[dict, ...] = ()) -> dict:
     """Each series carries its own framework, kind, status and records. A series without records
     draws nothing; a pending one (no certificate interface) gets a lane outside the numeric axis."""
     numeric = [s for s in series if s.get("status") != "pending" and s["points"]]
@@ -39,6 +40,7 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
     t0 -= (t1 - t0) * 0.04
     tick_fmt = "%b %d %H:%M" if t1 - t0 < timedelta(days=3) else "%b %d"
     claims = [p["claim"] for s in numeric for p in s["points"]]
+    claims.extend(r["value"] for r in references)
     y_lo, y_hi = max(min(claims, default=0) - 6, 0), max(claims, default=100) + 6
     y_lo, y_hi = int(y_lo // 5) * 5, int(-(-y_hi // 5)) * 5
 
@@ -67,7 +69,8 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
     out.append(f'<text class="tick" x="4" y="{MT - 14}">{escape(unit)}</text>')
 
     # Keep endpoint labels distinct even when different series have equal costs.
-    ends = sorted((sy(s["points"][-1]["claim"]), s["slug"]) for s in numeric)
+    ends = sorted([(sy(s["points"][-1]["claim"]), s["slug"]) for s in numeric]
+                  + [(sy(r["value"]), "reference-" + r["slug"]) for r in references])
     label_y = {}
     prev = MT - 28
     for y, slug in ends:
@@ -75,6 +78,17 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
         prev = label_y[slug]
     overflow = max(prev - (H - bottom_margin - 4), 0)
     label_y = {slug: y - overflow for slug, y in label_y.items()}
+
+    for ref in references:
+        y, text_y = sy(ref["value"]), label_y["reference-" + ref["slug"]]
+        description = escape(ref["description"])
+        out.append(f'<g class="chart-reference" data-reference="{escape(ref["slug"])}">'
+                   f'<title>{description}</title>'
+                   f'<path class="line" d="M{ML},{y:.1f} H{W - MR}"/>'
+                   f'<path class="connector" d="M{W - MR},{y:.1f} L{W - MR + 12},{text_y:.1f} H{W - MR + 18}"/>'
+                   f'<a href="{escape(ref["url"])}" aria-label="{description}">'
+                   f'<text class="label" x="{W - MR + 23}" y="{text_y + 4:.1f}">'
+                   f'{escape(ref["label"])} · {ref["value"]}</text></a></g>')
 
     points = []
     for s in numeric:

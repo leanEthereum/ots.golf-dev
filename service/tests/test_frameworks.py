@@ -101,18 +101,19 @@ class FrameworkTests(unittest.TestCase):
         response = self.client.get("/?framework=generality-3")
         self.assertEqual(response.status_code, 200)
         svg = self.chart_svg(response.text)
-        # No record yet: no series and no reference line, only the empty state.
-        self.assertEqual(svg.findall("./g"), [])
+        # The literature comparison is not a record or a lower-bound certificate.
+        self.assertEqual(svg.findall("./g[@data-series]"), [])
+        self.assertEqual(len(svg.findall("./g[@class='chart-reference']")), 1)
         self.assertIn('No records yet', [t.text for t in svg.findall('./text')])
         self.assertEqual(self.chart(response.text), [])
         self.assertIn('<p>Any oracle algorithm.</p>', response.text)
         self.assertIn('<table class="lb-table" data-track="lower-generality-3">', response.text)
         self.assertIn('0 records, 0 solvers', response.text)
-        self.assertNotIn('baseline', response.text.lower())
         lower_panel = re.search(r'<div class="board-track" data-track="lower">(.*?)'
                                 r'<div class="board-track" data-track="upper"', response.text, re.S).group(1)
         self.assertNotIn('pending', lower_panel.lower())
         self.assertNotIn('foundation', lower_panel.lower())
+        self.assertNotIn('baseline', lower_panel.lower())
         self.assertEqual(svg.findall("./g[@data-kind='lower'][@data-status='pending']"), [])
         self.assertEqual(self.client.get("/?framework=unknown").status_code, 404)
 
@@ -132,11 +133,11 @@ class FrameworkTests(unittest.TestCase):
         self.assertIn('class="lb-row record current" data-score="1"', html)
         self.assertIn(f'href="/submissions/{sub.id}"', html)
         self.assertIn('href="/solvers/vitalik-buterin"', html)
-        self.assertNotIn('baseline', html.lower())
         points = [p for p in self.chart(html) if p['framework'] == 'generality-3' and p['kind'] == 'lower']
         self.assertEqual([(p['id'], p['claim'], p['login']) for p in points],
                          [(sub.id, 1, 'vitalik-buterin')])
         self.assertTrue(points[0]['demo'])
+        self.assertNotIn('baseline', json.dumps(points).lower())
         detail = self.client.get(f'/submissions/{sub.id}').text
         self.assertIn('1 compression', detail)
         self.assertIn('Lower bound · Generality 3/3', detail)
@@ -250,7 +251,8 @@ class FrameworkTests(unittest.TestCase):
 
     def test_tracks_without_records_show_no_record_yet(self):
         html = self.client.get('/').text
-        self.assertEqual(self.chart_svg(html).findall('./g'), [])
+        self.assertEqual(self.chart_svg(html).findall('./g[@data-series]'), [])
+        self.assertEqual(self.chart(html), [])
         # Three lower cards, the upper card, and the four boards.
         self.assertEqual(html.count('No record yet'), 8)
         self.assertEqual(html.count('Submit a proof ↗'), 3)
@@ -517,4 +519,3 @@ class NotesJournalTests(unittest.TestCase):
         self.assertIn('RISC-V cycles', md)
         self.assertNotIn('Pattern classes', md)
         self.assertEqual(self.client.get('/notes.md?track=nope').status_code, 404)
-

@@ -7,6 +7,7 @@ import unittest
 import xml.etree.ElementTree as ET
 
 from app.charts import _nice_ticks, record_chart
+from app.literature import EQUAL_CHAINS
 
 
 class ChartTests(unittest.TestCase):
@@ -76,6 +77,23 @@ class ChartTests(unittest.TestCase):
         svg = ET.fromstring(chart['svg'])
         axis_right = float(svg.find("./line[@class='axis']").get('x2'))
         self.assertLessEqual(json.loads(chart['points'])[0]['x'], axis_right)
+
+    def test_reference_has_no_record_and_shares_label_collision_layout(self):
+        chart = record_chart([self.series(105)], datetime(2026, 1, 1), references=(EQUAL_CHAINS,))
+        svg = ET.fromstring(chart['svg'])
+        self.assertEqual(len(json.loads(chart['points'])), 1)
+        self.assertEqual(len(svg.findall(".//a[@class='chart-record']")), 1)
+        reference = svg.find("./g[@class='chart-reference']")
+        self.assertEqual(reference.find('./a').get('href'), EQUAL_CHAINS['url'])
+        ys = [float(t.get('y')) for t in svg.findall(".//text[@class='label']")]
+        self.assertGreaterEqual(abs(ys[0] - ys[1]), 28)
+
+    def test_reference_sets_axis_even_without_records(self):
+        svg = ET.fromstring(record_chart([], datetime(2026, 1, 1), references=(EQUAL_CHAINS,))['svg'])
+        self.assertIn('No records yet', [t.text for t in svg.findall('./text')])
+        ticks = [int(t.text) for t in svg.findall("./text[@text-anchor='end']")]
+        self.assertLess(min(ticks), 105)
+        self.assertGreater(max(ticks), 105)
 
 
 if __name__ == '__main__':

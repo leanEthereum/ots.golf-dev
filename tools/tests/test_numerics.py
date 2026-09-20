@@ -12,6 +12,26 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class NumericalToolTests(unittest.TestCase):
+    def test_equal_chain_baseline_matches_independent_convolution_and_chart(self):
+        tool = runpy.run_path(str(ROOT / 'tools/literature_chain_baseline.py'))
+        result = tool['calculate']()
+        reference = runpy.run_path(str(ROOT / 'service/app/literature.py'))['EQUAL_CHAINS']
+        self.assertEqual(result['verify_compressions'], reference['value'])
+        self.assertEqual((result['chains'], result['steps_per_chain'], result['chain_compressions']),
+                         (42, 24, 93))
+        # Independently multiply polynomials, truncating only terms beyond the depth.
+        depth = result['chain_compressions']
+        row = [1] + [0] * depth
+        for _ in range(result['chains']):
+            row = [sum(row[max(0, d - result['steps_per_chain']):d + 1]) for d in range(depth + 1)]
+        self.assertEqual(row[-1], result['layer_size'])
+        self.assertEqual(row[-2], result['previous_layer_size'])
+        self.assertLess(row[-2], result['accepted_cuts'])
+        self.assertGreaterEqual(row[-1], result['accepted_cuts'])
+        self.assertEqual(result['signature_bits'], 5504)
+        self.assertEqual(result['keygen_compressions'], 1019)
+        self.assertEqual(result['signing_trials'], 2 ** 20)
+
     def run_tool(self, tool, *args):
         return subprocess.run([sys.executable, str(ROOT / 'tools' / tool), *args],
                               capture_output=True, text=True, timeout=30)

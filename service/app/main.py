@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import auth, charts, contract, github, records, scheme_art, source_archive
+from . import auth, charts, contract, github, literature, records, scheme_art, source_archive
 from .config import settings
 from .visibility import visible
 from .db import (SessionLocal, Submission, User, get_session, init_db, local_lock, pr_submission_id,
@@ -387,7 +387,8 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
                   upper_compressions=upper, upper_riscv=riscv, latest=records.latest_records(session, limit=60),
                   riscv_chart=charts.record_chart(riscv_series, utcnow(), unit="cycles",
                       chart_id="riscv-record-chart", title="RISC-V verification cost over time") if riscv else None,
-                  chart=charts.record_chart(series, utcnow()), art=scheme_art.svg())
+                  chart=charts.record_chart(series, utcnow(), references=(literature.EQUAL_CHAINS,)),
+                  art=scheme_art.svg())
 
 
 @app.get("/submissions/{sub_id}", response_class=HTMLResponse)

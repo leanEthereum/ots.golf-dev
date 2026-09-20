@@ -82,6 +82,8 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertEqual(len(re.findall('class="framework-card ', html)), 3)
         charts = [ET.fromstring(svg) for svg in re.findall(r'<svg[^>]+class="record-chart".*?</svg>', html, re.S)]
         self.assertEqual([svg.get('data-unit') for svg in charts], ['compressions', 'cycles'])
+        self.assertEqual(len(charts[0].findall("./g[@class='chart-reference']")), 1)
+        self.assertEqual(charts[1].findall("./g[@class='chart-reference']"), [])
         self.assertEqual(charts[1].find('./g').get('data-series'), 'upper-riscv')
         ids = re.findall(r'\bid="([^"]+)"', html)
         self.assertEqual(len(ids), len(set(ids)))

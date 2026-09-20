@@ -300,6 +300,10 @@ table.params th:first-child { width: 44%; }
 .record-chart .chart-series .label-dot { fill: var(--muted); }
 .record-chart .chart-series .label-value { fill: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
 .record-chart .chart-series.pending .line { stroke-dasharray: 2 6; opacity: .6; }
+.record-chart .chart-reference .line { stroke: var(--muted); stroke-dasharray: 1 6; stroke-linecap: round; }
+.record-chart .chart-reference .connector { fill: none; stroke: var(--muted); stroke-width: 1; opacity: .6; }
+.record-chart .chart-reference .label { fill: var(--muted); font-size: 12px; font-weight: 500; }
+.record-chart .chart-reference a:hover .label, .record-chart .chart-reference a:focus .label { fill: var(--ink); text-decoration: underline; }
 .record-chart .chart-record:focus { outline: none; }
 .record-chart .chart-record:focus .mark { stroke: var(--ink); stroke-width: 3; }
 .tooltip { max-width: min(340px, calc(100% - 16px)); }
@@ -354,4 +358,3 @@ table.params th:first-child { width: 44%; }
   .upper-score { justify-content: start; }
   .upper-score .muted, .upper-score > .no-record { text-align: left; }
 }
-

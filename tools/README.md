@@ -7,10 +7,16 @@ preparation script. Numerical results are exploration only: every claim requires
 |---|---|
 | `tune_lower_bound.py` | exact attack arithmetic for the lower bounds |
 | `search_forest.py` | search for forest constructions (needs NumPy) |
+| `literature_chain_baseline.py` | reproduce the chart's equal-chain comparison with exact integers |
 | `check_repo.py` | repository regression checks |
 | `prepare_submissions_repo.py` | create a new, empty submissions repository pinned to this core |
 
 ## Numerical tools
+
+`python3 tools/literature_chain_baseline.py` reproduces the **105-compression** equal-chain
+baseline. It retains the reference nonce-grinding encoding and searches chain counts and
+lengths under the model's resource limits. See [the derivation](../docs/literature-baseline.md)
+for the paper attribution, assumptions and cost breakdown. It needs only the standard library.
 
 `tune_lower_bound.py` uses exact integers and fractions. Its exact modes use `2^20` signing
 trials and the reciprocal success lower bound `128/129`, matching the current DAG contract
