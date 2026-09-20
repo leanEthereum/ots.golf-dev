@@ -60,7 +60,7 @@ def track_state(session: Session, t: dict) -> dict:
     }
 
 
-def interval(session: Session, framework: str = "generality-2") -> dict:
+def interval(session: Session, framework: str = "generality-1") -> dict:
     cfg = contract.load()
     pair = contract.framework_tracks(framework)
     return {"framework": framework,
@@ -81,7 +81,7 @@ def curve(session: Session, slug: str) -> list[dict]:
 
 
 def overview(session: Session) -> list[dict]:
-    """The three lower-bound classes; upper constructions use the generic interface only."""
+    """The whole-word lower-bound board; upper constructions use the oracle interface."""
     result = []
     for framework in contract.frameworks():
         boards = {}
@@ -97,7 +97,7 @@ def track_label(t: dict) -> tuple[str, str]:
     """The one-line name of a track and the leaderboard section it links to."""
     if t["kind"] == "lower":
         return "Lower bound · " + contract.track_framework_title(t), f'/?framework={t["framework"]}#lower'
-    if t["framework"] != "generality-3" and t["slug"] != "upper-riscv":
+    if t["framework"] != "oracle-algorithm" and t["slug"] != "upper-riscv":
         return contract.track_framework_title(t), "/rules#legacy-certificates"
     return "Upper bound · " + ("RISC-V cycles" if t["slug"] == "upper-riscv" else "compressions"), f'/?upper={t["slug"]}#upper'
 

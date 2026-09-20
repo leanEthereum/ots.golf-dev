@@ -15,7 +15,7 @@ import json
 
 from sqlalchemy import select
 
-from . import resync, source_archive
+from . import contract, resync, source_archive
 from .config import settings
 from .db import SessionLocal, Submission, init_db, local_lock
 
@@ -26,7 +26,7 @@ def rebuild_sources(limit: int | None = None) -> dict:
         rows = session.scalars(select(Submission).order_by(Submission.created_at, Submission.id)).all()
     attempted = 0
     for sub in rows:
-        if (sub.detail_dict.get("demo") or not sub.pr_repository
+        if (contract.track(sub.track) is None or sub.detail_dict.get("demo") or not sub.pr_repository
                 or sub.pr_repository.lower() != settings.submissions_repo.lower()
                 or sub.status not in resync.FINISHED | {"pending"}):
             result["skipped"] += 1

@@ -165,7 +165,7 @@ class DiagramPageTests(unittest.TestCase):
             for track in ['upper-riscv', 'upper-compressions']:
                 sub.track = track
                 self.assertIsNotNone(diagrams.for_submission(sub))
-            for field, value in [('track', 'lower-generality-3'), ('commit', 'f' * 40),
+            for field, value in [('track', 'lower-generality-1'), ('commit', 'f' * 40),
                                  ('status', 'failed'), ('id', '2' * 32),
                                  ('detail', json.dumps({'contract': 'f' * 64})),
                                  ('pr_url', 'https://github.com/fork/repo/pull/5')]:

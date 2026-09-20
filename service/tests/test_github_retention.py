@@ -93,7 +93,7 @@ class RetentionRefTests(unittest.TestCase):
             github._paged("/fixture", limit=100)
 
     def test_receipt_metadata_round_trips_without_breaking_html_comment(self):
-        entry = dict(id=self.sid, track="lower-generality-3", commit=self.sha, status="pending",
+        entry = dict(id=self.sid, track="lower-generality-1", commit=self.sha, status="pending",
                      source_ref=self.ref, created_at="2026-09-19T00:00:00Z",
                      author={"login": "solver", "id": 7}, description="Unicode λ and --> stay data")
         block = github.verdict_block([entry])
@@ -128,7 +128,7 @@ class HostedAdmissionTests(unittest.TestCase):
         self.session.commit()
 
     def queue(self, description="Prepared proof"):
-        return main.queue_submission(self.session, self.user, "lower-generality-3",
+        return main.queue_submission(self.session, self.user, "lower-generality-1",
             "https://github.com/solver/fork.git", "b" * 40, description, ["helper"], "Assistant",
             17, "https://github.com/org/submissions/pull/17")
 

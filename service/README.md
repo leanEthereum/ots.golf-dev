@@ -39,7 +39,7 @@ production.
 a submissions checkout the way the webhook would:
 
 ```sh
-.venv/bin/python -m app.queue lower-generality-2 --repo ../../ots.golf-submissions
+.venv/bin/python -m app.queue lower-generality-1 --repo ../../ots.golf-submissions
 ```
 
 Any track slug works. Local jobs never become records. Only one worker may use a data directory;
@@ -56,7 +56,7 @@ them again. See the [owner guide](../tools/submissions_template/RISCV_PROFILES.m
 
 - **Pages.** The homepage has an upper section (Upper bound; RISC-V upper bound, with its own
   cycle axis) and a lower section with one leaderboard per Generality framework.
-  `/?framework=generality-1|generality-2|generality-3` filters the lower tables; `#lower` and
+  `/?framework=generality-1` links to the whole-word lower table; `#lower` and
   `#upper` select the direction.
 - **Admission.** A pull request must change exactly one submission root. The service checks the
   repository, files and full head SHA, creates `refs/tags/ots-source/<submission-id>` in the base

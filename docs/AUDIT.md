@@ -1,16 +1,10 @@
 # Audit of the bare-oracle contract
 
-Scope: the pinned DAG, generic-algorithm, whole-word and RISC-V contracts, their oracle/cost
-semantics, the internal lower-bound witnesses kept in this core (`formal/Witnesses/`), and the
-reference proofs (submission roots kept in the submissions repository). The lower bounds are
-generic **1**, unrestricted DAG **18**, and whole-word DAG **90**. Generic upper has a complete
-**104** certificate, including perfect correctness, deterministic verification and signing failure
-at most `2^-128`; RISC-V upper has a **702**-cycle certificate. Both witnesses are secure schemes
-at **106**. This
-document covers mathematical scope; operational launch gates are in
-[the deployment guide](../service/deploy/README.md). The archived
-[Lean statement review](archive/lean-statement-review.md) covers an earlier state of every
-project-owned Lean file.
+Scope: the pinned whole-word lower-bound and oracle-algorithm upper-bound contracts, the
+RISC-V machine, and their shared oracle and cost semantics. The internal whole-word witness
+(`formal/Witnesses/Generality1/`) checks that the lower class is non-empty. Reference proofs live
+in the submissions repository; current scores are on [ots.golf](https://ots.golf).
+Operational launch gates are in [the deployment guide](../service/deploy/README.md).
 
 ## What is trusted
 
@@ -63,22 +57,19 @@ record coordinates. No graph separation hypothesis is part of the contract.
 | Public key is low 128 bits of the root | `publicKey`, `Scheme.verify` | |
 | Strong forgery differs from the received pair | `experiment`, `Scheme.Secure` | any accepted pair wins when signing fails |
 | Security requires `Pr[Forge] < B/2^127` for every valid budget | `CostAtMost`, `Secure` | includes keygen, signing and final verification |
-| Unconditional lower certificate | `LowerBoundGenerality2 18` | repeated reconstruction patterns and a forgery on a different message |
+| Unconditional lower certificate | `LowerBoundGenerality1 90` | repeated reconstruction patterns and a forgery on a different message |
 
-The weak experiment (forgery on a different message) is not part of the contract. Each DAG lower
+The weak experiment (forgery on a different message) is not part of the contract. The whole-word lower
 root defines it in `WeakSecurity.lean` and proves that strong security implies weak security. The
-lower certificate therefore applies to every secure scheme and also to schemes permitting
+lower certificate therefore applies to every secure whole-word scheme and also to schemes permitting
 malleability of a signature on the signed message.
 
 ## Generic and whole-word contracts
 
 `OracleAlgorithm.lean` supplies arbitrary terminating oracle programs, signatures as bit strings,
 perfect correctness, deterministic verification (`Admissible.verifyDeterministic`), signing
-availability, pathwise resource limits, oversized-signature rejection and the generic lower
-statement. The fresh-message experiment used by the generic lower proof lives in its submission
-root. Key generation and signing may use private randomness. Both algorithm challenges fix
-signing failure at most `2^-128` for every public-key-dependent message choice, averaged over
-honest key generation and signing from a fresh oracle. The verified lower bound of 1 specializes a proof covering every failure allowance at most one half.
+availability, pathwise resource limits and oversized-signature rejection. Key generation and
+signing may use private randomness; verification is deterministic.
 
 The generic upper challenge fixes signing failure at most `2^-128` and requires separate proofs
 of admissibility, strong security, and pathwise verification cost. Its forest certificate uses the
@@ -87,7 +78,7 @@ proved for every DAG adapter via cache consistency and reconstruction. Availabil
 the forest: its key-generation inputs have lengths 144, 400, or 784, so all distinct 384-bit signing
 inputs are fresh. Failure is `(8191/8192)^(2^20) ≤ 2^-128`, for every message chosen as a
 function of the public key. Its proofs form an independent `UpperCompressions` submission
-root, for a 54-chain forest with six subtrees (104); the internal Generality 2/3 witness proves
+root, for a 54-chain forest with six subtrees (104); the internal whole-word witness proves
 the original 63-chain forest (106) separately. See [the proof map](upper-compressions.md).
 
 `WholeWords.lean` restricts the existing DAG syntax: independent 128-bit sources, fixed public 128-bit
@@ -95,7 +86,7 @@ words, 256-bit hashes, fixed low/high output halves, and concatenation of earlie
 grouped values and empty inputs are allowed. The definitions fix this list of node operations.
 Cuts disclose complete values. The 5,376-bit payload budget implies the 42-origin property.
 The resulting certificate proves 90, using the same weak-security experiment.
-The internal Generality 1/3 witness (`formal/Witnesses/Generality1/`) is a checked secure whole-word
+The internal whole-word witness (`formal/Witnesses/Generality1/`) is a checked secure whole-word
 construction at 106, so the class is non-empty.
 
 `formal/scripts/check-axioms.lean` imports every protected model module, rejects declared axioms
@@ -113,45 +104,13 @@ exhaustion), and a cycle bound on every execution, accepting or rejecting.
 `formal/scripts/check-riscv.lean` holds kernel-checked boundary tests of the machine. See
 [the track notes](upper-riscv.md).
 
-## DAG certificate status and open proof work
+## Whole-word lower-bound proof
 
-The lower certificate proves 18 for every weakly secure scheme. Under the contrary
-assumption that every verification costs at most 17, each reconstruction uses at
-most 15 non-root hash nodes among at most 1023. There are fewer than `2^110`
-possible such node sets. Most of the `2^115` indices therefore lie in classes of
-at least eight indices with the same reconstruction pattern. A deterministic
-candidate construction converts a valid signature to any index in its class.
-
-The attack samples messages uniformly to avoid previously queried message-prefix
-domains, then tests `2^122` distinct nonces for its new message. Its proven success
-is at least `9/200`; its total cost is at most
-`1024 + 2^20 + 2^122 + 34`, whose ratio to `2^127` is smaller than `9/200`.
-This contradicts weak security. No assumption about distinct hash inputs or
-independent node outputs is used. The elementary index-plus-root bound 2 remains
-available as a separate lemma.
-
-The upper certificate is 104. Its concrete scheme prepends a 16-bit tweak
-to every node input; those bits are included in the charged input lengths (144,
-400 and 784 bits). This is a choice made by that scheme, not a restriction on
-schemes considered by the lower theorem.
-
-The former lower bound 25 relied on distinct oracle labels. Two proposed
-fresh-coordinate replacements fail in the bare model. An earlier hidden hash
-can query the same string as a later reconstructed hash, placing the information
-weight outside the reconstructed set; the corresponding construction bound can
-also charge outside its target set. A Bell-number correction does not repair
-these counterexamples. Details:
-
-- [Information analysis](research/bare-oracle-information-analysis.md).
-- [Construction analysis](research/bare-oracle-construction-analysis.md).
-- [Conditional numerics](research/bare-oracle-numerics.md): the simple proposed-24 point has
-  numerical slack, but its missing mathematical hypotheses prevent certification.
-- [Final bare-oracle report](archive/bare-oracle-lower-report.md) and [proof map](lower-generality-2.md).
-
-The repeated-pattern proof establishes 18. Bounds 19 through 25 remain open in
-the bare model. In particular, the number of subsets of at most 16 non-root hash
-nodes already exceeds `2^115`, so the same counting argument does not directly
-prove 19. Conditional numerical searches do not establish a stronger bound.
+The 90-compression reference proof uses at most 42 disclosed hash origins. If every verification
+cost at most 89, it would have at most 87 non-root hashes, giving at most `Nat.choose 129 42`
+reconstruction patterns. The averaged signature-conversion attack then contradicts security.
+The argument includes the key-generation and signing budgets and accounts for shared oracle
+inputs. See [the proof guide](lower-generality-1.md).
 
 ## Model details retained
 
@@ -163,8 +122,8 @@ prove 19. Conditional numerical searches do not establish a stronger bound.
   used. Sampling is free.
 - Index and public-key truncation use the low bits, matching `setWidth`.
 - The adversary's other computation and private randomness are unbounded and free.
-- The internal 106-compression DAG and whole-word witnesses establish non-vacuity of both DAG
-  classes under strong (and hence weak) security. The separate 104-compression generic upper
+- The internal 106-compression whole-word witness establishes non-vacuity of the lower-bound
+  class under strong (and hence weak) security. The separate 104-compression generic upper
   certificate also proves admissibility, including correctness and signing availability.
 
 ## Contract changes and verification

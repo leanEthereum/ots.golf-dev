@@ -16,12 +16,10 @@ precise specification: exact exports, submission-root rules, limits and the subm
 |---|---|---|
 | Upper bound · compressions | `formal/Submissions/UpperCompressions/` | `verify.py upper-compressions` |
 | Upper bound · RISC-V cycles | `formal/Submissions/UpperRiscv/` | `verify.py upper-riscv` |
-| Lower bound · Generality 1/3 | `formal/Submissions/LowerGenerality1/` | `verify.py lower-generality-1` |
-| Lower bound · Generality 2/3 | `formal/Submissions/LowerGenerality2/` | `verify.py lower-generality-2` |
-| Lower bound · Generality 3/3 | `formal/Submissions/LowerGenerality3/` | `verify.py lower-generality-3` |
+| Lower bound · Whole-word DAGs | `formal/Submissions/LowerGenerality1/` | `verify.py lower-generality-1` |
 
 Roots live at `formal/Submissions/<Root>/` in the submissions repository. Current records are
-on [ots.golf](https://ots.golf). The submissions repository's `main` carries the five current record
+on [ots.golf](https://ots.golf). The submissions repository's `main` carries the three current record
 roots and `records.json`, which links each claim to its original checked commit, PR and trusted
 core. After publishing a new record's verdict, the bot copies its checked root into `main` with a
 separate commit; proof PRs are never merged or closed. Each submission's **Code** link opens its
@@ -72,12 +70,11 @@ metadata to submissions `main`. They are pinned to exact checked submissions and
 | [`AGENTS.md`](AGENTS.md) | submission specification |
 | [`challenges.json`](challenges.json) | track metadata, limits, protected files |
 | [`formal/OptimalOTS/`](formal/OptimalOTS/) | the contract: [`Model.lean`](formal/OptimalOTS/Model.lean), [`Dag.lean`](formal/OptimalOTS/Dag.lean), [`WholeWords.lean`](formal/OptimalOTS/WholeWords.lean), [`OracleAlgorithm.lean`](formal/OptimalOTS/OracleAlgorithm.lean), [`Riscv.lean`](formal/OptimalOTS/Riscv.lean), [`RiscvMachine.lean`](formal/OptimalOTS/RiscvMachine.lean), and the challenge stubs in `Challenge/` |
-| `formal/Witnesses/` | internal maintainer check that the Generality 1/3 and 2/3 classes are non-empty (`lake build Witnesses`); not a track |
+| `formal/Witnesses/` | internal maintainer check that the whole-word class is non-empty (`lake build Witnesses`); not a track |
 | [`verifier/`](verifier/) | [`verify.py`](verifier/verify.py), policy checks, contract pin, comparator configs |
 | [`service/`](service/README.md) | website and hosted verifier; [deployment](service/deploy/README.md) |
 | [`docs/`](docs/README.md) | proof guides, contract audit, repository setup |
 | [`tools/`](tools/README.md) | numerical research tools, repository checks, submissions-repo preparation |
-| `paper/` | the paper on the unrestricted DAG bound |
 
 See [repository setup](docs/repositories.md) for how the core and submissions repositories fit
 together.

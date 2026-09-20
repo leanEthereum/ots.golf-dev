@@ -1,7 +1,7 @@
 import Witnesses.Generality1.Main
 import Witnesses.Generality1.Words
 
-/-! Internal check, not part of the contract: the Generality 1/3 lower bound quantifies over a
+/-! Internal check, not part of the contract: the Whole-word DAGs lower bound quantifies over a
 non-empty class. The forest with 128-bit tweak words is a secure whole-word scheme. -/
 
 namespace OptimalOTS.Witnesses

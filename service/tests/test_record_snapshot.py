@@ -24,7 +24,7 @@ class FakeGit:
         self.test, self.requests, self.trees, self.blobs, self.commits = test, [], {}, {}, {}
         self.source = 'a' * 40
         self.ref = 'refs/tags/ots-source/' + '1' * 32
-        self.root = 'formal/Submissions/LowerGenerality2'
+        self.root = 'formal/Submissions/LowerGenerality1'
         self.source_tree = self.tree({'Solution.lean': self.blob(b'proof\n'), 'claim.txt': self.blob(b'19\n')})
         source_root = self.replace(self.tree({}), self.root, self.directory(self.source_tree))
         # Deliberately include unrelated and unsafe source-head files: none may be copied.
@@ -156,12 +156,12 @@ class RecordSnapshotTests(unittest.TestCase):
         epoch = contract.contract_id()
         meta = dict(version=1, sha256='d' * 64, size_bytes=1000, file_count=2, total_bytes=9,
                     source_repo='https://github.com/owner/entries.git', commit=self.git.source,
-                    track='lower-generality-2', submission_root=self.git.root, contract=epoch)
+                    track='lower-generality-1', submission_root=self.git.root, contract=epoch)
         detail = dict(contract=epoch, source_ref=self.git.ref, source_archive=meta,
                       receipt={'submission_root': self.git.root, 'contract_commit': 'e' * 40,
                                'git_authors': [{'name': 'Alice', 'email': 'alice@example.org'},
                                                {'name': 'Bob', 'email': 'bob@example.org'}]})
-        return Submission(id='1' * 32, track='lower-generality-2', status='verified', is_record=True,
+        return Submission(id='1' * 32, track='lower-generality-1', status='verified', is_record=True,
                           claim=19, commit=self.git.source, source_repo='https://github.com/owner/entries.git',
                           pr_number=7, pr_url='https://github.com/owner/entries/pull/7',
                           finished_at=datetime(2026, 9, 19, 12), detail=json.dumps(detail))
@@ -281,9 +281,9 @@ class RecordSnapshotTests(unittest.TestCase):
                 self.assertEqual(self.writes(), [])
 
     def test_new_track_preserves_other_registry_entries(self):
-        other = self.old_entry(track='lower-generality-3', id='3' * 32,
+        other = self.old_entry(track='lower-generality-1', id='3' * 32,
                                source_ref='refs/tags/ots-source/' + '3' * 32,
-                               submission_root='formal/Submissions/LowerGenerality3')
+                               submission_root='formal/Submissions/LowerGenerality1')
         other['source_archive'] = dict(other['source_archive'], track=other['track'], submission_root=other['submission_root'])
         self.git.set_registry({'version': 1, 'records': {other['track']: other}})
         record_snapshot.publish_record(self.sub)

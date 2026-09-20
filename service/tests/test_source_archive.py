@@ -24,10 +24,10 @@ class SourceDownloadTests(unittest.TestCase):
         (files / "Solution.lean").write_text("-- public fixture\n")
         (files / "claim.txt").write_text("19\n")
         (files / "NOTES.md").write_text("## Original checked idea\n")
-        self.sub = SimpleNamespace(id="1" * 32, commit="a" * 40, track="lower-generality-2", detail_dict={"contract": "b" * 64})
+        self.sub = SimpleNamespace(id="1" * 32, commit="a" * 40, track="lower-generality-1", detail_dict={"contract": "b" * 64})
         self.meta = source_archive.archives.save_source(source_archive.directory(), self.sub.id, files,
             source_repo="https://github.com/author/proofs.git", commit=self.sub.commit, track=self.sub.track,
-            submission_root="formal/Submissions/LowerGenerality2", contract="b" * 64)
+            submission_root="formal/Submissions/LowerGenerality1", contract="b" * 64)
 
     def test_notes_come_from_the_retained_checked_root(self):
         self.sub.detail_dict["source_archive"] = self.meta

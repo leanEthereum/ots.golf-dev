@@ -42,14 +42,8 @@
   <div class="framework-cards">
     {% for model in models %}
     <article class="framework-card f-{{ model.slug }}" id="framework-{{ model.slug }}">
-      <h3><a href="/rules#{{ 'whole-words' if model.slug == 'generality-1' else 'generic-algorithms' if model.slug == 'generality-3' else 'graph' }}"><span class="framework-generality">{{ model.title }}</span></a></h3>
-      {% if model.slug == 'generality-3' %}
-      <p>Any oracle algorithm.</p>
-      {% elif model.slug == 'generality-2' %}
-      <p>A DAG with arbitrary functions.</p>
-      {% else %}
+      <h3><a href="/rules#whole-words"><span class="framework-generality">{{ model.title }}</span></a></h3>
       <p>A DAG built from whole 128-bit words.</p>
-      {% endif %}
       <dl class="framework-bounds">
         <div><dt>Verification cost</dt>
         <dd>{% if model.boards.get('lower') and model.boards.lower.state.record_claim is none %}<span class="no-record">No record yet</span>{% elif model.boards.get('lower') %}{{ model.boards.lower.state.record_claim }} <span class="framework-unit">compression{{ '' if model.boards.lower.state.record_claim == 1 else 's' }}</span>{% endif %}</dd></div>
@@ -130,16 +124,11 @@
     <div class="board-title-row">
       <h2 id="board-title">Leaderboard</h2>
       <div class="seg" role="group" aria-label="Leaderboard track">
-        <button type="button" class="seg-btn" data-track="lower" aria-pressed="true">Lower bounds</button>
+        <button type="button" class="seg-btn" data-track="lower" aria-pressed="true">Lower bound</button>
         <button type="button" class="seg-btn" data-track="upper" aria-pressed="false">Upper bound{{ "s" if upper_riscv else "" }}</button>
       </div>
     </div>
     {% set shown_framework = selected_framework if selected_framework in models|map(attribute='slug')|list else models[0].slug %}
-    <div class="seg lower-switch lower-only" role="group" aria-label="Lower bound framework">
-      {% for model in models %}
-      <button type="button" class="lower-btn" data-framework="{{ model.slug }}" aria-pressed="{{ 'true' if shown_framework == model.slug else 'false' }}">{{ model.title }}</button>
-      {% endfor %}
-    </div>
     {% set kind = 'lower' %}
     <div class="board-track" data-track="lower">
       {% for model in models %}

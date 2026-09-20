@@ -49,12 +49,12 @@ class WorkerPublicationTests(unittest.TestCase):
                        git_authors=[{'name': 'Alice', 'email': 'alice@example.org'},
                                     {'name': 'Bob', 'email': 'bob@example.org'}],
                        assisted_by='A model', contract_commit='f' * 40,
-                       submission_root='formal/Submissions/LowerGenerality2')
+                       submission_root='formal/Submissions/LowerGenerality1')
         detail = dict(contract=contract.contract_id(), source_ref=receipt['source_ref'], receipt=receipt)
         if publication_status:
             detail['publication_status'] = publication_status
         with self.sessions() as session:
-            sub = Submission(id=sid, user_id=self.user_id, track='lower-generality-2', status=status,
+            sub = Submission(id=sid, user_id=self.user_id, track='lower-generality-1', status=status,
                              claim=19 if publication_status == 'verified' else None, commit=key * 40,
                              source_repo='https://github.com/owner/repo.git', pr_number=7,
                              pr_url='https://github.com/owner/repo/pull/7', detail=json.dumps(detail),
@@ -214,7 +214,7 @@ class WorkerPublicationTests(unittest.TestCase):
     def test_source_link_is_exact_and_does_not_require_a_local_zip(self):
         sub = self.submission()
         self.assertEqual(sub.source_url, 'https://github.com/owner/repo/tree/' + sub.commit +
-                         '/formal/Submissions/LowerGenerality2')
+                         '/formal/Submissions/LowerGenerality1')
         self.assertIsNone(sub.archive_url)
         detail = sub.detail_dict
         detail['receipt']['submission_root'] = '../../other'

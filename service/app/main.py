@@ -188,7 +188,7 @@ def _queue_submission(session: Session, user: User, track: str, repo: str, commi
     track_config = contract.track(track)
     if track_config is None:
         raise HTTPException(400, f"unknown track {track!r}")
-    if track_config["kind"] == "upper" and track_config["framework"] != "generality-3":
+    if track_config["kind"] == "upper" and track_config["framework"] != "oracle-algorithm":
         raise HTTPException(400, "Upper submissions require the generic algorithm framework. "
                             "Legacy DAG upper roots are closed reference certificates.")
     if track_config["kind"] == "upper" and track_config not in contract.upper_tracks():
@@ -380,17 +380,17 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
     for model in models:
         board = model["boards"].get("lower")
         series.append({"slug": board["cfg"]["slug"] if board else f'{model["slug"]}-lower',
-                       "framework": model["slug"], "kind": "lower", "label": f'Lower bound {model["title"].split()[-1]}',
+                       "framework": model["slug"], "kind": "lower", "label": "Whole-word lower",
                        "status": "certified" if board else "pending",
                        "points": board["curve"] if board else []})
     upper_config = contract.upper_compressions_track()
     upper = records.board(session, upper_config) if upper_config else None
     riscv_config = contract.upper_riscv_track()
     riscv = records.board(session, riscv_config) if riscv_config else None
-    riscv_series = [{"slug": "upper-riscv", "framework": "generality-3", "kind": "upper",
+    riscv_series = [{"slug": "upper-riscv", "framework": "oracle-algorithm", "kind": "upper",
                      "label": "RISC-V upper bound",
                      "status": "certified", "points": riscv["curve"]}] if riscv else []
-    series.insert(0, {"slug": "upper-compressions", "framework": "generality-3", "kind": "upper",
+    series.insert(0, {"slug": "upper-compressions", "framework": "oracle-algorithm", "kind": "upper",
                    "label": "Upper bound",
                    "status": "certified" if upper else "pending", "points": upper["curve"] if upper else []})
     return render(request, "home.html", models=models, selected_framework=framework,

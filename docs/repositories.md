@@ -3,7 +3,7 @@
 | Repository | Contents and role |
 |---|---|
 | [ots.golf-dev](https://github.com/leanEthereum/ots.golf-dev) | Trusted Lean model, challenge stubs, verifier, website and tooling; no track proofs |
-| [ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions) | Proof PRs; `main` holds five current record roots, `records.json`, contributor files and the pinned core submodule |
+| [ots.golf-submissions](https://github.com/leanEthereum/ots.golf-submissions) | Proof PRs; `main` holds three current record roots, `records.json`, contributor files and the pinned core submodule |
 
 The local workspace contains both repositories:
 
@@ -59,7 +59,7 @@ python3 tools/prepare_submissions_repo.py .build/ots.golf-submissions
 
 The destination must be new. The command bootstraps contributor files and the pinned core
 submodule; it does not copy proof roots or invent records. Checked records subsequently populate
-`main` and `records.json`. The initial five verified records may be seeded by a maintainer from
+`main` and `records.json`. Initial verified records may be seeded by a maintainer from
 their exact checked roots; every future new verified record is committed automatically by the bot.
 Its `origin` points to `leanEthereum/ots.golf-submissions`.
 It uses the local core checkout and does not contact GitHub or push anything.

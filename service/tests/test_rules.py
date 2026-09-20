@@ -33,8 +33,6 @@ class RulesTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.headers['content-type'].startswith('text/plain'))
         for required in ('OptimalOTS.Challenge.LowerGenerality1.candidate',
-                         'OptimalOTS.Challenge.LowerGenerality2.candidate',
-                         'OptimalOTS.Challenge.LowerGenerality3.candidate',
                          'OptimalOTS.Challenge.UpperCompressions.cost',
                          'OptimalOTS.Challenge.UpperRiscv.certificate',
                          '4,194,304 bytes', '24 GiB', '20 minutes',
@@ -56,24 +54,24 @@ class RulesTests(unittest.TestCase):
 
     def test_rules_preserve_framework_links_and_admission_scope(self):
         html = self.rules_body()
-        for anchor in ('generic-algorithms', 'upper-compressions', 'graph', 'partial-disclosures', 'whole-words',
+        for anchor in ('generic-algorithms', 'upper-compressions', 'whole-words',
                        'legacy-certificates', 'hash', 'security', 'params', 'cut', 'play', 'rules',
-                       'generic-admissibility', 'dag-model', 'whole-word-model', 'submission-format'):
+                       'generic-admissibility', 'whole-word-model', 'submission-format'):
             self.assertIn(f'id="{anchor}"', html)
         self.assertIn('What are we optimizing?', html)
         self.assertIn('<h3>Upper bounds</h3>', html)
-        self.assertIn('<h3 id="model">Lower bounds</h3>', html)
+        self.assertIn('<h3 id="model">Lower bound</h3>', html)
         self.assertIn('whole 128-bit words', html)
-        self.assertIn('A deterministic node may do only three things: output a fixed public word,', html)
+        self.assertIn('128-bit word, selects the fixed low or high half directly from a hash output, or concatenates', html)
         self.assertNotIn('hash origins', html)
         self.assertNotIn('Reed–Solomon', html)
-        self.assertIn('Submit an upper-bound construction, or a lower-bound proof', html)
+        self.assertIn('Submit an upper-bound construction or a lower-bound proof', html)
         self.assertNotIn('<strong>Pending:</strong>', html)
         self.assertIn('with probability at most <strong>2<sup>−128</sup></strong>', html)
         self.assertIn('verification accepts with probability one', html)
         self.assertIn('for any message.</p>', html)
         self.assertIn('formal/Submissions/UpperCompressions/', html)
-        self.assertIn('formal/Submissions/LowerGenerality3/', html)
+        self.assertIn('formal/Submissions/LowerGenerality1/', html)
         self.assertNotIn('Their submission roots are closed.', html)
         self.assertIn('AGENTS.md#what-a-submission-exports', html)
         self.assertIn('formal/OptimalOTS/Dag.lean', html)
@@ -84,10 +82,10 @@ class RulesTests(unittest.TestCase):
         html = self.rules_body()
         section = re.search(r'<details id="whole-word-model">.*?</details>',
                             html, re.S).group(0)
-        self.assertIn('256 bits', section)
+        self.assertIn('256-bit hash', section)
         self.assertIn('whole 128-bit words', section)
-        self.assertIn('fixed low or high half of a hash output', section)
-        self.assertIn('keeps the <a href="#graph">DAG model of Generality 2/3</a>', section)
+        self.assertIn('fixed low or high half directly from a hash output', section)
+        self.assertIn('sampled 128-bit nonces without replacement, stopping at the first valid index', section)
 
     def test_rules_separate_proof_prs_from_core_sources(self):
         with patch.object(settings, 'contract_repo', 'org/core'), \
@@ -96,7 +94,7 @@ class RulesTests(unittest.TestCase):
         self.assertIn('href="https://github.com/org/entries">the submissions repository</a>', html)
         self.assertIn(f'href="https://github.com/org/core/blob/{self.COMMIT}/formal/OptimalOTS/Dag.lean"', html)
         self.assertNotIn('https://github.com/org/entries/blob/', html)
-        self.assertIn('python3 .contract/verifier/verify.py lower-generality-2 --source .', html)
+        self.assertIn('python3 .contract/verifier/verify.py lower-generality-1 --source .', html)
 
     def test_contract_source_links_pin_the_deployed_commit(self):
         with patch.object(settings, 'contract_repo', 'org/core'):

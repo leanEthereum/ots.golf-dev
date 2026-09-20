@@ -184,36 +184,34 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     command('WebDriver:SetWindowRect', {'width': 1360, 'height': 1700})
     command('WebDriver:Navigate', {'url': base_url + '/'})
     print('Home:', js('return {title: document.title, cards: document.querySelectorAll(".framework-card").length, lowerSeries: document.querySelectorAll(".chart-series[data-kind=lower]").length, tables: document.querySelectorAll(".lb-table").length, width: innerWidth, scrollWidth: document.documentElement.scrollWidth};'))
-    assert js('return document.querySelectorAll(".chart-series[data-kind=lower]").length === 3;')
-    assert js(f'return document.querySelectorAll(".lb-table").length === {5 if riscv_enabled else 4};')
+    assert js('return document.querySelectorAll(".chart-series[data-kind=lower]").length === 1;')
+    assert js(f'return document.querySelectorAll(".lb-table").length === {4 if riscv_enabled else 3};')
     assert js('return document.querySelector(".upper-card").getBoundingClientRect().bottom <= document.querySelector(".framework-cards").getBoundingClientRect().top;')
     assert js('return document.querySelector("#upper-compressions-title").textContent.trim() === "By compressions" && getComputedStyle(document.querySelector(".chart-series[data-kind=upper] .line")).strokeDasharray === "none";')
-    assert js('return document.querySelector("#framework-generality-1 .framework-generality").textContent === "Generality 1/3" && [...document.querySelectorAll(".framework-card h3")].every(h => h.textContent.startsWith("Lower bound"));')
+    assert js('return document.querySelector("#framework-generality-1 .framework-generality").textContent === "Whole-word DAGs";')
     assert js('return [...document.querySelectorAll("header.top nav a")].map(a => a.textContent.trim()).join(",") === "Rules";')
     assert js('return !document.querySelector(".board-track[data-track=lower]").innerText.includes("Admission pending");')
     assert js('return !document.querySelector("main").innerText.includes("Lower submissions open");')
-    generic_claim = demo_best(config, 'lower-generality-3')
-    expected_label = json.dumps(f"Generality 3/3 lower {generic_claim}")
-    assert js('return document.querySelector(".chart-series[data-series=lower-generality-3]").dataset.status === "certified" && document.querySelector(".chart-series[data-series=lower-generality-3] .label").textContent === ' + expected_label + ';')
-    assert js('return document.querySelectorAll(".framework-overview .upper-score strong").length >= 1 && document.querySelectorAll(".framework-overview .tag").length >= 4;'), 'This check requires the seeded local preview (service/run-local.sh).'
+    lower_claim = demo_best(config, 'lower-generality-1')
+    expected_label = json.dumps(f"Whole-word lower · {lower_claim}")
+    assert js('return document.querySelector(".chart-series[data-series=lower-generality-1]").dataset.status === "certified" && document.querySelector(".chart-series[data-series=lower-generality-1] .label").textContent === ' + expected_label + ';')
+    assert js('return document.querySelectorAll(".framework-overview .upper-score strong").length >= 1 && document.querySelectorAll(".framework-overview .tag").length >= 3;'), 'This check requires the seeded local preview (service/run-local.sh).'
 
     assert js('return document.querySelector(".board-track[data-track=upper]").hidden;')
     js('document.querySelector(".seg-btn[data-track=upper]").click(); return true;')
     assert js('return !document.querySelector(".board-track[data-track=upper]").hidden && document.querySelector(".board-track[data-track=lower]").hidden && location.hash === "#upper";')
-    assert js('return document.querySelector(".lower-switch").hidden;')
+    assert js('return document.querySelector(".lower-switch") === null;')
     upper_claim = demo_best(config, 'upper-compressions')
     upper_scores = js('return [...document.querySelectorAll(".lb-table[data-track=upper-compressions] .lb-row")].map(r => Number(r.dataset.score));')
-    assert upper_scores == [upper_claim - 1, upper_claim], upper_scores
+    assert min(upper_scores) == upper_claim and upper_scores == sorted(upper_scores), upper_scores
     js('document.querySelector(".lb-table[data-track=upper-compressions] .sort-btn[data-key=score]").click(); return true;')
     assert js('return document.querySelector(".lb-table[data-track=upper-compressions] th[aria-sort=descending]") !== null;')
     js('document.querySelector(".chart-series[data-kind=upper] .chart-record").focus(); return true;')
     assert js('return !document.querySelector(".tooltip").hidden && document.querySelector(".tooltip").textContent.includes("Upper bound") && document.querySelector(".tooltip").textContent.includes("demo");')
     js('document.activeElement.blur(); return true;')
     js('document.querySelector(".seg-btn[data-track=lower]").click(); return true;')
-    js('document.querySelector(".lower-btn[data-framework=generality-2]").click(); return true;')
-    assert js('return !document.querySelector(".framework-board[data-framework=generality-2]").hidden && document.querySelector(".framework-board[data-framework=generality-3]").hidden && new URL(location.href).searchParams.get("framework") === "generality-2";')
-    js('document.querySelector(".lb-table[data-track=lower] .sort-btn[data-key=score]").click(); return true;')
-    scores = js('return [...document.querySelectorAll(".lb-table[data-track=lower] .lb-row")].map(r => Number(r.dataset.score));')
+    js('document.querySelector(".lb-table[data-track=lower-generality-1] .sort-btn[data-key=score]").click(); return true;')
+    scores = js('return [...document.querySelectorAll(".lb-table[data-track=lower-generality-1] .lb-row")].map(r => Number(r.dataset.score));')
     assert scores == sorted(scores), scores
     js('document.querySelector(".chart-record").focus(); return true;')
     assert js('return !document.querySelector(".tooltip").hidden;')
@@ -236,12 +234,12 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     (output / 'chart-light.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': False})['value']))
     print('Desktop chart, direction toggle, sorting, and keyboard tooltip passed')
     command('WebDriver:Navigate', {'url': base_url + '/?framework=generality-1#upper'})
-    assert js(f'return document.querySelectorAll(".lb-table").length === {5 if riscv_enabled else 4} && document.querySelectorAll(".chart-series[data-kind=lower]").length === 3 && !document.querySelector(".board-track[data-track=upper]").hidden && !document.querySelector(".framework-board[data-framework=generality-1]").hidden;')
+    assert js(f'return document.querySelectorAll(".lb-table").length === {4 if riscv_enabled else 3} && document.querySelectorAll(".chart-series[data-kind=lower]").length === 1 && !document.querySelector(".board-track[data-track=upper]").hidden && !document.querySelector(".framework-board[data-framework=generality-1]").hidden;')
     command('WebDriver:Navigate', {'url': base_url + '/rules'})
     assert js('return document.querySelectorAll(".rules-diagram svg[role=img]").length === 1;')
     assert js('return document.querySelectorAll("details[open]").length === 0;')
     assert js('return document.querySelector("summary").textContent === "What is a one-time signature?";')
-    assert js('return [...document.querySelectorAll("main p, main table, main figure, main ol, main ul")].every(e => e.closest("details"));')
+    assert js('return [...document.querySelectorAll("main p, main table, main figure, main ol, main ul")].every(e => e.closest("details") || e.parentElement.tagName === "MAIN");')
     js('document.querySelector("#ots summary").focus(); return true;')
     enter = {'actions': [{'type': 'key', 'id': 'keyboard', 'actions': [
         {'type': 'keyDown', 'value': '\ue007'}, {'type': 'keyUp', 'value': '\ue007'}]}]}
@@ -252,8 +250,8 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     print('Rules summary words:', js(r'return document.querySelector("main").innerText.trim().split(/\s+/).length;'))
     (output / 'rules-summary.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': True})['value']))
     js('document.documentElement.dataset.theme = "light"; return true;')
-    for anchor in ('generic-admissibility', 'generic-algorithms', 'upper-compressions', 'dag-model', 'graph', 'cut',
-                   'whole-word-model', 'whole-words', 'partial-disclosures', 'submission-format',
+    for anchor in ('generic-admissibility', 'generic-algorithms', 'upper-compressions', 'cut',
+                   'whole-word-model', 'whole-words', 'submission-format',
                    'limits', 'legacy-certificates', 'model', 'params', 'hash', 'security'):
         command('WebDriver:Navigate', {'url': base_url + '/rules#' + anchor})
         assert js('return document.querySelector("#' + anchor + '").closest("details").open;')
@@ -299,6 +297,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     command('WebDriver:SetWindowRect', {'width': 1360, 'height': 1700})
     command('WebDriver:Navigate', {'url': base_url + '/'})
     assert js("return matchMedia('(prefers-reduced-motion: reduce)').matches;")
+    time.sleep(.5)  # Let the initial intersection observer settle the reduced-motion drawing.
     before = js("return [...document.querySelectorAll('.scheme-art [data-r]')].map(e => e.getAttribute('class')).join('|');")
     time.sleep(8.5)
     after = js("return [...document.querySelectorAll('.scheme-art [data-r]')].map(e => e.getAttribute('class')).join('|');")
@@ -328,7 +327,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
 def audit_eye_motion(browser: Marionette, base_url: str) -> None:
     browser.command('WebDriver:Navigate', {'url': base_url + '/'})
     assert not browser.js("return matchMedia('(prefers-reduced-motion: reduce)').matches;")
-    assert browser.js("return document.querySelectorAll('.scheme-art [data-r=bead]').length === 945;")
+    assert browser.js("return document.querySelectorAll('.scheme-art [data-r=bead]').length === 810;")
     browser.js("""
         const svg = document.querySelector('.scheme-art');
         const started = performance.now();

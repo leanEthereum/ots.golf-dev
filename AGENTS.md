@@ -1,7 +1,7 @@
 # ots.golf — submission rules
 
 ots.golf is a Lean-kernel-verified competition on the worst-case verification cost of hash-based
-one-time signatures, with three lower-bound frameworks and two upper tracks: a fully generic
+one-time signatures, with one whole-word lower-bound track and two upper tracks: a fully generic
 compression bound and a RISC-V implementation bound in cycles. The DAG model is
 `formal/OptimalOTS/Dag.lean`; `formal/OptimalOTS/WholeWords.lean` defines the whole-word class.
 `challenges.json` lists the tracks; `verifier/` runs the hosted verifier's checks. This file is the
@@ -34,20 +34,14 @@ proofs of any track; reference proofs are ordinary submissions.
 
 ## Frameworks
 
-All five public tracks are open.
+All three public tracks are open.
 
-- **Generality 1/3** (`lower-generality-1`): whole-word DAGs. Secret sources are independent
+- **Whole-word DAGs** (`lower-generality-1`): whole-word DAGs. Secret sources are independent
   uniform 128-bit words; hashes return 256 bits. Each deterministic node is a fixed public 128-bit
   word, selects a fixed low or high half directly from a hash output, or concatenates an ordered
   list of complete earlier values. Concatenations may repeat, reorder, group or be empty.
   Disclosures reveal complete node values. This syntax and the 5376-bit payload budget imply at
   most 42 disclosed hash origins.
-- **Generality 2/3** (`lower-generality-2`): fixed DAGs with arbitrary deterministic functions and
-  disclosure cuts.
-- **Generality 3/3** (`lower-generality-3`): arbitrary oracle programs. `OracleAlgorithm.lean`
-  defines the protected interface and statement. The lower challenge fixes perfect correctness,
-  deterministic verification, signing failure at most `2^-128` for every public-key-dependent
-  message choice, the size and resource limits of the rules, and 127-bit strong unforgeability.
 - **Upper bound** (`upper-compressions`): arbitrary oracle programs. The challenge fixes perfect
   correctness, deterministic verification, signing failure at most `2^-128` for every
   public-key-dependent message choice, the size and resource limits of the rules, and 127-bit strong
@@ -57,7 +51,7 @@ All five public tracks are open.
   every raw input. The score is a proved bound on the cycles of every execution, accepting or
   rejecting.
 
-The DAG classes share the 128-bit nonce, 127-bit security target, cuts, forward reconstruction
+The whole-word DAG model uses the 128-bit nonce, 127-bit security target, cuts, forward reconstruction
 and actual-input compression costs. Proof guides for the reference proofs are in `docs/`.
 
 ## Oracle model
@@ -72,36 +66,13 @@ message-and-nonce index costs one compression. Claims require Lean-kernel-checke
 The verifier renders the track's stub with your claim and compares your declarations against it.
 Names and statements must match exactly; copy them from the rendered stub.
 
-**Generality 1/3 lower track** (`formal/Submissions/LowerGenerality1/`, larger is better; a record
+**Lower bound · Whole-word DAGs** (`formal/Submissions/LowerGenerality1/`, larger is better; a record
 needs claim ≥ record + 1):
 
 ```lean
 theorem OptimalOTS.Challenge.LowerGenerality1.candidate :
     LowerBoundGenerality1 <claim> := ...
 ```
-
-**Generality 2/3 lower track** (`formal/Submissions/LowerGenerality2/`, same direction and record
-rule):
-
-```lean
-theorem OptimalOTS.Challenge.LowerGenerality2.candidate :
-    LowerBoundGenerality2 <claim> := ...
-```
-
-`LowerBoundGenerality2` quantifies over strongly `Secure` schemes, the notion every track uses. (The
-reference lower-bound proofs forge on a new message, so they in fact also cover weakly secure
-schemes; that is a property of those proofs, not a requirement of the contract.)
-
-**Generality 3/3 lower track** (`formal/Submissions/LowerGenerality3/`, same direction and record
-rule):
-
-```lean
-theorem OptimalOTS.Challenge.LowerGenerality3.candidate :
-    LowerBoundGenerality3 <claim> := ...
-```
-
-This theorem must cover every admissible, secure algorithm and every pathwise verification
-budget. The challenge fixes signing failure at most `2^-128`, matching the upper track.
 
 **Upper bound track** (`formal/Submissions/UpperCompressions/`, smaller is better):
 
@@ -153,9 +124,8 @@ input and uses the competition's single oracle. The machine, loader and system c
 
    | Root | Additional contract modules |
    |---|---|
-   | `LowerGenerality2` | none |
    | `LowerGenerality1` | `OptimalOTS.WholeWords` |
-   | `LowerGenerality3`, `UpperCompressions` | `OptimalOTS.OracleAlgorithm` |
+   | `UpperCompressions` | `OptimalOTS.OracleAlgorithm` |
    | `UpperRiscv` | `OptimalOTS.OracleAlgorithm`, `OptimalOTS.RiscvMachine`, `OptimalOTS.Riscv` |
 
    This list restricts explicit source-header imports. Dependencies of permitted modules are
@@ -182,11 +152,10 @@ From the root of a submissions checkout, whose `.contract` submodule is this cor
 ```sh
 .contract/verifier/setup_tools.sh                                        # once
 (cd .contract/formal && lake exe cache get && lake build OptimalOTS)     # once
-python3 .contract/verifier/verify.py lower-generality-2 --source .       # the full pipeline
+python3 .contract/verifier/verify.py lower-generality-1 --source .       # the full pipeline
 ```
 
-Replace `lower-generality-2` by `lower-generality-1` or `lower-generality-3` for the other lower
-tracks, or by `upper-compressions` or `upper-riscv` for the upper tracks. From the core, pass the
+Replace `lower-generality-1` by `upper-compressions` or `upper-riscv` for the upper tracks. From the core, pass the
 submissions checkout as `--source`.
 
 `setup_tools.sh` requires elan and installs the pinned comparator and lean4export (and landrun on
@@ -202,7 +171,7 @@ isolation or resource enforcement.
 
 The core repository is `leanEthereum/ots.golf-dev`: model, verifier and website.
 Competition PRs go to `leanEthereum/ots.golf-submissions`. Its `main` holds the current record proof
-root for each of the five tracks, a root `records.json` registry linking each claim to its checked
+root for each of the three tracks, a root `records.json` registry linking each claim to its checked
 source commit, PR and trusted core, and a `.contract` submodule for local checking. From that
 repository, run
 `python3 .contract/verifier/verify.py <track> --source .` after following its setup instructions.

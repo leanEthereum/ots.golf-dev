@@ -40,8 +40,7 @@ FIXTURE_IDS = {(r[0], r[1], r[3]): fixture["id"]
                for r, fixture in zip(ROWS, FIXTURES["submissions"])}
 if len(set(FIXTURE_IDS.values())) != len(ROWS) or len(FIXTURE_IDS) != len(ROWS):
     raise ValueError("demo fixtures must have unique IDs and dates per author/track")
-BASE_ROWS = [r for r in ROWS if r[0] == "lower-generality-2"]
-GENERIC_ROWS = [r for r in ROWS if r[0] == "lower-generality-3"]
+BASE_ROWS = [r for r in ROWS if r[0] == "lower-generality-1"]
 UPPER_COMPRESSIONS_ROWS = [r for r in ROWS if r[0] == "upper-compressions"]
 
 

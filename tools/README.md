@@ -49,12 +49,11 @@ selected disclosure family exactly.
 After preparing the service environment:
 
 ```sh
-python3 tools/check_repo.py --numerics-python .venv-tools/bin/python --formal --paper
+python3 tools/check_repo.py --numerics-python .venv-tools/bin/python --formal
 ```
 
 - `--formal` builds the contract, audits its axioms and builds the internal lower-bound witnesses
   (`lake build Witnesses`).
-- `--paper` compiles the paper with latexmk.
 - `--official --submissions PATH` runs the official pipeline for every track whose root exists in
   that submissions checkout.
 - `--node /path/to/node` overrides the Node.js used for static JavaScript syntax checks.

@@ -2,7 +2,7 @@
 {% for s in subs %}
 <tr>
   <td class="num"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }}{% if show_track %} <span class="lb-unit">{{ track_labels[s.track]|cost_unit(s.claim) }}</span>{% endif %}{% else %}–{% endif %}</a></td>
-  {% if show_track %}{% set t = track_labels[s.track] %}<td>{% if t.kind == 'upper' and t.framework != 'generality-3' %}<a href="/rules#legacy-certificates">{{ t.framework_title }}</a>{% elif t.kind == 'upper' %}<a href="/?upper={{ t.slug }}#upper">Upper bound · {{ 'RISC-V cycles' if t.slug == 'upper-riscv' else 'compressions' }}</a>{% else %}<a href="/?framework={{ t.framework }}#lower">Lower bound · {{ t.framework_title }}</a>{% endif %}</td>{% endif %}
+  {% if show_track %}{% set t = track_labels[s.track] %}<td>{% if t.kind == 'upper' and t.framework != 'oracle-algorithm' %}<a href="/rules#legacy-certificates">{{ t.framework_title }}</a>{% elif t.kind == 'upper' %}<a href="/?upper={{ t.slug }}#upper">Upper bound · {{ 'RISC-V cycles' if t.slug == 'upper-riscv' else 'compressions' }}</a>{% else %}<a href="/?framework={{ t.framework }}#lower">Lower bound · {{ t.framework_title }}</a>{% endif %}</td>{% endif %}
   <td>
     <a href="/solvers/{{ s.user.login }}">{{ s.user.login }}</a>{% if s.co_authors_list %} and {{ s.co_authors_list|length }} other{{ 's' if s.co_authors_list|length > 1 }}{% endif %}
   </td>

@@ -12,9 +12,9 @@ class DemoGuardTests(unittest.TestCase):
     def test_visibility_obeys_demo_mode_for_existing_rows(self):
         for phony in (True, False):
             with patch('app.visibility.settings', SimpleNamespace(phony=phony)):
-                self.assertEqual(visible(SimpleNamespace(detail_dict={'demo': True})), phony)
-                self.assertTrue(visible(SimpleNamespace(detail_dict={})))
-                self.assertTrue(visible(SimpleNamespace(detail_dict={'demo': False})))
+                self.assertEqual(visible(SimpleNamespace(track='lower-generality-1', detail_dict={'demo': True})), phony)
+                self.assertTrue(visible(SimpleNamespace(track='lower-generality-1', detail_dict={})))
+                self.assertTrue(visible(SimpleNamespace(track='lower-generality-1', detail_dict={'demo': False})))
 
     def test_default_seed_and_refresh_command_preserve_existing_rows(self):
         config = SimpleNamespace(environment='development', base_url='http://localhost:8000',

@@ -3,7 +3,7 @@ import OptimalOTS.Model
 /-!
 # One-time signatures as oracle algorithms
 
-The model of the Generality 3/3 lower bound and of both upper bounds (compressions and RISC-V
+The model of both upper bounds (compressions and RISC-V
 cycles). A scheme is three oracle programs that share the random oracle of `Model.lean` and
 pay its compression costs; all other computation is free. Signatures are bit strings. Key
 generation and signing may use private randomness; verification may not. `Admissible` collects
@@ -107,15 +107,3 @@ structure Admissible : Prop where
 end Scheme
 
 end OptimalOTS.OracleAlgorithm
-
-namespace OptimalOTS
-
-open OracleAlgorithm
-
-/-- Generality 3/3: every admissible, secure scheme needs a verification budget of at least `c`:
-any `v` bounding the verification cost on every input (accepting or rejecting) satisfies
-`c ≤ v`. -/
-def LowerBoundGenerality3 (c : ℕ) : Prop :=
-  ∀ S : Scheme, S.Admissible → S.Secure → ∀ v : ℕ, S.VerifyCostAtMost v → c ≤ v
-
-end OptimalOTS

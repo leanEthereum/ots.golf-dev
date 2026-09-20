@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run local regression checks without network access or changing the running site.
 
-    python3 tools/check_repo.py --numerics-python .venv-tools/bin/python --formal --paper
+    python3 tools/check_repo.py --numerics-python .venv-tools/bin/python --formal
     python3 tools/check_repo.py --official --submissions ../ots.golf-submissions
 
 Requires the service environment and NumPy for the research-tool tests. --official builds Lean and
@@ -29,7 +29,6 @@ def main() -> int:
     parser.add_argument('--official', action='store_true',
                         help='also verify every submission root present in the --submissions checkout')
     parser.add_argument('--submissions', type=Path, help='submissions checkout verified by --official')
-    parser.add_argument('--paper', action='store_true', help='compile the DAG paper with latexmk')
     args = parser.parse_args()
     if args.official and not args.submissions:
         parser.error('--official needs --submissions PATH, a checkout of the submissions repository')
@@ -73,9 +72,6 @@ def main() -> int:
             for track in present:
                 check(f"official pipeline {track['slug']}",
                       [sys.executable, 'verifier/verify.py', track['slug'], '--source', str(source)])
-        if args.paper:
-            check('paper', ['latexmk', '-pdf', '-interaction=nonstopmode', '-halt-on-error',
-                            'looking-for-optimal-OTS.tex'], ROOT / 'paper')
     except (subprocess.CalledProcessError, OSError) as error:
         print(f'Check failed: {error}', file=sys.stderr)
         return 1

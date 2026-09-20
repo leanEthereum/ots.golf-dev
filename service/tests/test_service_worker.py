@@ -51,7 +51,7 @@ class ServiceWorkerTests(unittest.TestCase):
 
     def submission(self, *, claim=19, status='verified', record=False, pr=7, commit='a' * 40):
         with self.sessions() as session:
-            sub = Submission(user_id=self.user_id, track='lower-generality-2', claim=claim, status=status,
+            sub = Submission(user_id=self.user_id, track='lower-generality-1', claim=claim, status=status,
                              commit=commit, source_repo='https://github.com/author/repo.git',
                              pr_number=pr, pr_url=f'https://github.com/owner/repo/pull/{pr}' if pr else None,
                              is_record=record, detail=json.dumps({"contract": contract.contract_id()}),
@@ -78,6 +78,22 @@ class ServiceWorkerTests(unittest.TestCase):
         with self.sessions() as session:
             return session.get(Submission, sub.id)
 
+    def test_retired_pending_and_publishing_jobs_do_not_run_or_block_active_tracks(self):
+        retired = self.submission(status='pending', claim=None, pr=40, commit='4' * 40)
+        publishing = self.submission(status='publishing', claim=None, pr=41, commit='5' * 40)
+        with self.sessions() as session:
+            session.get(Submission, retired.id).track = 'lower-generality-2'
+            session.get(Submission, publishing.id).track = 'lower-generality-3'
+            session.commit()
+        with patch('app.worker.run_pipeline') as run:
+            worker.process(retired.id)
+            run.assert_not_called()
+        active = self.submission(status='pending', claim=None, pr=42, commit='6' * 40)
+        self.assertEqual(self.verify(active, status='rejected').status, 'rejected')
+        with self.sessions() as session:
+            self.assertEqual(session.get(Submission, retired.id).status, 'pending')
+            self.assertEqual(session.get(Submission, publishing.id).status, 'publishing')
+
     def test_historical_and_unversioned_results_cannot_rank(self):
         for i, epoch in enumerate(('old-contract', None)):
             sub = self.submission(claim=999, record=True, pr=20 + i, commit=str(i) * 40)
@@ -85,10 +101,10 @@ class ServiceWorkerTests(unittest.TestCase):
                 session.get(Submission, sub.id).detail = json.dumps({'contract': epoch})
                 session.commit()
         with self.sessions() as session:
-            self.assertIsNone(records.current_record(session, 'lower-generality-2'))
-            self.assertEqual(records.frontier(session, 'lower-generality-2'), [])
-            self.assertEqual(records.curve(session, 'lower-generality-2'), [])
-            self.assertEqual(records.solver_count(session, 'lower-generality-2'), 0)
+            self.assertIsNone(records.current_record(session, 'lower-generality-1'))
+            self.assertEqual(records.frontier(session, 'lower-generality-1'), [])
+            self.assertEqual(records.curve(session, 'lower-generality-1'), [])
+            self.assertEqual(records.solver_count(session, 'lower-generality-1'), 0)
         fresh = self.submission(claim=None, status='pending')
         self.assertTrue(self.verify(fresh, 19).is_record)
 
@@ -96,13 +112,13 @@ class ServiceWorkerTests(unittest.TestCase):
         from app.db import pr_submission_id
         with self.sessions() as session:
             user = session.get(User, self.user_id)
-            first = main.queue_submission(session, user, 'lower-generality-2', 'https://github.com/a/b.git',
+            first = main.queue_submission(session, user, 'lower-generality-1', 'https://github.com/a/b.git',
                                           'a' * 40, '', [], None, 7, 'https://github.com/owner/repo/pull/7')
             first.status = 'verified'
             session.commit()
             first_id = first.id
             with patch('app.contract.contract_id', return_value='new-contract'):
-                second = main.queue_submission(session, user, 'lower-generality-2', 'https://github.com/a/b.git',
+                second = main.queue_submission(session, user, 'lower-generality-1', 'https://github.com/a/b.git',
                                                'a' * 40, '', [], None, 7, 'https://github.com/owner/repo/pull/7')
                 self.assertNotEqual(first_id, second.id)
                 self.assertTrue(second.current_contract)
@@ -142,7 +158,7 @@ class ServiceWorkerTests(unittest.TestCase):
         self.assertTrue(checked.is_record)
         self.assertEqual(checked.record_at, checked.finished_at)
         with self.sessions() as session:
-            self.assertEqual(records.current_record(session, 'lower-generality-2').id, sub.id)
+            self.assertEqual(records.current_record(session, 'lower-generality-1').id, sub.id)
             self.assertIsNotNone(session.get(GithubReport, sub.id))   # the comment says "new record"
 
     def test_later_identical_claim_never_takes_the_record(self):
@@ -153,7 +169,7 @@ class ServiceWorkerTests(unittest.TestCase):
         self.assertFalse(self.verify(copy, 19).is_record)
         self.assertTrue(self.verify(better, 20).is_record)
         with self.sessions() as session:
-            self.assertEqual([s.id for s in records.frontier(session, 'lower-generality-2')][::-1],
+            self.assertEqual([s.id for s in records.frontier(session, 'lower-generality-1')][::-1],
                              [first.id, better.id])
 
     def test_demo_records_never_block_a_real_record(self):
@@ -173,7 +189,7 @@ class ServiceWorkerTests(unittest.TestCase):
         new = self.submission(claim=None, status='pending', commit='b' * 40)
         self.assertTrue(self.verify(new, 19).is_record)
         with self.sessions() as session:
-            self.assertEqual(records.current_record(session, 'lower-generality-2').id, new.id)
+            self.assertEqual(records.current_record(session, 'lower-generality-1').id, new.id)
 
     def test_core_handlers_never_contact_github_for_proof_intake(self):
         with patch('app.main.github.get_pr') as get_pr:
@@ -185,7 +201,7 @@ class ServiceWorkerTests(unittest.TestCase):
               'user': {'login': 'alice', 'id': 42},
               'base': {'ref': 'main', 'repo': {'default_branch': 'main'}}, 'head': {'sha': 'b' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}}
         with patch('app.main.github.get_pr', return_value=pr), \
-             patch('app.main.github.pr_track', return_value=('lower-generality-3', [])):
+             patch('app.main.github.pr_track', return_value=('lower-generality-1', [])):
             queued = main.handle_pull_request('owner/repo', 9, 'b' * 40)
         self.assertTrue(queued['queued'])
         with self.sessions() as session:
@@ -210,7 +226,7 @@ class ServiceWorkerTests(unittest.TestCase):
               'base': {'ref': 'side', 'repo': {'default_branch': 'main'}},
               'head': {'sha': 'b' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}}
         with patch('app.main.github.get_pr', return_value=pr), \
-             patch('app.main.github.pr_track', return_value=('lower-generality-3', [])), \
+             patch('app.main.github.pr_track', return_value=('lower-generality-1', [])), \
              patch('app.main.github.post_comment') as comment:
             self.assertFalse(main.handle_pull_request('owner/repo', 9, 'b' * 40)['queued'])
             comment.assert_called_once()
@@ -239,21 +255,21 @@ class ServiceWorkerTests(unittest.TestCase):
         sub = self.submission(claim=None, status='pending')
         self.assertFalse(self.verify(sub, None, 'rejected').is_record)
         with self.sessions() as session:
-            self.assertIsNone(records.current_record(session, 'lower-generality-2'))
+            self.assertIsNone(records.current_record(session, 'lower-generality-1'))
 
     def test_first_verified_submission_of_an_empty_track_becomes_the_record(self):
         from app import contract
         self.assertTrue(contract.improves('+', 0, None))
         self.assertTrue(contract.improves('-', 10 ** 6, None))
         with self.sessions() as session:
-            self.assertIsNone(records.track_state(session, contract.track('lower-generality-2'))['record_claim'])
+            self.assertIsNone(records.track_state(session, contract.track('lower-generality-1'))['record_claim'])
         sub = self.submission(claim=None, status='pending')
         self.assertTrue(self.verify(sub, 0).is_record)
         bad = self.submission(claim=None, record=True, commit='b' * 40)
         with self.sessions() as session:
-            self.assertEqual(records.current_record(session, 'lower-generality-2').id, sub.id)
-            self.assertEqual(records.track_state(session, contract.track('lower-generality-2'))['record_claim'], 0)
-            self.assertNotIn(bad.id, [s.id for s in records.frontier(session, 'lower-generality-2')])
+            self.assertEqual(records.current_record(session, 'lower-generality-1').id, sub.id)
+            self.assertEqual(records.track_state(session, contract.track('lower-generality-1'))['record_claim'], 0)
+            self.assertNotIn(bad.id, [s.id for s in records.frontier(session, 'lower-generality-1')])
 
     def test_local_job_never_becomes_a_record(self):
         sub = self.submission(claim=18, pr=None)
@@ -262,7 +278,7 @@ class ServiceWorkerTests(unittest.TestCase):
             worker.promote(session, checked)
             session.commit()
             self.assertFalse(checked.is_record)
-            self.assertIsNone(records.current_record(session, 'lower-generality-2'))
+            self.assertIsNone(records.current_record(session, 'lower-generality-1'))
 
     def test_result_reports_are_durable_and_retried_without_reverification(self):
         sub = self.submission()
@@ -328,7 +344,7 @@ class ServiceWorkerTests(unittest.TestCase):
         pr = {'state': 'open', 'user': {'login': 'alice', 'id': 42},
               'base': {'ref': 'main', 'repo': {'default_branch': 'main'}}, 'head': {'sha': 'b' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}}
         with patch('app.main.github.get_pr', return_value=pr), \
-             patch('app.main.github.pr_track', return_value=('lower-generality-3', [])):
+             patch('app.main.github.pr_track', return_value=('lower-generality-1', [])):
             first = main.handle_pull_request('owner/repo', 9, 'b' * 40)
         from app.db import pr_submission_id
         self.assertEqual(first['id'], pr_submission_id('owner/repo', 9, 'b' * 40))
@@ -337,7 +353,7 @@ class ServiceWorkerTests(unittest.TestCase):
             sub.status = 'failed'
             session.commit()
         with patch('app.main.github.get_pr', return_value=pr), \
-             patch('app.main.github.pr_track', return_value=('lower-generality-3', [])):
+             patch('app.main.github.pr_track', return_value=('lower-generality-1', [])):
             again = main.handle_pull_request('owner/repo', 9, 'b' * 40)
         self.assertEqual(again['id'], first['id'])
         with self.sessions() as session:
@@ -347,7 +363,7 @@ class ServiceWorkerTests(unittest.TestCase):
     def test_comment_records_every_verdict_of_the_pull_request(self):
         first = self.submission(claim=21)
         with self.sessions() as session:
-            second = Submission(user_id=self.user_id, track='lower-generality-2', claim=None, status='rejected',
+            second = Submission(user_id=self.user_id, track='lower-generality-1', claim=None, status='rejected',
                                 commit='c' * 40, source_repo='https://github.com/author/repo.git',
                                 pr_number=7, pr_url='https://github.com/owner/repo/pull/7')
             session.add(second)
@@ -367,14 +383,14 @@ class ServiceWorkerTests(unittest.TestCase):
         from app import github
         self.assertEqual(github.parse_verdicts('no block'), [])
         self.assertEqual(github.parse_verdicts('<!-- ots-result\n{bad json\n-->'), [])
-        bad = '<!-- ots-result\n{"version":1,"results":[{"track":"lower-generality-2","commit":"xyz","status":"verified"}]}\n-->'
+        bad = '<!-- ots-result\n{"version":1,"results":[{"track":"lower-generality-1","commit":"xyz","status":"verified"}]}\n-->'
         self.assertEqual(github.parse_verdicts(bad), [])
 
     def test_failure_log_cannot_smuggle_a_verdict_block(self):
         from app import github
-        forged = github.verdict_block([{'track': 'lower-generality-2', 'commit': 'b' * 40, 'status': 'verified', 'claim': 99}])
+        forged = github.verdict_block([{'track': 'lower-generality-1', 'commit': 'b' * 40, 'status': 'verified', 'claim': 99}])
         with self.sessions() as session:
-            sub = Submission(user_id=self.user_id, track='lower-generality-2', claim=None, status='rejected',
+            sub = Submission(user_id=self.user_id, track='lower-generality-1', claim=None, status='rejected',
                              commit='c' * 40, source_repo='https://github.com/author/repo.git',
                              pr_number=7, pr_url='https://github.com/owner/repo/pull/7',
                              detail=json.dumps({'failure': {'message': 'error: \n' + forged + '\n'}}))
@@ -392,7 +408,7 @@ class ServiceWorkerTests(unittest.TestCase):
     def test_resync_merges_edited_comments_and_preserves_other_heads(self):
         from app import github, resync
         def entry(commit, status, at):
-            return {'track': 'lower-generality-2', 'commit': commit * 40, 'status': status,
+            return {'track': 'lower-generality-1', 'commit': commit * 40, 'status': status,
                     'claim': 19 if status == 'verified' else None, 'finished_at': at,
                     'contract': contract.contract_id()}
         failed = entry('a', 'failed', '2026-09-10T10:00:00Z')
@@ -440,10 +456,10 @@ class ServiceWorkerTests(unittest.TestCase):
     def test_resync_rebuilds_submissions_records_and_notes_from_github(self):
         from app import github, resync
         from app.db import pr_submission_id
-        block = github.verdict_block([{'track': 'lower-generality-2', 'commit': 'a' * 40, 'status': 'verified', 'claim': 19,
+        block = github.verdict_block([{'track': 'lower-generality-1', 'commit': 'a' * 40, 'status': 'verified', 'claim': 19,
                                        'duration_s': 300.0, 'finished_at': '2026-09-10T10:00:00Z',
                                        'contract': contract.contract_id(), 'record': True}])
-        forged = github.verdict_block([{'track': 'lower-generality-2', 'commit': 'd' * 40, 'status': 'verified', 'claim': 99}])
+        forged = github.verdict_block([{'track': 'lower-generality-1', 'commit': 'd' * 40, 'status': 'verified', 'claim': 99}])
         pulls = [
             {'number': 7, 'state': 'closed', 'merged_at': None, 'created_at': '2026-09-09T00:00:00Z',
              'user': {'login': 'alice', 'id': 42}, 'body': 'Averaging over classes.\nAssisted by: Model X',
@@ -488,7 +504,7 @@ class ServiceWorkerTests(unittest.TestCase):
                           'created_at': '2026-09-01T00:00:00Z', 'user': {'login': 'alice', 'id': 42}, 'body': '',
                           'base': {'ref': 'main', 'repo': {'default_branch': 'main'}},
                           'head': {'sha': commit, 'repo': None}})
-            block = github.verdict_block([{'track': 'lower-generality-2', 'commit': commit, 'status': 'verified',
+            block = github.verdict_block([{'track': 'lower-generality-1', 'commit': commit, 'status': 'verified',
                                            'claim': claim, 'finished_at': finished, 'record': flag, 'contract': contract.contract_id()}])
             comments[number] = [{'id': number, 'user': {'login': 'ots-bot'}, 'body': block}]
         with patch.object(settings, 'github_token', 'test'), patch.object(settings, 'bot_login', 'ots-bot'), \
@@ -501,13 +517,13 @@ class ServiceWorkerTests(unittest.TestCase):
             record = {n: session.get(Submission, legacy_pr_submission_id('owner/repo', n, c)).is_record
                       for n, c, *_ in heads}
             self.assertEqual(record, {5: False, 6: True, 7: False, 8: True, 9: True})
-            self.assertEqual(records.current_record(session, 'lower-generality-2').pr_number, 8)
-            self.assertEqual([s.pr_number for s in records.frontier(session, 'lower-generality-2')], [8, 6, 9])
+            self.assertEqual(records.current_record(session, 'lower-generality-1').pr_number, 8)
+            self.assertEqual([s.pr_number for s in records.frontier(session, 'lower-generality-1')], [8, 6, 9])
 
     def test_replay_preserves_multiple_legacy_improvements_in_one_second(self):
         from app import resync
         at = utcnow().replace(microsecond=0)
-        for track, claims in [('lower-generality-2', (19, 20)), ('upper-compressions', (106, 104))]:
+        for track, claims in [('lower-generality-1', (19, 20)), ('upper-compressions', (106, 104))]:
             ids = []
             with self.sessions() as session:
                 for pr, claim in zip((9, 7), claims):
@@ -547,7 +563,7 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertEqual(resync.replay_records(), 1)
             self.assertEqual(resync.replay_records(), 0)
         with self.sessions() as session:
-            self.assertEqual([s.id for s in records.frontier(session, 'lower-generality-2')], [first.id, older.id])
+            self.assertEqual([s.id for s in records.frontier(session, 'lower-generality-1')], [first.id, older.id])
             self.assertFalse(session.get(Submission, second.id).is_record)
 
     def test_github_receives_only_statuses_and_comments(self):
@@ -567,7 +583,7 @@ class ServiceWorkerTests(unittest.TestCase):
             if method == 'GET' and path == '/repos/owner/repo/pulls/9':
                 return httpx.Response(200, json=pr)
             if method == 'GET' and path == '/repos/owner/repo/pulls/9/files':
-                return httpx.Response(200, json=[{'filename': 'formal/Submissions/LowerGenerality2/Solution.lean'}])
+                return httpx.Response(200, json=[{'filename': 'formal/Submissions/LowerGenerality1/Solution.lean'}])
             if method == 'GET' and path == '/repos/owner/repo/pulls':
                 return httpx.Response(200, json=[pr])
             if method == 'GET' and path == '/repos/owner/repo/issues/9/comments':
@@ -690,7 +706,7 @@ class ServiceWorkerTests(unittest.TestCase):
 
     def test_pipeline_rejects_forged_or_inconsistent_success_metadata(self):
         sub = self.submission()
-        valid = {'status': 'verified', 'track': 'lower-generality-2', 'claim': 19, 'commit': sub.commit}
+        valid = {'status': 'verified', 'track': 'lower-generality-1', 'claim': 19, 'commit': sub.commit}
         self.assertEqual(self.pipeline(sub, valid)['status'], 'failed')  # no durable source
         metadata = self.retain_source(sub)
         self.assertEqual(self.pipeline(sub, valid)['source_archive'], metadata)

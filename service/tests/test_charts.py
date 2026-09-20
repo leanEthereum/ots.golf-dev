@@ -25,7 +25,7 @@ class ChartTests(unittest.TestCase):
     def series(claim=93, points=None):
         points = points or [{'t': datetime(2025, 12, 30), 'claim': claim, 'login': 'solver', 'id': 'id'}]
         return {'slug': 'lower-generality-1', 'framework': 'generality-1', 'kind': 'lower',
-                'label': 'Generality 1/3 lower', 'status': 'certified', 'points': points}
+                'label': 'Lower bound · whole words', 'status': 'certified', 'points': points}
 
     def test_attribution_cannot_escape_svg_or_json_script(self):
         stamp = datetime(2026, 1, 1)
@@ -41,7 +41,7 @@ class ChartTests(unittest.TestCase):
         self.assertIn(login, link.get('aria-label'))
         self.assertNotIn('onload', link.attrib)
 
-    def test_demo_marks_and_endpoints_are_labeled_without_marking_real_results(self):
+    def test_demo_marks_keep_attribution_without_suffixing_endpoint_labels(self):
         stamp = datetime(2026, 1, 1)
         for demo in (True, False):
             with self.subTest(demo=demo):
@@ -51,7 +51,7 @@ class ChartTests(unittest.TestCase):
                 link = svg.find('.//a')
                 self.assertEqual(' · demo' in link.get('aria-label'), demo)
                 self.assertEqual(' · demo' in link.find('.//title').text, demo)
-                self.assertEqual(' · demo' in ''.join(svg.find("./g/text[@class='label']").itertext()), demo)
+                self.assertNotIn(' · demo', ''.join(svg.find("./g/text[@class='label']").itertext()))
                 self.assertEqual(json.loads(chart['points'])[0]['demo'], demo)
 
     def test_equal_endpoint_labels_remain_separate(self):

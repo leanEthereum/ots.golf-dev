@@ -7,7 +7,7 @@ live worker before replacing its trusted checkout, and verify the deployed pages
 The deployment guide owns host prerequisites, acceptance checks and recovery.
 
 `OTS_PHONY=0` is the default for both web and worker: show real submissions only. Existing demo
-rows keep their IDs and dates but remain hidden and cannot affect records. All five boards start
+rows keep their IDs and dates but remain hidden and cannot affect records. All three boards start
 without records when there are no real verified submissions. Reference proofs reach the site as
 ordinary pull requests; no baseline scores belong to the contract.
 
@@ -36,18 +36,14 @@ replace it with a moving `main` link, a ZIP download or a shell fetch command. Z
 compatibility artifacts. Never create replacement logs by rerunning an already published verdict.
 See `deploy/README.md`.
 
-The three frameworks apply only to lower bounds. All three lower tracks are open, and the homepage
-plots three certified lower series from their normal `challenges.json` metadata. Generic lower uses
-`lower-generality-3`, with signing failure at most `2^-128` for every public-key-dependent
-message selection, matching the upper track. Do not hardcode a separate generic
-foundation certificate or show lower admission as pending. If a future framework has no checked
-certificate, use a pending lane outside the numeric axis. Never substitute zero or a DAG theorem
-for a missing generic certificate. Lower leaderboards have separate
-rankings for generic algorithms, DAGs and whole words; `?framework=generality-1|generality-2|generality-3`
-filters those lower tables only. Preserve `#lower` and `#upper` links.
+The lower-bound track covers whole-word DAGs. Its public name is “Whole-word DAGs”; keep
+the stable slug/root `lower-generality-1`/`LowerGenerality1`. There is no lower-framework selector.
+Keep the compression lower bound separate in scope from the unrestricted upper constructions.
+Removed tracks are not admitted or displayed, including stored historical and demo rows.
+Preserve `#lower` and `#upper` links.
 
 Upper tracks are admitted through the top-level `upper_tracks` metadata, independently of the
-three lower frameworks. `upper-compressions` is “Upper bound”, measured in compressions. `upper-riscv`
+whole-word lower track. `upper-compressions` is “Upper bound”, measured in compressions. `upper-riscv`
 is “RISC-V upper bound”, measured in cycles on every execution, accepting or rejecting; every
 execution must terminate and refine the Lean oracle specification. Render the second card, chart,
 leaderboard and rules section only while the track is admitted in the metadata. Its chart
@@ -81,7 +77,7 @@ allowed and charged. Hash inputs have no fixed arity;
 charge their complete length. A 5,376-bit payload fits at most 42 words, plus the 128-bit nonce.
 The framework definitions use prose; keep the removed DAG and whole-word diagrams out of the rules.
 Whole-word lower uses the slug/root `lower-generality-1`/`LowerGenerality1`, with
-demo rows like DAG lower. Do not leave the old 46-origin rule on the site.
+explicitly labeled demo rows. Do not leave the old 46-origin rule on the site.
 `seed_demo.py --refresh` preserves existing rows. Run isolated checks with
 `.venv/bin/python -m unittest discover -s tests -v` from `service/` after changing this behavior.
 
@@ -114,10 +110,10 @@ Keep the “Local demo leaderboard” explanatory banner removed; retain individ
 
 Use “Upper bound” as the public track name throughout the site, not “Generic upper”. Use the
 `upper-compressions` identifier for URLs, data and verification. Show its score card before
-the three lower cards and draw its chart line solid. Explain in the rules that any oracle algorithm
+the lower card and draw its chart line solid. Explain in the rules that any oracle algorithm
 is allowed. Introduce the competition through fixed size, security and key-generation/signing
 budgets, with worst-case verification cost as the quantity to minimize. Present the upper tracks and lower direction,
-then the three lower classes; do not invent percentages for their degree of generality. Keep the
+then the whole-word lower class; do not invent percentages for their degree of generality. Keep the
 target-sum Winternitz illustration as a list of chains from secret to public endpoint: the message is encoded as
 digits with a fixed sum, one per chain, the signature reveals the value each digit selects, and
 the verifier hashes forward to the endpoint. Do not restore
@@ -126,16 +122,13 @@ Keep the compression-cost rationale crediting Justin Drake: a per-key public par
 absorbed once as a full prefix block and its hash state reused. This motivates no implicit
 per-query surcharge; it does not exempt bits explicitly present in an oracle input from cost.
 
-Name the lower frameworks “Generality 3/3” (any oracle algorithm), “Generality 2/3” (a DAG with
-arbitrary deterministic functions), and “Generality 1/3” (a DAG built from whole words). Use these
-names in cards, charts, filters, leaderboards, rules and submission/profile pages; explain the
-restrictions in the descriptions. Keep the existing slugs and Lean names. Historical upper
-references retain their historical names; the generality levels apply only to lower bounds.
+Keep the public lower name “Whole-word DAGs” and the upper model name “Oracle algorithms”.
+The oracle model remains necessary for both upper certificates; it is not a lower-bound track.
 
 Keep the homepage score cards compact, with the correct cost unit beside every score.
 Oracle-algorithm signatures are plain bit strings; say so directly in public prose.
 Name the bound direction explicitly in each score-card and framework rule heading. The algorithm
-rule section covers upper constructions and Generality 3/3 lower bounds; the RISC-V section states
+rule section covers upper constructions; the RISC-V section states
 its machine, refinement, termination and cycle requirements, the cycle bound covering every
 execution.
 

@@ -281,7 +281,7 @@ def replay_records() -> int:
         candidates = [s for s in session.scalars(select(Submission).where(
             Submission.status == "verified", Submission.claim.is_not(None),
             Submission.finished_at.is_not(None), Submission.pr_number.is_not(None)))
-            if s.current_contract and not s.detail_dict.get("demo")
+            if contract.track(s.track) is not None and s.current_contract and not s.detail_dict.get("demo")
             and (s.pr_repository or "").lower() == settings.submissions_repo.lower()]
         previous = {s.id for s in candidates if s.is_record}
         def order(sub):

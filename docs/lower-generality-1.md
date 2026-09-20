@@ -1,6 +1,6 @@
-# Generality 1/3: whole-word DAGs
+# Whole-word DAGs: whole-word DAGs
 
-Generality 1/3 is `LowerBoundGenerality1 c`, defined in
+Whole-word DAGs is `LowerBoundGenerality1 c`, defined in
 `formal/OptimalOTS/WholeWords.lean`. It replaces the partial-disclosure class. There are two upper
 tracks, both for generic algorithms: compressions and RISC-V cycles.
 
@@ -70,5 +70,5 @@ Official pipeline, from the core with a submissions checkout:
 Constant words matter for the class to be non-empty: without them no hash input can carry a
 domain-separation tweak, and a revealed value hashed alone admits cheap second preimages. With
 them, the 106-cost forest uses 128-bit tweak words in place of its 16-bit tweaks; the
-internal Generality 1/3 witness (`formal/Witnesses/Generality1/`, checked with `lake build Witnesses`)
+internal Whole-word DAGs witness (`formal/Witnesses/Generality1/`, checked with `lake build Witnesses`)
 proves such a scheme secure.

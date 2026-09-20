@@ -118,10 +118,9 @@ def record_chart(series: list[dict], now: datetime, *, unit: str = "compressions
             points.append(point)
         end_y, text_y = sy(last_claim), label_y[s["slug"]]
         out.append(f'<path class="connector" d="M{sx(t1):.1f},{end_y:.1f} L{sx(t1) + 12:.1f},{text_y:.1f} H{sx(t1) + 18:.1f}"/>')
-        demo_label = " · demo" if pts[-1].get("demo") else ""
         out.append(f'<text class="label" x="{sx(t1) + 23:.1f}" y="{text_y + 4:.1f}">'
                    f'<tspan class="label-name">{label}</tspan><tspan class="label-dot"> · </tspan>'
-                   f'<tspan class="label-value">{last_claim}</tspan><tspan class="label-demo">{demo_label}</tspan></text>')
+                   f'<tspan class="label-value">{last_claim}</tspan></text>')
         out.append('</g>')
 
     # This lane has no y-axis value. Pending never becomes a fabricated zero or a record point.

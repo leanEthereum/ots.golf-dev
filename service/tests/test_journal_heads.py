@@ -17,7 +17,7 @@ class JournalHeadsTests(unittest.TestCase):
     def test_track_filter_does_not_resurrect_an_older_pr_head(self):
         self.check_latest('New upper notes', track='upper-compressions')
 
-    def check_latest(self, notes, track='lower-generality-2'):
+    def check_latest(self, notes, track='lower-generality-1'):
         engine = create_engine('sqlite://')
         self.addCleanup(engine.dispose)
         Base.metadata.create_all(engine)
@@ -26,14 +26,14 @@ class JournalHeadsTests(unittest.TestCase):
             session.add(user)
             session.flush()
             now = utcnow()
-            for commit, slug, text, at in [('a', 'lower-generality-2', 'Old notes', now - timedelta(seconds=1)),
+            for commit, slug, text, at in [('a', 'lower-generality-1', 'Old notes', now - timedelta(seconds=1)),
                                            ('b', track, notes, now)]:
                 session.add(Submission(track=slug, user_id=user.id, source_repo='https://github.com/a/b.git',
                     commit=commit * 40, status='verified', pr_number=1,
                     pr_url='https://github.com/a/b/pull/1', finished_at=at,
                     detail=json.dumps({'notes': text})))
             session.commit()
-            self.assertEqual(records.journal(session, 'lower-generality-2'), [])
+            self.assertEqual(records.journal(session, 'lower-generality-1'), [])
             self.assertNotIn('Old notes', [entry['sub'].notes for entry in records.journal(session)])
             if notes:
                 self.assertEqual([entry['sub'].notes for entry in records.journal(session)], [notes])

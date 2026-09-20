@@ -79,7 +79,7 @@ class RiscvTrackTests(unittest.TestCase):
         self.assertNotIn('Accepting verification cost', html)
         self.assertIn('id="upper-riscv-board-title"', html)
         self.assertIn('id="upper-compressions-title"', html)
-        self.assertEqual(len(re.findall('class="framework-card ', html)), 3)
+        self.assertEqual(len(re.findall('class="framework-card ', html)), 1)
         charts = [ET.fromstring(svg) for svg in re.findall(r'<svg[^>]+class="record-chart".*?</svg>', html, re.S)]
         self.assertEqual([svg.get('data-unit') for svg in charts], ['compressions', 'cycles'])
         self.assertEqual(len(charts[0].findall("./g[@class='chart-reference']")), 1)
@@ -101,7 +101,7 @@ class RiscvTrackTests(unittest.TestCase):
     def test_unlisted_machine_track_neither_opens_admission_nor_seeds_a_record(self):
         self.config['upper_tracks'] = ['upper-compressions']
         self.assertIsNone(contract.upper_riscv_track())
-        self.assertEqual(seed_demo.refresh(self.session), 40)
+        self.assertEqual(seed_demo.refresh(self.session), 28)
         self.assertNotIn('upper-riscv', self.client.get('/').text)
         self.assertNotIn('id="upper-riscv"', self.client.get('/rules').text)
         with self.assertRaises(HTTPException) as caught:
@@ -114,11 +114,11 @@ class RiscvTrackTests(unittest.TestCase):
         seed_demo.refresh(self.session)
         before = {s.id: (s.created_at, s.finished_at, s.record_at, s.commit, s.claim)
                   for s in self.session.scalars(select(Submission))}
-        self.assertEqual(len(before), 40)
+        self.assertEqual(len(before), 28)
         self.config['upper_tracks'].append('upper-riscv')
         self.assertEqual(seed_demo.refresh(self.session), 18)
         self.assertEqual(seed_demo.refresh(self.session), 0)
-        self.assertEqual(len(list(self.session.scalars(select(Submission)))), 58)
+        self.assertEqual(len(list(self.session.scalars(select(Submission)))), len(seed_demo.ROWS))
         for identifier, original in before.items():
             s = self.session.get(Submission, identifier)
             self.assertEqual((s.created_at, s.finished_at, s.record_at, s.commit, s.claim), original)

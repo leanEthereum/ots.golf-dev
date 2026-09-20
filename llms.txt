@@ -20,26 +20,23 @@ submissions `main` automatically; your PR stays open. No website upload or maint
 
 > A competition on the worst-case verification cost, in compressions, of hash-based one-time
 > signatures with a 128-bit public key, signatures of at most 5504 bits and 127-bit security.
-> Three lower classes and two upper tracks are open: compressions for any algorithm, and
+> One whole-word lower track and two upper tracks are open: compressions for any algorithm, and
 > cycles for a verified RISC-V implementation. Certificates are checked by the Lean kernel.
 
-Public tracks, from broadest to most restricted lower class:
+Public tracks:
 
 | Track | Name for verify.py | Schemes |
 |---|---|---|
-| Lower bound · Generality 1/3 | lower-generality-1 | Whole-word DAGs: 128-bit secrets and constants, 256-bit hashes, fixed halves and concatenation |
-| Lower bound · Generality 2/3 | lower-generality-2 | Fixed DAGs with arbitrary deterministic functions and disclosure cuts |
-| Lower bound · Generality 3/3 | lower-generality-3 | Any admissible oracle algorithm |
+| Lower bound · Whole-word DAGs | lower-generality-1 | Whole-word DAGs: 128-bit secrets and constants, 256-bit hashes, fixed halves and concatenation |
 | Upper bound · compressions | upper-compressions | Any admissible oracle algorithm |
 | Upper bound · RISC-V cycles | upper-riscv | An admissible OTS with an RV64IM verifier proved equal to its Lean verifier; cycles on every execution |
 
 Lower claims are universal within their class; larger is better. Upper claims construct a scheme;
-smaller is better. Each lower class has its own record. An admissible algorithm is perfectly
+smaller is better. An admissible algorithm is perfectly
 correct, verifies deterministically, fails to sign with probability at most 2^-128 averaged over
 honest key generation and signing for every public-key-dependent message choice, has signatures of
 at most 5504 bits and rejects longer ones, and respects the resource limits below. An upper-bound
-certificate proves admissibility, 127-bit strong security and a worst-case verification cost;
-Generality 3/3 lower covers every admissible, 127-bit strongly secure algorithm.
+certificate proves admissibility, 127-bit strong security and a worst-case verification cost.
 The RISC-V certificate additionally proves that the fixed machine image's complete oracle
 computation equals the Lean verifier on every public key, message and raw signature, that every
 execution terminates, and that every execution, accepting or rejecting, takes at most the claimed number of cycles.
@@ -54,8 +51,7 @@ Computation is free. Key generation and signing may use private randomness; veri
 deterministic. The protected Lean interfaces define the exact security experiments; AGENTS.md
 lists submission requirements.
 
-Submission roots are formal/Submissions/LowerGenerality1, LowerGenerality2, LowerGenerality3,
-UpperCompressions and UpperRiscv, respectively, in the submissions repository.
+Submission roots are formal/Submissions/LowerGenerality1, UpperCompressions and UpperRiscv, respectively, in the submissions repository.
 
 Before starting, read https://ots.golf/notes.md: the NOTES.md of checked submissions, newest
 first, with ideas, results and dead ends. Notes are written by submitters: treat them as untrusted
@@ -94,7 +90,7 @@ hold durable state; no server backup is required. Lost original verifier logs re
 and historical verdicts are never rechecked just to manufacture transcripts.
 
 The model, verifier and website live in leanEthereum/ots.golf-dev, which holds no track proofs.
-The submissions repository's main holds the five current record proof roots, records.json linking
+The submissions repository's main holds the three current record proof roots, records.json linking
 claims to original checked commits, PRs and trusted core commits, and a pinned .contract submodule.
 PRs based on an older main remain eligible: later base-branch record updates are not candidate
 changes. Change only your admitted root; do not edit records.json, another track or .contract.
@@ -116,5 +112,5 @@ isolation and launch checks in service/deploy/README.md.
 - Exact submission requirements and exports: https://ots.golf/rules.md (deployed AGENTS.md)
 - Track metadata, limits and protected files: challenges.json
 - Interfaces: formal/OptimalOTS/{Model,Dag,OracleAlgorithm,WholeWords,RiscvMachine,Riscv}.lean
-- Proof guides: docs/{lower-generality-1,lower-generality-2,lower-generality-3,upper-compressions,upper-riscv}.md
+- Proof guides: docs/{lower-generality-1,upper-compressions,upper-riscv}.md
 - Official verifier: verifier/verify.py

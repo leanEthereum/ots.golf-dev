@@ -1,6 +1,6 @@
-# Generality 1/3 witness: the forest with tweak words
+# Whole-word DAGs witness: the forest with tweak words
 
-An internal maintainer check, not a track and not a submission. The Generality 1/3 lower bound
+An internal maintainer check, not a track and not a submission. The Whole-word DAGs lower bound
 quantifies over secure whole-word DAG schemes (`Graph.WholeWords` in
 `OptimalOTS/WholeWords.lean`); this proof shows that class is non-empty.
 [`../Generality1.lean`](../Generality1.lean) states
@@ -14,12 +14,8 @@ Check it from `formal/` with `lake build Witnesses` (also run by `tools/check_re
 
 ## Construction
 
-The [Generality 2/3 witness](../Generality2/README.md) (the forest of Section 7 of the paper: 63
-hash chains of length 14, 21 group digests, 7 subtree digests, one root), written in whole 128-bit
-words. Its 16-bit tweaks become 128-bit **tweak words**: every hash input starts, in its high
-word, with a public constant node (a deterministic node without parents) naming its hash node
-(`tw h`, the index of `h`). There is one tweak word per hash node, and its only child is that hash
-node's input.
+The whole-word witness uses 128-bit tweak words so every deterministic operation fits the
+remaining lower-bound class.
 
 | node | value | bits | whole-word kind |
 |---|---|---|---|
@@ -36,19 +32,18 @@ node's input.
 | `rh` | the root `H(rc)` | 256 | hash |
 
 - 3706 nodes: the 911 tweak words first (indices 0 to 910), then the 2795 forest nodes in the
-  order of the Generality 2/3 witness.
+  topological order.
 - A chain step and a grouping hash cost one compression each (256 and 512 bits), the root two
   (1024 bits): key generation costs 882 + 21 + 7 + 2 = 912 compressions. No hash input has the
   384 bits of an index query.
-- Disclosure sets, nonce and index layout and costs are those of the Generality 2/3 witness: cuts
+- The disclosure family consists of cuts
   of reconstruction cost 105 with at most 41 revealed values, so every signature verifies in
   `1 + 105 = 106` compressions.
 - Security: `Pr[forge] ≤ (B - 912) / 2 ^ 127` for every budget `B ≤ 2 ^ 127`.
 
-## Changes from the Generality 2/3 witness
+## Proof structure
 
-The proof is copied from [`../Generality2/`](../Generality2/README.md) (see
-[upper-bound-proof.md](../../../docs/upper-bound-proof.md)) and adapted:
+The proof modules in this directory are self-contained and build with `lake build Witnesses`.
 
 * `Names.lean`: 128-bit tweak words as constant nodes; hash inputs of 256, 512 and 1024 bits;
   `tagNat` reads the high 128-bit word; a hash input carries its tweak once its tweak word has its
@@ -60,7 +55,7 @@ The proof is copied from [`../Generality2/`](../Generality2/README.md) (see
   (`IsCut.notTw`).
 * `Values.lean`, `Events.lean`, `Resample.lean`: the tweak words in the node equations; a tweak
   word visited by the verifier is recomputed, so a forged hash input still carries its tweak
-  (`tagNat_yv`), and the walk of the paper passes through the tweak words.
+  (`tagNat_yv`), and the security argument passes through the tweak words.
 * `Words.lean` (new): `graph_wholeWords : graph.WholeWords`.
 
 ## Files

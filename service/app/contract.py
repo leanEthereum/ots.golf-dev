@@ -41,13 +41,15 @@ def framework_tracks(slug: str) -> dict[str, dict]:
 
 def track_framework_title(t: dict) -> str:
     """Historical certificates retain their class name when a public framework changes."""
-    return t.get("historical_framework_title") or framework(t["framework"])["title"]
+    if t.get("historical_framework_title"):
+        return t["historical_framework_title"]
+    return "Oracle algorithms" if t["kind"] == "upper" else framework(t["framework"])["title"]
 
 
 def upper_compressions_track() -> dict | None:
     """Only the explicitly pinned generic certificate opens the public upper track."""
     certificate = track("upper-compressions") if "upper-compressions" in upper_track_slugs() else None
-    if certificate and certificate["kind"] == "upper" and certificate["framework"] == "generality-3":
+    if certificate and certificate["kind"] == "upper" and certificate["framework"] == "oracle-algorithm":
         return certificate
     return None
 
@@ -55,7 +57,7 @@ def upper_compressions_track() -> dict | None:
 def upper_riscv_track() -> dict | None:
     """A checked machine certificate opens the separate implementation track."""
     certificate = track("upper-riscv") if "upper-riscv" in upper_track_slugs() else None
-    if certificate and certificate["kind"] == "upper" and certificate["framework"] == "generality-3":
+    if certificate and certificate["kind"] == "upper" and certificate["framework"] == "oracle-algorithm":
         return certificate
     return None
 
@@ -95,3 +97,21 @@ def improves(direction: str, claim: int, record: int | None) -> bool:
     if record is None:
         return True
     return claim > record if direction == "+" else claim < record
+
+
+# This exact retirement revision only deletes the two unused lower-bound statements.
+# Model constants, dependencies, surviving declarations and comparator requirements are
+# unchanged. Bind compatibility to BOTH complete pins: a later model edit needs a new audit.
+# Keep the original receipt/archive identity; never rewrite an old verdict's contract ID.
+RESULT_COMPATIBILITY = {
+    "cca4d9add2f2a1d3bdc40381258e6992f146e2f3ad9087706913ff281cff22dc": {
+        "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb": frozenset({
+            "lower-generality-1", "upper-compressions", "upper-riscv",
+        }),
+    },
+}
+
+
+def compatible_result(slug: str, previous_id: str | None) -> bool:
+    """An already verified result for an audited, unchanged statement in this exact revision."""
+    return slug in RESULT_COMPATIBILITY.get(contract_id(), {}).get(previous_id, ())

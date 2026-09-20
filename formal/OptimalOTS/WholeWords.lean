@@ -40,7 +40,7 @@ namespace OptimalOTS
 
 open Dag
 
-/-- Generality 1/3: every secure whole-word DAG scheme has a signature index whose verification
+/-- Whole-word DAGs: every secure whole-word DAG scheme has a signature index whose verification
 costs at least `c` compressions. -/
 def LowerBoundGenerality1 (c : ℕ) : Prop :=
   ∀ S : Scheme, S.graph.WholeWords → S.Secure → ∃ i, c ≤ S.verifyCost i

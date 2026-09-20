@@ -41,10 +41,10 @@ class VerifierTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.cfg = json.loads((VERIFIER.parent / "challenges.json").read_text())
         (self.root / "challenges.json").write_text(json.dumps(self.cfg))
-        self.rel = "formal/Submissions/LowerGenerality3"
+        self.rel = "formal/Submissions/LowerGenerality1"
         self.sub = self.root / self.rel
         self.sub.mkdir(parents=True)
-        (self.sub / "Solution.lean").write_text("import Mathlib\nimport OptimalOTS.OracleAlgorithm\n")
+        (self.sub / "Solution.lean").write_text("import Mathlib\nimport OptimalOTS.WholeWords\n")
         (self.sub / "claim.txt").write_bytes(b"1\n")
 
     def export(self, **kwargs):
@@ -61,7 +61,7 @@ class VerifierTests(unittest.TestCase):
         return export_submission(str(self.root), "HEAD", self.rel, self.root / "out", **kwargs)
 
     def test_valid_submission_and_export(self):
-        self.assertTrue(check(self.root, "lower-generality-3")["ok"])
+        self.assertTrue(check(self.root, "lower-generality-1")["ok"])
         self.assertEqual(self.export(), "worktree")
         self.assertEqual((self.root / "out" / self.rel / "claim.txt").read_bytes(), b"1\n")
 
@@ -80,12 +80,12 @@ class VerifierTests(unittest.TestCase):
                 claim.write_bytes(data)
                 with self.assertRaises(ContractError):
                     read_claim(claim, 1000000)
-                self.assertFalse(check(self.root, "lower-generality-3")["ok"])
+                self.assertFalse(check(self.root, "lower-generality-1")["ok"])
 
     def test_render_rejects_out_of_range_explicit_claim(self):
         for claim in (-1, 1000001):
             with self.subTest(claim=claim), self.assertRaises(ContractError):
-                render(self.root, "lower-generality-3", claim)
+                render(self.root, "lower-generality-1", claim)
 
     def test_ordinary_import_header(self):
         imports, error = header_imports("/- outer /- inner -/ -/\nimport Mathlib\n-- hi\nimport VCVio\nnamespace X")
@@ -98,7 +98,7 @@ class VerifierTests(unittest.TestCase):
                        "prelude\timport Mathlib", "import Mathlib OptimalOTS.WholeWords"):
             with self.subTest(prefix=prefix):
                 (self.sub / "Solution.lean").write_text(prefix + "\nimport Submissions.UpperCompressions.Solution\n")
-                self.assertFalse(check(self.root, "lower-generality-3")["ok"])
+                self.assertFalse(check(self.root, "lower-generality-1")["ok"])
 
     def test_comments_cannot_hide_header_commands(self):
         # Lean treats comments as whitespace. Deleting them used to fuse these keywords,
@@ -108,7 +108,7 @@ class VerifierTests(unittest.TestCase):
                        "module/- first\nsecond -/prelude"):
             with self.subTest(prefix=prefix):
                 (self.sub / "Solution.lean").write_text(prefix + "\nimport Witnesses.Hidden\n")
-                result = check(self.root, "lower-generality-3")
+                result = check(self.root, "lower-generality-1")
                 self.assertFalse(result["ok"])
                 self.assertTrue(any("not allowed" in error for error in result["errors"]))
 
@@ -125,7 +125,7 @@ class VerifierTests(unittest.TestCase):
                        "Mathlib..Witnesses.Hidden", "Mathlib./Witnesses/Hidden"):
             with self.subTest(module=module):
                 (self.sub / "Solution.lean").write_text(f"import {module}\n")
-                result = check(self.root, "lower-generality-3")
+                result = check(self.root, "lower-generality-1")
                 self.assertFalse(result["ok"])
                 self.assertTrue(any("module names" in error for error in result["errors"]))
 
@@ -136,32 +136,32 @@ class VerifierTests(unittest.TestCase):
             "import Mathlib\nrun_cmd do\n"
             "  let _ ← Lean.importModules #[{ module := `Witnesses.Hidden }] {}\n"
             "  pure ()\n")
-        self.assertTrue(check(self.root, "lower-generality-3")["ok"])
+        self.assertTrue(check(self.root, "lower-generality-1")["ok"])
 
     def test_bom_does_not_hide_imports(self):
         (self.sub / "Solution.lean").write_text("\ufeffimport Submissions.UpperCompressions.Solution\n")
-        self.assertFalse(check(self.root, "lower-generality-3")["ok"])
+        self.assertFalse(check(self.root, "lower-generality-1")["ok"])
 
     def test_notes_are_admitted_exported_and_read(self):
         (self.sub / "NOTES.md").write_text("# Idea\n\nTried a wider cut; dead end.\n")
-        self.assertTrue(check(self.root, "lower-generality-3")["ok"])
+        self.assertTrue(check(self.root, "lower-generality-1")["ok"])
         self.export()
         self.assertEqual(read_notes(self.root / "out" / self.rel), "# Idea\n\nTried a wider cut; dead end.")
         self.assertIsNone(read_notes(self.sub.parent))
         (self.sub / "notes.txt").write_text("not admitted")
-        self.assertFalse(check(self.root, "lower-generality-3")["ok"])
+        self.assertFalse(check(self.root, "lower-generality-1")["ok"])
 
     def test_disallowed_and_missing_sibling_imports(self):
         for module in ("OptimalOTS", "OptimalOTS.Dag.Extra", "Submissions.UpperCompressions.Solution",
-                       "OptimalOTS.OracleAlgorithm.Extra", "Submissions.LowerGenerality3.Absent"):
+                       "OptimalOTS.OracleAlgorithm.Extra", "Submissions.LowerGenerality1.Absent"):
             with self.subTest(module=module):
                 (self.sub / "Solution.lean").write_text(f"import {module}\n")
-                self.assertFalse(check(self.root, "lower-generality-3")["ok"])
+                self.assertFalse(check(self.root, "lower-generality-1")["ok"])
 
     def test_existing_sibling_import_is_allowed(self):
         (self.sub / "Helper.lean").write_text("import Mathlib\n")
-        (self.sub / "Solution.lean").write_text("import Submissions.LowerGenerality3.Helper\n")
-        self.assertTrue(check(self.root, "lower-generality-3")["ok"])
+        (self.sub / "Solution.lean").write_text("import Submissions.LowerGenerality1.Helper\n")
+        self.assertTrue(check(self.root, "lower-generality-1")["ok"])
 
     def test_upper_compressions_header_imports_stay_in_allowed_modules(self):
         sub = self.root / "formal/Submissions/UpperCompressions"
@@ -172,7 +172,7 @@ class VerifierTests(unittest.TestCase):
         solution.write_text("import Submissions.UpperCompressions.Helper\n")
         self.assertTrue(check(self.root, "upper-compressions")["ok"])
         for module in ("Submissions.UpperCompressions.Main", "OptimalOTS.AlgorithmWeak", "OptimalOTS.Riscv",
-                       "OptimalOTS.OracleAlgorithm.Extra", "Submissions.LowerGenerality3.Proof"):
+                       "OptimalOTS.OracleAlgorithm.Extra", "Submissions.LowerGenerality1.Proof"):
             with self.subTest(module=module):
                 solution.write_text(f"import {module}\n")
                 self.assertFalse(check(self.root, "upper-compressions")["ok"])
@@ -197,7 +197,7 @@ class VerifierTests(unittest.TestCase):
         track = next(t for t in self.cfg["tracks"] if t["slug"] == "upper-riscv")
         self.assertIn("upper-riscv", self.cfg["upper_tracks"])
         self.assertEqual((track["kind"], track["framework"], track["cost_unit"]),
-                         ("upper", "generality-3", "cycles"))
+                         ("upper", "oracle-algorithm", "cycles"))
         self.assertFalse(any("upper_track" in f for f in self.cfg["frameworks"]))
         template = self.root / track["challenge_template"]
         template.parent.mkdir(parents=True, exist_ok=True)
@@ -222,7 +222,7 @@ class VerifierTests(unittest.TestCase):
         self.assertIn("def signingFailureBits : ℕ := 128", model)
         algorithm = (VERIFIER.parent / "formal/OptimalOTS/OracleAlgorithm.lean").read_text()
         self.assertIn("S.SigningFailureAtMost (1 / 2 ^ signingFailureBits)", algorithm)
-        for slug in ("lower-generality-3", "upper-compressions", "upper-riscv"):
+        for slug in ("upper-compressions", "upper-riscv"):
             with self.subTest(track=slug):
                 track = next(t for t in self.cfg["tracks"] if t["slug"] == slug)
                 self.assertNotIn("signing_failure_allowance", track)
@@ -234,17 +234,17 @@ class VerifierTests(unittest.TestCase):
 
     def test_invalid_utf8_source(self):
         (self.sub / "Solution.lean").write_bytes(b"\xff")
-        self.assertFalse(check(self.root, "lower-generality-3")["ok"])
+        self.assertFalse(check(self.root, "lower-generality-1")["ok"])
 
     def test_filename_newline_is_rejected(self):
         (self.sub / "Sneaky.lean\n").write_text("")
-        self.assertFalse(check(self.root, "lower-generality-3")["ok"])
+        self.assertFalse(check(self.root, "lower-generality-1")["ok"])
         with self.assertRaises(PolicyReject):
             self.export()
 
     def test_hidden_files_are_not_silently_ignored(self):
         (self.sub / ".DS_Store").write_bytes(b"fixture")
-        self.assertFalse(check(self.root, "lower-generality-3")["ok"])
+        self.assertFalse(check(self.root, "lower-generality-1")["ok"])
         with self.assertRaises(PolicyReject):
             self.export()
 
@@ -267,7 +267,7 @@ class VerifierTests(unittest.TestCase):
         original = self.root / "original"
         self.sub.rename(original)
         self.sub.symlink_to(original, target_is_directory=True)
-        self.assertFalse(check(self.root, "lower-generality-3")["ok"])
+        self.assertFalse(check(self.root, "lower-generality-1")["ok"])
         with self.assertRaises(PolicyReject):
             self.export()
 

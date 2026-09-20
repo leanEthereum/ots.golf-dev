@@ -1,8 +1,6 @@
 formal/.lake/
 .build/
 # rendered challenge stubs (generated from the .lean.in templates at verification time)
-formal/OptimalOTS/Challenge/LowerGenerality2.lean
-formal/OptimalOTS/Challenge/LowerGenerality3.lean
 formal/OptimalOTS/Challenge/UpperCompressions.lean
 formal/OptimalOTS/Challenge/LowerGenerality1.lean
 formal/OptimalOTS/Challenge/UpperRiscv.lean

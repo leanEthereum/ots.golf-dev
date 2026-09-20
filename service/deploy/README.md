@@ -117,7 +117,7 @@ Run these with the public webhook disconnected and the production configuration 
      cd /srv/ots/repo
      python3 verifier/check_linux_sandbox.py &&
      (cd formal && lake build Witnesses) &&
-     for t in lower-generality-1 lower-generality-2 lower-generality-3 upper-compressions upper-riscv; do
+     for t in lower-generality-1 upper-compressions upper-riscv; do
        python3 verifier/verify.py "$t" --source /srv/ots/submissions-check || exit 1
      done'
    ```
@@ -146,7 +146,7 @@ Run these with the public webhook disconnected and the production configuration 
 
 3. Confirm `OTS_PHONY=0` for both services. Every board without a real verified record shows
    "No record yet"; there are no invented production records or reference baselines. Check all
-   three lower boards, Upper bound and RISC-V upper bound. Existing demo rows remain stored but
+   whole-word lower board, Upper bound and RISC-V upper bound. Existing demo rows remain stored but
    hidden and cannot participate in record decisions.
 
 4. In a staging repository, exercise a signed PR webhook, duplicate delivery, a rejected proof,
@@ -223,7 +223,7 @@ description, co-authors, assistance, submission root and trusted contract commit
 receipt is capped at 48 KiB; long prose belongs in the submitted `NOTES.md`. The terminal comment
 adds the verdict, claim, finish time, record flag, archive descriptor and bounded failure summary.
 Do not delete the retention tags or bot comments. Moving `refs/pull/<N>/head` is never used to
-reconstruct an old revision. The five current proof roots and `records.json` on submissions
+reconstruct an old revision. The three current proof roots and `records.json` on submissions
 `main` are a published snapshot of those records, not the source of historical verdicts. The
 initial five verified records may be seeded manually from their checked sources; future records
 are committed automatically after their verdicts are durable.
@@ -302,7 +302,7 @@ required. Stop the worker before changing `/srv/ots/repo`, fetch the published c
 out that exact commit, synchronize the locked dependencies, install changed units and run
 `systemctl daemon-reload` when needed. Keep `/etc/ots/public.env` at `OTS_PHONY=0`; the installer
 preserves existing environment files. Restart web and worker after the update, confirm `/healthz`
-respond successfully, check `/rules` for the deployed commit, inspect all five boards and the service journal, and repeat
+respond successfully, check `/rules` for the deployed commit, inspect all three boards and the service journal, and repeat
 actual-host isolation/reference checks whenever the verifier or sandbox changes.
 
 ### Upgrading from the single-user setup
@@ -324,3 +324,25 @@ use its delivery history to redeliver a lost push event, or restart the website,
 open heads without a verdict. Records are
 decided when verification finishes, never by webhook events, and the service never updates the
 trusted checkout.
+
+## Retiring lower-bound tracks
+
+The active contract contains whole-word lower bounds and the two upper-bound tracks. Removed
+track roots are refused at admission. Their stored rows are excluded from public pages, queue
+limits, worker selection and GitHub publication retries. Recovery skips their receipts. Historical
+GitHub commits, source tags and verdicts remain immutable; do not rewrite their certificates or
+attribute them to the replacement contract.
+
+Removing protected statements and changing track metadata changes the contract fingerprint.
+This retirement leaves every surviving statement, cost, security requirement, dependency and
+comparator unchanged. `RESULT_COMPATIBILITY` in `app/contract.py` explicitly binds the old and new
+complete fingerprints and the three retained tracks. Only already verified results qualify;
+removed tracks and old pending jobs do not. A later contract edit disables this compatibility
+until separately audited. Original receipt/archive IDs, verdicts, dates and owner metadata stay
+unchanged, and GitHub-only recovery reconstructs the same leaderboards.
+
+Before deployment, check the three retained record roots with the new verifier. Update the
+submissions repository's `.contract` pin and contributor instructions and remove the retired roots
+and registry entries. Retained registry entries preserve the identity of their original checks;
+never rewrite their contract fingerprint or source digest. Stop the idle worker before changing
+its trusted checkout. Run the contract build and host checks, then restart web and worker.

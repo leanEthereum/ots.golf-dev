@@ -116,16 +116,16 @@ class ServiceSecurityTests(unittest.TestCase):
     def test_rename_source_outside_root_is_rejected(self):
         with patch('app.github.httpx.Client') as client:
             response = client.return_value.__enter__.return_value.get.return_value
-            response.json.return_value = [{'filename': 'formal/Submissions/LowerGenerality2/Solution.lean',
+            response.json.return_value = [{'filename': 'formal/Submissions/LowerGenerality1/Solution.lean',
                                            'previous_filename': 'formal/OptimalOTS/Dag.lean'}]
             slug, outside = github.pr_track('owner/repo', 7, expected_files=1)
-            self.assertEqual(slug, 'lower-generality-2')
+            self.assertEqual(slug, 'lower-generality-1')
             self.assertEqual(outside, ['formal/OptimalOTS/Dag.lean'])
 
     def test_truncated_or_oversized_pull_request_file_list_is_rejected(self):
         with patch('app.github.httpx.Client') as client:
             response = client.return_value.__enter__.return_value.get.return_value
-            response.json.return_value = [{'filename': 'formal/Submissions/LowerGenerality2/Solution.lean'}]
+            response.json.return_value = [{'filename': 'formal/Submissions/LowerGenerality1/Solution.lean'}]
             self.assertIsNone(github.pr_track('owner/repo', 7, expected_files=2)[0])
             client.reset_mock()
             self.assertIsNone(github.pr_track('owner/repo', 7, expected_files=3001)[0])
@@ -161,10 +161,10 @@ class ServiceSecurityTests(unittest.TestCase):
         self.session.commit()
         for sha in ['a' * 7, 'a' * 39, 'a' * 41, 'x' * 40]:
             with self.assertRaises(HTTPException):
-                main.queue_submission(self.session, user, 'lower-generality-2', 'local', sha, None, [], None, None, None)
-        main.queue_submission(self.session, user, 'lower-generality-2', 'local', 'a' * 40, None, [], None, None, None)
+                main.queue_submission(self.session, user, 'lower-generality-1', 'local', sha, None, [], None, None, None)
+        main.queue_submission(self.session, user, 'lower-generality-1', 'local', 'a' * 40, None, [], None, None, None)
         with self.assertRaises(HTTPException) as caught:
-            main.queue_submission(self.session, user, 'lower-generality-2', 'local', 'a' * 40, None, [], None, None, None)
+            main.queue_submission(self.session, user, 'lower-generality-1', 'local', 'a' * 40, None, [], None, None, None)
         self.assertEqual(caught.exception.status_code, 409)
 
     def test_production_requires_distinct_secret_free_worker_configuration(self):
@@ -204,7 +204,7 @@ class ServiceSecurityTests(unittest.TestCase):
             with sessions() as session:
                 user = session.get(User, user_id)
                 try:
-                    main.queue_submission(session, user, 'lower-generality-2', 'local', f'{n:040x}', None, [], None, None, None)
+                    main.queue_submission(session, user, 'lower-generality-1', 'local', f'{n:040x}', None, [], None, None, None)
                     return 200
                 except HTTPException as exc:
                     return exc.status_code

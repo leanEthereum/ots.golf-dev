@@ -6,7 +6,7 @@ import OptimalOTS.Model
 A scheme is a public computation graph with secret sources, deterministic nodes and hash nodes.
 A signature is a nonce and a cut of the graph; verification reconstructs the root and checks its
 public-key bits. The oracle, the costs and the budgets are those of `Model.lean`; deterministic
-computation is free. The lower-bound statement is `LowerBoundGenerality2`.
+computation is free. The whole-word lower-bound statement is defined in `WholeWords.lean`.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -286,16 +286,3 @@ def Scheme.Secure (S : Scheme) : Prop :=
     probTrue (experiment S A) < (B : ℝ≥0∞) / 2 ^ securityBits
 
 end OptimalOTS.Dag
-
-namespace OptimalOTS
-
-open Dag
-
-/-! ## 5. The lower bound -/
-
-/-- Generality 2/3: every secure DAG scheme has a signature index whose verification costs at
-least `c` compressions. -/
-def LowerBoundGenerality2 (c : ℕ) : Prop :=
-  ∀ S : Scheme, S.Secure → ∃ i : Fin numCuts, c ≤ S.verifyCost i
-
-end OptimalOTS

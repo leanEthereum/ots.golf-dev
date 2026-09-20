@@ -1,7 +1,7 @@
 # The upper-bound proof: architecture
 
-The forest proof (the core's internal Generality 2/3 witness, `formal/Witnesses/Generality2/`) proves,
-for `forestScheme : Dag.Scheme` (Section 7 of the paper: 63 chains of length 14, 21 group digests,
+The forest proof (the core's internal whole-word witness, `formal/Witnesses/Generality1/`) proves,
+using whole 128-bit tweak words, for `forestScheme : Dag.Scheme` (63 chains of length 14, 21 group digests,
 7 subtree digests, one root) with
 
 ```
@@ -9,7 +9,7 @@ theorem forestScheme_secure : forestScheme.Secure
 theorem forestScheme_verifyCost (i) : forestScheme.verifyCost i = 106
 ```
 
-(combined into `OptimalOTS.Witnesses.generality2` in `formal/Witnesses/Generality2.lean`).
+(combined into `OptimalOTS.Witnesses.generality1` in `formal/Witnesses/Generality1.lean`).
 
 The `UpperCompressions` reference root runs the same proof on a smaller forest: 54 chains of length
 14, 18 group digests, 6 subtree digests and a root of six (2396 nodes, root input 784 bits at two
@@ -98,12 +98,12 @@ key generation (keygen point `P_v ξ = (node τ_v, input_v ξ) ↦ ξ.2 v` for e
    `ρ = θ Ψ` satisfies this (`psi_dom`), so the bad signing event costs at most the current
    encoding term. This disjoint split replaces the earlier union bound
    `|V|/M + L·pairs/(2^nonceBits − L)`, which needed a 256-bit nonce; the argument holds for the
-   128-bit nonce and every budget up to `2^127` ([the 128-bit nonce analysis](nonce-128-analysis.md)).
+   128-bit nonce and every budget up to `2^127`.
 
 The case `B > 2^127` is trivial (`probTrue ≤ 1 < B/2^127`), so all counting invariants may
 assume `N ≤ 2^127`.
 
 ## Files
 
-See the table in [the witness README](../formal/Witnesses/Generality2/README.md); the module names are
-`Witnesses.Generality2.<File>`.
+See the table in [the witness README](../formal/Witnesses/Generality1/README.md); the module names are
+`Witnesses.Generality1.<File>`.

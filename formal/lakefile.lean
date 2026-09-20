@@ -22,7 +22,7 @@ require «riscv-zkvm» from git
 lean_lib Submissions where
   globs := #[.submodules `Submissions]
 
-/-- Internal checks: the Generality 1/3 and 2/3 lower-bound classes are not empty, and numeric
+/-- Internal checks: the whole-word lower-bound class is not empty, and numeric
 checks of the DAG constants. -/
 lean_lib Witnesses where
   globs := #[.submodules `Witnesses]

@@ -32,7 +32,7 @@ class SourceArchiveTests(unittest.TestCase):
         self.store = self.root / "sources"
         self.sid = "1" * 32
         self.identity = dict(source_repo="https://github.com/author/proofs.git", commit="a" * 40,
-                             track="lower-generality-2", submission_root="formal/Submissions/LowerGenerality2",
+                             track="lower-generality-1", submission_root="formal/Submissions/LowerGenerality1",
                              contract="b" * 64)
 
     def save(self, sid=None):

@@ -1,6 +1,6 @@
 import OptimalOTS.WholeWords
 
-/-! Generality 1/3 lower bound: DAG schemes built from whole 128-bit words (`WholeWords.lean`). -/
+/-! Whole-word DAGs lower bound: DAG schemes built from whole 128-bit words (`WholeWords.lean`). -/
 
 namespace OptimalOTS.Challenge.LowerGenerality1
 

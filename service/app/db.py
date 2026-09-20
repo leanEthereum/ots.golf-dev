@@ -97,7 +97,9 @@ class Submission(Base):
     @property
     def current_contract(self) -> bool:
         from . import contract
-        return self.detail_dict.get("contract") == contract.contract_id()
+        return (self.detail_dict.get("contract") == contract.contract_id()
+                or (self.status == "verified"
+                    and contract.compatible_result(self.track, self.detail_dict.get("contract"))))
 
     @property
     def notes(self) -> str | None:

@@ -6,7 +6,7 @@ limits. Its forest construction verifies within **104 compressions** on every in
 oracle-answer path. All proofs form the reference proof's `UpperCompressions` submission root, in the
 submissions repository; file names below are relative to it.
 
-The three lower tracks are Generality 3/3 (any algorithm), 2/3 (DAGs) and 1/3 (whole-word DAGs).
+The lower-bound track covers whole-word DAGs.
 
 ## What the challenge requires
 
@@ -107,7 +107,7 @@ construction uses 782 key-generation compressions, at most `2²⁰` signing comp
 `KeygenSupport.lean` and `Correctness.lean` establish correctness. `Deterministic.lean` proves that
 every DAG adapter's verifier makes only hash queries. `Availability.lean` establishes signing
 availability. `ForestAlgorithm.lean` combines these results for the typed scheme, `Wire.lean`
-moves them to bit strings, and `Solution.lean` exports the challenge declarations. The core's internal Generality 2/3 witness (`formal/Witnesses/Generality2/`)
+moves them to bit strings, and `Solution.lean` exports the challenge declarations. The core's internal whole-word witness (`formal/Witnesses/Generality1/`)
 proves the original 63-chain forest (106 compressions) as a DAG scheme, with the same proof
 architecture, independently of these files.
 

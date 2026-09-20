@@ -40,14 +40,14 @@ class RecoveryTests(unittest.TestCase):
                      patch("app.resync.github.read_file", return_value=None)]:
             item.start()
             self.addCleanup(item.stop)
-        self.root = "formal/Submissions/LowerGenerality2"
+        self.root = "formal/Submissions/LowerGenerality1"
         self.sid = "1" * 32
         self.commit = "a" * 40
         self.pr = {"number": 7, "state": "closed", "body": "Changed attribution", "user": None,
                    "head": {"sha": "b" * 40, "repo": None}, "created_at": "2026-01-01T00:00:00Z"}
 
     def entry(self, **changes):
-        value = dict(id=self.sid, track="lower-generality-2", commit=self.commit, status="pending",
+        value = dict(id=self.sid, track="lower-generality-1", commit=self.commit, status="pending",
                      contract=contract.contract_id(), source_ref=f"refs/tags/ots-source/{self.sid}",
                      created_at="2026-09-01T10:00:00.123456Z", author={"login": "alice", "id": 42, "avatar_url": None},
                      description="The admitted description", co_authors=["Bob Smith"], assisted_by="Model X",

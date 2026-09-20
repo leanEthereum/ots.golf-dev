@@ -370,6 +370,7 @@ def retry_reports() -> None:
             with SessionLocal() as session:
                 ids = list(session.scalars(select(GithubReport.submission_id).join(Submission).where(
                     GithubReport.next_attempt <= utcnow(),
+                    Submission.track.in_([t["slug"] for t in contract.tracks()]),
                     func.lower(Submission.pr_url).startswith(
                         f"https://github.com/{settings.submissions_repo.lower()}/pull/", autoescape=True)
                 ).order_by(GithubReport.next_attempt).limit(20)))
@@ -392,8 +393,10 @@ def process(sub_id: str) -> None:
         if (settings.data_dir / "recovery.incomplete").exists():
             return
         sub = session.get(Submission, sub_id)
-        publishing = session.scalar(select(Submission.id).where(Submission.status == "publishing").limit(1))
-        if sub is None or sub.status != "pending" or publishing is not None:
+        publishing = session.scalar(select(Submission.id).where(
+            Submission.status == "publishing",
+            Submission.track.in_([t["slug"] for t in contract.tracks()])).limit(1))
+        if sub is None or contract.track(sub.track) is None or sub.status != "pending" or publishing is not None:
             return
         sub.status, sub.started_at = "verifying", utcnow()
         session.commit()
@@ -451,15 +454,20 @@ def work_loop() -> None:
     # Only the lock holder can reset interrupted jobs. Do this once at startup, never while another
     # worker is actively verifying a proof.
     with SessionLocal() as session:
-        for sub in session.scalars(select(Submission).where(Submission.status == "verifying")):
+        for sub in session.scalars(select(Submission).where(
+                Submission.status == "verifying",
+                Submission.track.in_([t["slug"] for t in contract.tracks()]))):
             sub.status = "pending"
         session.commit()
     while True:
         with SessionLocal() as session:
-            publishing = session.scalar(select(Submission.id).where(Submission.status == "publishing").limit(1))
+            publishing = session.scalar(select(Submission.id).where(
+                Submission.status == "publishing",
+                Submission.track.in_([t["slug"] for t in contract.tracks()])).limit(1))
             blocked = publishing is not None or (settings.data_dir / "recovery.incomplete").exists()
             sub_id = None if blocked else session.scalar(
-                select(Submission.id).where(Submission.status == "pending")
+                select(Submission.id).where(Submission.status == "pending",
+                    Submission.track.in_([t["slug"] for t in contract.tracks()]))
                 .order_by(Submission.created_at.asc()).limit(1))
         if sub_id:
             process(sub_id)
