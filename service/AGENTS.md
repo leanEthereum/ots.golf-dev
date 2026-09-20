@@ -48,7 +48,11 @@ whole-word lower track. `upper-compressions` is “Upper bound”, measured in c
 is “RISC-V upper bound”, measured in cycles on every execution, accepting or rejecting; every
 execution must terminate and refine the Lean oracle specification. Render the second card, chart,
 leaderboard and rules section only while the track is admitted in the metadata. Its chart
-has an independent cycle axis: never combine cycles with compression bounds. The
+has an independent cycle axis. Show the current whole-word lower record as a dotted
+cycle reference, linked to its original submission: implementations of these DAG verifiers
+spend at least one cycle per compression. Label its whole-word scope explicitly; it is
+not a lower bound for unrestricted RISC-V submissions. Derive the value from the eligible
+record, omit it when there is none, and mark demo references as demos. The
 compression upper line remains solid. Both upper leaderboards stay outside the lower-framework
 filter. The lower-bound witnesses (`formal/Witnesses/`, checked with `lake build Witnesses`) are an
 internal maintainer check, not tracks: they have no slug, submission root, demo rows or leaderboard.

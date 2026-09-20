@@ -83,8 +83,11 @@ class RiscvTrackTests(unittest.TestCase):
         charts = [ET.fromstring(svg) for svg in re.findall(r'<svg[^>]+class="record-chart".*?</svg>', html, re.S)]
         self.assertEqual([svg.get('data-unit') for svg in charts], ['compressions', 'cycles'])
         self.assertEqual(len(charts[0].findall("./g[@class='chart-reference']")), 1)
-        self.assertEqual(charts[1].findall("./g[@class='chart-reference']"), [])
-        self.assertEqual(charts[1].find('./g').get('data-series'), 'upper-riscv')
+        reference = charts[1].find("./g[@data-reference='whole-word-cycle-lower']")
+        self.assertIsNotNone(reference)
+        self.assertIn('Whole-word lower (demo) · 90', ''.join(reference.itertext()))
+        self.assertIn('not a universal lower bound', reference.find('./title').text)
+        self.assertIsNotNone(charts[1].find("./g[@data-series='upper-riscv']"))
         ids = re.findall(r'\bid="([^"]+)"', html)
         self.assertEqual(len(ids), len(set(ids)))
         sub = self.session.get(Submission, machine[-1]['id'])
@@ -97,6 +100,23 @@ class RiscvTrackTests(unittest.TestCase):
         profile = self.client.get('/solvers/satoshi-nakamoto').text
         self.assertIn('Upper bound · RISC-V cycles</a>', profile)
         self.assertIn('cycles', profile)
+
+    def test_cycle_lower_reference_follows_the_record_and_is_absent_without_one(self):
+        self.assertNotIn('data-reference="whole-word-cycle-lower"', self.client.get('/').text)
+        seed_demo.refresh(self.session)
+        lower = self.session.scalar(select(Submission).where(
+            Submission.track == 'lower-generality-1', Submission.claim == 90))
+        lower.claim = 91
+        self.session.commit()
+        html = self.client.get('/').text
+        svg = next(ET.fromstring(s) for s in re.findall(r'<svg[^>]+class="record-chart".*?</svg>', html, re.S)
+                   if 'data-unit="cycles"' in s)
+        ref = svg.find("./g[@data-reference='whole-word-cycle-lower']")
+        self.assertIn('· 91', ''.join(ref.itertext()))
+        self.assertEqual(ref.find('./a').get('href'), f'/submissions/{lower.id}')
+        self.assertTrue(all(p['kind'] == 'upper' for p in self.points(html, 'riscv-chart-points')))
+        with patch.object(settings, 'phony', False):
+            self.assertNotIn('data-reference="whole-word-cycle-lower"', self.client.get('/').text)
 
     def test_unlisted_machine_track_neither_opens_admission_nor_seeds_a_record(self):
         self.config['upper_tracks'] = ['upper-compressions']

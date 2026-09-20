@@ -391,13 +391,34 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
     riscv_series = [{"slug": "upper-riscv", "framework": "oracle-algorithm", "kind": "upper",
                      "label": "RISC-V upper bound",
                      "status": "certified", "points": riscv["curve"]}] if riscv else []
+    riscv_references = []
+    for model in models:
+        lower = model["boards"].get("lower")
+        if not lower or lower["cfg"]["slug"] != "lower-generality-1":
+            continue
+        state = lower["state"]
+        if state["record_claim"] is None:
+            continue
+        riscv_references.append({
+            "slug": "whole-word-cycle-lower",
+            "label": "Whole-word lower (demo)" if state["record_demo"] else "Whole-word DAG lower",
+            "value": state["record_claim"],
+            "url": f'/submissions/{state["record_submission_id"]}',
+            "description": (
+                f'Whole-word DAGs only: the {state["record_claim"]}-compression lower bound '
+                f'implies at least {state["record_claim"]} cycles for implementations of these verifiers, '
+                'because HASH charges one cycle per compression. '
+                'This is not a universal lower bound for unrestricted RISC-V submissions.'
+                + (' Fictional demo record.' if state["record_demo"] else '')),
+        })
     series.insert(0, {"slug": "upper-compressions", "framework": "oracle-algorithm", "kind": "upper",
                    "label": "Upper bound",
                    "status": "certified" if upper else "pending", "points": upper["curve"] if upper else []})
     return render(request, "home.html", models=models, selected_framework=framework,
                   upper_compressions=upper, upper_riscv=riscv, latest=records.latest_records(session, limit=60),
                   riscv_chart=charts.record_chart(riscv_series, utcnow(), unit="cycles",
-                      chart_id="riscv-record-chart", title="RISC-V verification cost over time") if riscv else None,
+                      chart_id="riscv-record-chart", title="RISC-V verification cost over time",
+                      references=tuple(riscv_references)) if riscv else None,
                   chart=charts.record_chart(series, utcnow(), references=(literature.EQUAL_CHAINS,)),
                   art=scheme_art.svg())
 
