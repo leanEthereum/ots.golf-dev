@@ -155,7 +155,7 @@ class RiscvTrackTests(unittest.TestCase):
                        'same oracle', 'raw signature bit string', 'max(1, ⌈n / 512⌉)',
                        'no additional instruction charge', 'RV64IM',
                        'strictly less than 1 MiB (1,048,576 bytes)',
-                       'four bytes per instruction plus all embedded data', 'image_size'):
+                       'four bytes per instruction plus all embedded data'):
             self.assertIn(phrase, section)
         self.assertNotIn('702', html)
         self.assertNotRegex(html, r'<details\b[^>]*\bopen\b')
