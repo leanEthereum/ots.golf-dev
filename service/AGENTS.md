@@ -44,17 +44,40 @@ The Hall of Fame separately preserves real verified submissions retired by rule 
 Preserve `#lower` and `#upper` links.
 
 Upper tracks are admitted through the top-level `upper_tracks` metadata, independently of the
-whole-word lower track. `upper-compressions` is “Upper bound”, measured in compressions. `upper-riscv`
-is “RISC-V upper bound”, measured in cycles on every execution, accepting or rejecting; every
-execution must terminate and refine the Lean oracle specification. Render the second card, chart,
-leaderboard and rules section only while the track is admitted in the metadata. Its chart
-has an independent cycle axis. Show the current whole-word lower record as a dotted
-cycle reference, linked to its original submission: implementations of these DAG verifiers
-spend at least one cycle per compression. Label its whole-word scope explicitly; it is
-not a lower bound for unrestricted RISC-V submissions. Derive the value from the eligible
-record, omit it when there is none, and mark demo references as demos. The
-compression upper line remains solid. Both upper leaderboards stay outside the lower-framework
-filter. The lower-bound witnesses (`formal/Witnesses/`, checked with `lake build Witnesses`) are an
+whole-word lower track. Derive the set of upper tracks from that metadata — `contract.upper_tracks()`
+— and never from a hard-coded list: a registered track that the service does not derive is
+refused at admission while appearing everywhere else. Each upper track's own metadata drives its
+presentation: `focus` is the phrase that distinguishes it wherever the site names it (“Upper
+bound · {focus}”, “By {focus}”), `tab_label` is its segmented-control button, `cost_unit` its
+unit, and `cost_note` an optional sentence rendered under its card. Every admitted upper track
+has a distinct non-empty `focus`.
+
+`upper-compressions` is “Upper bound”, measured in compressions. `upper-riscv` is “RISC-V upper
+bound” and `upper-leanisa` is “leanISA upper bound”, both measured in cycles; a cycle track gets
+its own card, chart panel, leaderboard panel and rules section, all rendered only while the track
+is admitted, and its chart has an independent cycle axis. DOM hooks are derived from the slug
+(`data-upper`, `data-chart`, `{slug}-dashboard`, `{slug}-chart-points`,
+`{slug}-record-chart`), so adding a track needs no JavaScript change.
+
+The two cycle tracks differ in what their claim covers. `upper-riscv` bounds every execution,
+accepting or rejecting; every execution must terminate and refine the Lean oracle specification.
+`upper-leanisa` bounds every *completing* execution over every prover-committed memory — rejecting
+runs do not exist in that model and are not charged — and every leanISA claim carries a fixed
+surcharge for re-deriving the public statement inside the machine. Both cycle tracks also carry
+a proved instance-size bound the score cannot see, exported as a second theorem and checked by
+the comparator: `image_size` for RISC-V, `seeded_rows` for leanISA. State that surcharge wherever
+the score appears, and never present the two cycle totals as comparable: the per-hash prices
+differ by a factor of ten, which no constant absorbs.
+
+Show the current whole-word lower record as a dotted cycle reference only on a track that
+declares `cycles_per_compression`, linked to its original submission, at
+`cycles_per_compression · claim + fixed_cycles`. That reading is sound only where a whole-word
+DAG verifier is implementable: RISC-V's `HASH` takes an input of any length, so it declares the
+price; leanISA's `BLAKE2S` fixes every query at 896 bits, so it declares none and gets no line.
+Label the whole-word scope explicitly; it is not a lower bound for unrestricted submissions on
+that track. Derive the value from the eligible record, omit it when there is none, and mark demo
+references as demos. The compression upper line remains solid. Upper leaderboards stay outside
+the lower-framework filter. The lower-bound witnesses (`formal/Witnesses/`, checked with `lake build Witnesses`) are an
 internal maintainer check, not tracks: they have no slug, submission root, demo rows or leaderboard.
 When demos are explicitly enabled, include the lower demo rows.
 Preserve every fixture row with its ID and dates. A track's card, chart point, leaderboard,

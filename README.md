@@ -16,10 +16,11 @@ precise specification: exact exports, submission-root rules, limits and the subm
 |---|---|---|
 | Upper bound · compressions | `formal/Submissions/UpperCompressions/` | `verify.py upper-compressions` |
 | Upper bound · RISC-V cycles | `formal/Submissions/UpperRiscv/` | `verify.py upper-riscv` |
+| Upper bound · leanISA cycles | `formal/Submissions/UpperLeanIsa/` | `verify.py upper-leanisa` |
 | Lower bound · Whole-word DAGs | `formal/Submissions/LowerGenerality1/` | `verify.py lower-generality-1` |
 
 Roots live at `formal/Submissions/<Root>/` in the submissions repository. Current records are
-on [ots.golf](https://ots.golf). The submissions repository's `main` carries the three current record
+on [ots.golf](https://ots.golf). The submissions repository's `main` carries the four current record
 roots and `records.json`, which links each claim to its original checked commit, PR and trusted
 core. After publishing a new record's verdict, the bot copies its checked root into `main` with a
 separate commit; proof PRs are never merged or closed. Each submission's **Code** link opens its

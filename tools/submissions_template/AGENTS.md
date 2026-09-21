@@ -14,6 +14,7 @@ and submission workflow. If `.contract` is empty, run `git submodule update --in
 |---|---|---|
 | Upper bound · compressions | `formal/Submissions/UpperCompressions/` | `.contract/verifier/verify.py upper-compressions --source .` |
 | Upper bound · RISC-V cycles | `formal/Submissions/UpperRiscv/` | `.contract/verifier/verify.py upper-riscv --source .` |
+| Upper bound · leanISA cycles | `formal/Submissions/UpperLeanIsa/` | `.contract/verifier/verify.py upper-leanisa --source .` |
 | Lower bound · Whole-word DAGs | `formal/Submissions/LowerGenerality1/` | `.contract/verifier/verify.py lower-generality-1 --source .` |
 
 Run the check from the root of this checkout. Keep proof PR changes inside one admitted root;

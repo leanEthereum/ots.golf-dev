@@ -179,13 +179,22 @@ def assert_rules_have_no_scores(text: str, config: dict) -> None:
 
 def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> None:
     command, js = browser.command, browser.js
-    riscv_enabled = ('upper-riscv' in config.get('upper_tracks', [])
-                     and any(t['slug'] == 'upper-riscv' for t in config['tracks']))
+    slugs = {t['slug'] for t in config['tracks']}
+    upper_admitted = [t for t in config.get('upper_tracks', []) if t in slugs]
+    riscv_enabled = 'upper-riscv' in upper_admitted
+    leanisa_enabled = 'upper-leanisa' in upper_admitted
+    # One board per admitted upper track, plus the lower board and the progress table.
+    lb_tables = len(upper_admitted) + 2
+    # A track with no seeded record draws no chart series, so `upper-leanisa` adds a board and a
+    # chart panel but no line until someone submits.
+    seeded = {r['track'] for r in
+              json.loads((ROOT / 'service/demo/submissions.json').read_text())['submissions']}
+    upper_series = len([t for t in upper_admitted if t in seeded])
     command('WebDriver:SetWindowRect', {'width': 1360, 'height': 1700})
     command('WebDriver:Navigate', {'url': base_url + '/'})
     print('Home:', js('return {title: document.title, cards: document.querySelectorAll(".framework-card").length, lowerSeries: document.querySelectorAll(".chart-series[data-kind=lower]").length, tables: document.querySelectorAll(".lb-table").length, width: innerWidth, scrollWidth: document.documentElement.scrollWidth};'))
     assert js('return document.querySelectorAll(".chart-series[data-kind=lower]").length === 1;')
-    assert js(f'return document.querySelectorAll(".lb-table").length === {4 if riscv_enabled else 3};')
+    assert js(f'return document.querySelectorAll(".lb-table").length === {lb_tables};')
     assert js('return document.querySelector(".upper-card").getBoundingClientRect().bottom <= document.querySelector(".framework-cards").getBoundingClientRect().top;')
     assert js('return document.querySelector("#upper-compressions-title").textContent.trim() === "By compressions" && getComputedStyle(document.querySelector(".chart-series[data-kind=upper] .line")).strokeDasharray === "none";')
     assert js('return document.querySelector("#framework-generality-1 .framework-generality").textContent === "Whole-word DAGs";')
@@ -217,24 +226,47 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     assert js('return !document.querySelector(".tooltip").hidden;')
     js('document.activeElement.blur(); window.scrollTo(0, 0); return true;')
     (output / 'home-desktop.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': True})['value']))
-    assert js(f'return document.querySelectorAll(".chart-series[data-kind=upper]").length === {2 if riscv_enabled else 1} && document.querySelector(".chart-series[data-kind=upper]").dataset.series === "upper-compressions" && document.querySelector(".chart-series[data-kind=upper]").dataset.status === "certified";')
+    assert js(f'return document.querySelectorAll(".chart-series[data-kind=upper]").length === {upper_series} && document.querySelector(".chart-series[data-kind=upper]").dataset.series === "upper-compressions" && document.querySelector(".chart-series[data-kind=upper]").dataset.status === "certified";')
     if riscv_enabled:
         riscv_claim = demo_best(config, 'upper-riscv')
         assert min(js('return [...document.querySelectorAll(".lb-table[data-track=upper-riscv] .lb-row")].map(r => Number(r.dataset.score));')) == riscv_claim
-        assert js('return JSON.parse(document.getElementById("chart-points").textContent).every(p => p.unit.startsWith("compression")) && JSON.parse(document.getElementById("riscv-chart-points").textContent).every(p => p.unit === "cycles");')
-        assert js('return document.querySelector(".riscv-dashboard").hidden && !document.querySelector(".chart-panel[data-chart=compressions]").hidden;')
-        js('document.querySelector(".chart-btn[data-chart=cycles]").click(); return true;')
-        assert js('return !document.querySelector(".riscv-dashboard").hidden && document.querySelector(".chart-panel[data-chart=compressions]").hidden;')
-        js('document.querySelector(".riscv-dashboard .chart-record").focus(); return true;')
-        assert js('return !document.querySelector(".riscv-dashboard .tooltip").hidden && document.querySelector(".riscv-dashboard .tooltip").textContent.includes("cycles");')
+        assert js('return JSON.parse(document.getElementById("chart-points").textContent).every(p => p.unit.startsWith("compression")) && JSON.parse(document.getElementById("upper-riscv-chart-points").textContent).every(p => p.unit === "cycles");')
+        assert js('return document.querySelector(".upper-riscv-dashboard").hidden && !document.querySelector(".chart-panel[data-chart=compressions]").hidden;')
+        js('document.querySelector(".chart-btn[data-chart=upper-riscv]").click(); return true;')
+        assert js('return !document.querySelector(".upper-riscv-dashboard").hidden && document.querySelector(".chart-panel[data-chart=compressions]").hidden;')
+        js('document.querySelector(".upper-riscv-dashboard .chart-record").focus(); return true;')
+        assert js('return !document.querySelector(".upper-riscv-dashboard .tooltip").hidden && document.querySelector(".upper-riscv-dashboard .tooltip").textContent.includes("cycles");')
         js('document.activeElement.blur(); return true;')
         (output / 'riscv-chart.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': False})['value']))
         js('document.querySelector(".chart-btn[data-chart=compressions]").click(); return true;')
+    if leanisa_enabled:
+        # No demo rows exist for this track, so the board is the empty presentation.
+        assert js('return document.querySelector(".upper-leanisa-card") !== null;')
+        assert js('return document.querySelector(".upper-leanisa-card .no-record") !== null;')
+        # The public-input surcharge is stated wherever the score is, and spans the card.
+        note = js('return (() => { const n = document.querySelector(".upper-leanisa-card '
+                  '.upper-card-note"); if (!n) return null; const c = n.closest(".upper-card"); '
+                  'return {text: n.textContent, wide: n.getBoundingClientRect().width > '
+                  '0.8 * c.getBoundingClientRect().width}; })();')
+        assert note and '120 cycles' in note['text'], note
+        assert note['wide'], 'the cost note must span the card, not sit in the narrow column'
+        # A third chart tab and a third leaderboard panel, driven by the same generic JS.
+        js('document.querySelector(".chart-btn[data-chart=upper-leanisa]").click(); return true;')
+        assert js('return !document.querySelector(".upper-leanisa-dashboard").hidden && '
+                  'document.querySelector(".chart-panel[data-chart=compressions]").hidden;')
+        js('document.querySelector(".chart-btn[data-chart=compressions]").click(); return true;')
+        js('document.querySelector(".seg-btn[data-track=upper]").click(); '
+           'document.querySelector(".upper-btn[data-upper=upper-leanisa]").click(); return true;')
+        assert js('return !document.querySelector(".upper-board[data-upper=upper-leanisa]").hidden'
+                  ' && document.querySelector(".upper-board[data-upper=upper-compressions]").hidden;')
+        js('document.querySelector(".upper-btn[data-upper=upper-compressions]").click(); '
+           'document.querySelector(".seg-btn[data-track=lower]").click(); '
+           'document.querySelector(".seg-btn[data-track=upper]").click(); return true;')
     js('document.documentElement.dataset.theme = "light"; document.getElementById("dash-title").scrollIntoView(); return true;')
     (output / 'chart-light.png').write_bytes(base64.b64decode(command('WebDriver:TakeScreenshot', {'full': False})['value']))
     print('Desktop chart, direction toggle, sorting, and keyboard tooltip passed')
     command('WebDriver:Navigate', {'url': base_url + '/?framework=generality-1#upper'})
-    assert js(f'return document.querySelectorAll(".lb-table").length === {4 if riscv_enabled else 3} && document.querySelectorAll(".chart-series[data-kind=lower]").length === 1 && !document.querySelector(".board-track[data-track=upper]").hidden && !document.querySelector(".framework-board[data-framework=generality-1]").hidden;')
+    assert js(f'return document.querySelectorAll(".lb-table").length === {lb_tables} && document.querySelectorAll(".chart-series[data-kind=lower]").length === 1 && !document.querySelector(".board-track[data-track=upper]").hidden && !document.querySelector(".framework-board[data-framework=generality-1]").hidden;')
     command('WebDriver:Navigate', {'url': base_url + '/rules'})
     assert js('return document.querySelectorAll(".rules-diagram svg[role=img]").length === 1;')
     assert js('return document.querySelectorAll("details[open]").length === 0;')

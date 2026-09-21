@@ -72,10 +72,19 @@ def compatible_image_limit(sub) -> bool:
     return compatible_image_source(sub.id, sub.commit, sub.detail_dict.get("contract"))
 
 
+def image_limit_in_force() -> bool:
+    """The per-source image audit stands while the live contract is the one it was made
+    against, or one that `RESULT_COMPATIBILITY` audits as carrying `upper-riscv` forward from
+    it. A later pure addition to the contract rotates the id and must not silently drop the
+    individually checked ports; anything that is not an audited step does drop them."""
+    from . import contract
+    return (contract.contract_id() == IMAGE_LIMIT_CONTRACT
+            or contract.compatible_result("upper-riscv", IMAGE_LIMIT_CONTRACT))
+
+
 def compatible_image_source(sid, commit, previous) -> bool:
     """Also used to preserve links to previously approved, individually checked proof ports."""
-    from . import contract
-    if contract.contract_id() != IMAGE_LIMIT_CONTRACT or previous not in IMAGE_LIMIT_PREDECESSORS:
+    if not image_limit_in_force() or previous not in IMAGE_LIMIT_PREDECESSORS:
         return False
     value = validate(historical_sizes().get(sid), commit, previous)
     return bool(value and 4 * value["instructions"] + value["data_bytes"] < 1048576)

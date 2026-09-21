@@ -385,6 +385,7 @@ table.params th:first-child { width: 44%; }
 .no-record { color: var(--muted); font-size: 15px; font-weight: 400; }
 .upper-score > .no-record { grid-column: 1 / -1; text-align: right; color: var(--muted); font-size: 15px; }
 .card-program-size { grid-column: 1 / -1; justify-self: end; display: grid; gap: 2px; text-align: right; margin-top: 4px; font-size: 12px; }
+.upper-card-note { grid-column: 1 / -1; margin: 8px 0 0; font-size: 13px; line-height: 1.45; }
 .card-program-size a { color: var(--ink-2); }
 .card-program-size span { color: var(--muted); }
 .lb-program-size, .lb-embedded-data { font-variant-numeric: tabular-nums; }

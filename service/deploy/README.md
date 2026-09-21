@@ -120,7 +120,7 @@ Run these with the public webhook disconnected and the production configuration 
      cd /srv/ots/repo
      python3 verifier/check_linux_sandbox.py &&
      (cd formal && lake build Witnesses) &&
-     for t in lower-generality-1 upper-compressions upper-riscv; do
+     for t in lower-generality-1 upper-compressions upper-riscv upper-leanisa; do
        python3 verifier/verify.py "$t" --source /srv/ots/submissions-check || exit 1
      done'
    ```
@@ -149,8 +149,8 @@ Run these with the public webhook disconnected and the production configuration 
 
 3. Confirm `OTS_PHONY=0` for both services. Every board without a real verified record shows
    "No record yet"; there are no invented production records or reference baselines. Check all
-   whole-word lower board, Upper bound and RISC-V upper bound. Existing demo rows remain stored but
-   hidden and cannot participate in record decisions.
+   whole-word lower board, Upper bound, RISC-V upper bound and leanISA upper bound. Existing demo
+   rows remain stored but hidden and cannot participate in record decisions.
 
 4. In a staging repository, exercise a signed PR webhook, duplicate delivery, a rejected proof,
    a verified improvement, a second PR with the same claim (verified, not a record), and a GitHub
@@ -339,7 +339,7 @@ trusted checkout.
 
 ## Retiring lower-bound tracks
 
-The active contract contains whole-word lower bounds and the two upper-bound tracks. Removed
+The active contract contains whole-word lower bounds and the three upper-bound tracks. Removed
 track roots are refused at admission. Their stored rows are excluded from active boards, queue
 limits, worker selection and GitHub publication retries. Recovery skips their receipts. Historical
 GitHub commits, source tags and verdicts remain immutable; do not rewrite their certificates or

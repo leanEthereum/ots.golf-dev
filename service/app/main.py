@@ -135,6 +135,11 @@ def render(request: Request, name: str, **ctx) -> HTMLResponse:
     ctx.setdefault("frameworks", contract.frameworks())
     ctx.setdefault("upper_compressions_track", contract.upper_compressions_track())
     ctx.setdefault("upper_riscv_track", contract.upper_riscv_track())
+    ctx.setdefault("upper_leanisa_track", contract.upper_leanisa_track())
+    upper = contract.upper_tracks()
+    ctx.setdefault("machine_tracks", [t for t in upper if t.get("cost_unit") == "cycles"])
+    ctx.setdefault("open_tracks", [t for t in contract.tracks()
+                                   if t["kind"] != "upper" or t in upper])
     ctx.setdefault("track_labels", {t["slug"]: {**t, "framework_title": contract.track_framework_title(t)}
                                     for t in contract.tracks()})
     return templates.TemplateResponse(request, name, ctx)
@@ -372,6 +377,65 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str, announce: b
 
 # --- pages ------------------------------------------------------------------------------------
 
+def _machine_references(cfg: dict, models: list[dict]) -> list[dict]:
+    """The whole-word lower bound read in this machine's cycles: a whole-word DAG verifier needs
+    at least `claim` compressions, and this ISA spends `cycles_per_compression` cycles on each
+    plus `fixed_cycles` the contract charges every submission.
+
+    Opt-in per track, because the reading is only sound where a whole-word DAG verifier is
+    implementable at all. RISC-V's `HASH` takes an input of any length, so it is. leanISA's
+    `BLAKE2S` fixes every oracle query at 896 bits, while a DAG hash node queries the length of
+    its parent's value, so no leanISA submission's scheme is in the whole-word class and the
+    bound says nothing about it. A track that declares no `cycles_per_compression` gets no
+    reference line."""
+    if "cycles_per_compression" not in cfg:
+        return []
+    per = cfg["cycles_per_compression"]
+    fixed = cfg.get("fixed_cycles", 0)
+    references = []
+    for model in models:
+        lower = model["boards"].get("lower")
+        if not lower or lower["cfg"]["slug"] != "lower-generality-1":
+            continue
+        state = lower["state"]
+        if state["record_claim"] is None:
+            continue
+        cycles = per * state["record_claim"] + fixed
+        each = "one cycle per compression" if per == 1 else f"{per} cycles per compression"
+        plus = f", plus the {fixed} cycles every submission spends on the public input" if fixed else ""
+        references.append({
+            "slug": "whole-word-cycle-lower",
+            "label": "Whole-word lower (demo)" if state["record_demo"] else "Whole-word DAG lower",
+            "value": cycles,
+            "url": f'/submissions/{state["record_submission_id"]}',
+            "description": (
+                f'Whole-word DAGs only: the {state["record_claim"]}-compression lower bound '
+                f'implies at least {cycles} cycles for implementations of these verifiers, '
+                f'because this machine charges {each}{plus}. '
+                'This is not a universal lower bound for unrestricted submissions on this '
+                'track.'
+                + (' Fictional demo record.' if state["record_demo"] else '')),
+        })
+    return references
+
+
+def _machine_chart(board: dict, models: list[dict]) -> dict:
+    """One cycle-unit upper track's record chart, with its DOM hooks derived from its slug."""
+    cfg = board["cfg"]
+    slug = cfg["slug"]
+    return {
+        "slug": slug,
+        "tab_label": cfg.get("tab_label", cfg["title"]),
+        "focus": contract.upper_focus(cfg),
+        "chart": charts.record_chart(
+            [{"slug": slug, "framework": "oracle-algorithm", "kind": "upper",
+              "label": cfg["title"], "status": "certified", "points": board["curve"]}],
+            utcnow(), unit="cycles", chart_id=f"{slug}-record-chart",
+            title=f'{cfg["title"]}: verification cost over time',
+            references=tuple(_machine_references(cfg, models))),
+    }
+
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, framework: str = "all", session: Session = Depends(get_session)):
     if framework != "all" and contract.framework(framework) is None:
@@ -384,41 +448,17 @@ def home(request: Request, framework: str = "all", session: Session = Depends(ge
                        "framework": model["slug"], "kind": "lower", "label": "Whole-word lower",
                        "status": "certified" if board else "pending",
                        "points": board["curve"] if board else []})
-    upper_config = contract.upper_compressions_track()
-    upper = records.board(session, upper_config) if upper_config else None
-    riscv_config = contract.upper_riscv_track()
-    riscv = records.board(session, riscv_config) if riscv_config else None
-    riscv_series = [{"slug": "upper-riscv", "framework": "oracle-algorithm", "kind": "upper",
-                     "label": "RISC-V upper bound",
-                     "status": "certified", "points": riscv["curve"]}] if riscv else []
-    riscv_references = []
-    for model in models:
-        lower = model["boards"].get("lower")
-        if not lower or lower["cfg"]["slug"] != "lower-generality-1":
-            continue
-        state = lower["state"]
-        if state["record_claim"] is None:
-            continue
-        riscv_references.append({
-            "slug": "whole-word-cycle-lower",
-            "label": "Whole-word lower (demo)" if state["record_demo"] else "Whole-word DAG lower",
-            "value": state["record_claim"],
-            "url": f'/submissions/{state["record_submission_id"]}',
-            "description": (
-                f'Whole-word DAGs only: the {state["record_claim"]}-compression lower bound '
-                f'implies at least {state["record_claim"]} cycles for implementations of these verifiers, '
-                'because HASH charges one cycle per compression. '
-                'This is not a universal lower bound for unrestricted RISC-V submissions.'
-                + (' Fictional demo record.' if state["record_demo"] else '')),
-        })
+    upper_boards = [records.board(session, cfg) for cfg in contract.upper_tracks()]
+    by_slug = {b["cfg"]["slug"]: b for b in upper_boards}
+    upper = by_slug.get("upper-compressions")
+    machine_charts = [_machine_chart(board, models) for board in upper_boards
+                      if board["cfg"].get("cost_unit") == "cycles"]
     series.insert(0, {"slug": "upper-compressions", "framework": "oracle-algorithm", "kind": "upper",
                    "label": "Upper bound",
                    "status": "certified" if upper else "pending", "points": upper["curve"] if upper else []})
     return render(request, "home.html", models=models, selected_framework=framework,
-                  upper_compressions=upper, upper_riscv=riscv, latest=records.latest_records(session, limit=60),
-                  riscv_chart=charts.record_chart(riscv_series, utcnow(), unit="cycles",
-                      chart_id="riscv-record-chart", title="RISC-V verification cost over time",
-                      references=tuple(riscv_references)) if riscv else None,
+                  upper_compressions=upper, upper_boards=upper_boards,
+                  machine_charts=machine_charts, latest=records.latest_records(session, limit=60),
                   chart=charts.record_chart(series, utcnow(), references=(literature.EQUAL_CHAINS,)),
                   art=scheme_art.svg())
 

@@ -39,7 +39,7 @@ base <code>main</code>. Read the rules below before preparing a submission.
           <tr><th scope="row">Key generation</th><td>At most 2<sup>20</sup> compressions</td></tr>
           <tr><th scope="row">Signing</th><td>At most 2<sup>20</sup> compressions</td></tr>
           <tr><th scope="row">Security</th><td>127 bits</td></tr>
-          <tr><th scope="row">Verification</th><td><strong>Minimize the worst-case cost</strong>{% if upper_riscv_track %}, in compressions or RISC-V cycles{% endif %}</td></tr>
+          <tr><th scope="row">Verification</th><td><strong>Minimize the worst-case cost</strong>{% if machine_tracks %}, in compressions{% for t in machine_tracks %}{{ ' or ' if loop.last else ', ' }}{{ t.focus }}{% endfor %}{% endif %}</td></tr>
         </tbody>
       </table>
       <p id="tracks">Every track requires a Lean-kernel-checked proof.</p>
@@ -53,6 +53,9 @@ base <code>main</code>. Read the rules below before preparing a submission.
         {% if upper_riscv_track %}<li><a href="#upper-riscv"><strong>By RISC-V cycles.</strong></a> Implement the
         verifier in RISC-V, prove it computes exactly the Lean verifier, and bound the cycles of every
         execution, accepting or rejecting.</li>{% endif %}
+        {% if upper_leanisa_track %}<li><a href="#upper-leanisa"><strong>By leanISA cycles.</strong></a> Implement the
+        verifier in leanISA bytecode, prove that no prover-committed memory makes it accept a signature
+        the Lean verifier rejects, and bound the cycles of every completing execution.</li>{% endif %}
       </ul>
       <h3 id="model">Lower bound</h3>
       <p>Prove that <em>every</em> secure <a href="#whole-words">whole-word DAG scheme</a>
@@ -96,6 +99,48 @@ base <code>main</code>. Read the rules below before preparing a submission.
   </details>
   {% endif %}
 
+  {% if upper_leanisa_track %}
+  <details id="upper-leanisa">
+    <summary><h2>leanISA upper bound</h2></summary>
+    <div class="more prose">
+      <p>Submit an OTS meeting the algorithm requirements above, together with a fixed leanISA
+      bytecode, the memory size it announces, the honest prover's memory-filling strategy and a
+      step count. The bytecode holds at most 262,144 instructions, and its sentinel slot holds no
+      <code>JUMP</code>, so the halt address is never executed.</p>
+      <p>leanVM's memory is an immutable image committed by an untrusted prover before execution,
+      of <code>2<sup>k</sup></code> words for a prover-chosen <code>k</code> between 16 and 32. No
+      instruction writes. Every instruction reads cells and <em>asserts</em> a relation over them, so
+      a violated assertion is not a rejection: it means that execution does not exist. Acceptance is
+      therefore "some committed image drives the machine to the sentinel", which is not a value the
+      machine outputs. RISC-V's single refinement equation splits in two, and the claim must prove
+      both:</p>
+      <ul>
+        <li><strong>Faithful.</strong> Under the shared random oracle, the submitted prover's image
+        drives the machine to the sentinel exactly when the Lean verifier accepts — both
+        directions, on every public key, message and raw signature bit string.</li>
+        <li><strong>Sound.</strong> For <em>every</em> admissible memory size and <em>every</em>
+        committed image, no execution completes on an input the Lean verifier rejects. This is the
+        clause an under-constrained program fails, and it is what makes the cycle count meaningful.</li>
+      </ul>
+      <p>The claim bounds <strong>cycles on every completing execution</strong>, over every
+      admissible memory size, every committed image and every step count — not only the submitted
+      prover's. There is no cost on rejection, because rejecting runs do not exist; the score is the
+      worst case of an accepted verification. Each executed instruction costs one cycle, except
+      <code>BLAKE2S</code>, which costs ten: its row carries the Flock BLAKE2s constraint system over
+      a Boolean witness, which no bus-flush count reflects.</p>
+      <p><code>BLAKE2S</code> queries the same random oracle as the OTS security experiment, on the
+      exact 896 bits it consumes: the 256-bit chaining value, the 512-bit message block and the
+      128-bit metadata cell. It is the competition's oracle, not RFC 7693 BLAKE2s.</p>
+      <p>Because the memory is prover-committed, the 6,016-bit public statement — public key,
+      message, capped signature length and signature — must be re-derived inside the machine rather
+      than trusted. The contract charges every submission 120 cycles for that: twelve
+      <code>BLAKE2S</code> compressions over the statement, at ten cycles each. Those 120 cycles are
+      part of every leanISA claim and no RISC-V claim pays them, so the two tracks' totals are not
+      directly comparable.</p>
+    </div>
+  </details>
+  {% endif %}
+
   <details id="whole-word-model">
     <summary><h2 id="whole-words">Lower bound · Whole-word DAGs</h2></summary>
     <div class="more prose">
@@ -135,15 +180,15 @@ base <code>main</code>. Read the rules below before preparing a submission.
         dead ends.</li>
         <li>Fork <a href="{{ settings.submissions_url }}">the submissions repository</a> and follow its
         setup instructions. Create or change one submission root:
-        <code>formal/Submissions/LowerGenerality1/</code>, <code>formal/Submissions/UpperCompressions/</code>
-        or <code>formal/Submissions/UpperRiscv/</code>.</li>
+        {% for t in open_tracks %}{% if not loop.first %}{{ ' or ' if loop.last else ', ' }}{% endif %}<code>{{ t.submission_root }}/</code>{% endfor %}.</li>
         <li>Put your claim in <code>claim.txt</code> and export the
         {{ source_link('AGENTS.md#what-a-submission-exports', 'required declarations') }}
         from <code>Solution.lean</code>. Add a <code>NOTES.md</code> beside them: the idea, the
         result, what did not work and what you would try next.</li>
         <li>Run <code>python3 .contract/verifier/verify.py lower-generality-1 --source .</code>
-        (or <code>upper-compressions</code> or
-        <code>upper-riscv</code>), then open a pull request from your fork's proof branch to
+        {% set others = open_tracks|rejectattr('slug', 'equalto', 'lower-generality-1')|list -%}
+        (or {% for t in others %}{% if not loop.first %}{{ ' or ' if loop.last else ', ' }}{% endif %}<code>{{ t.slug }}</code>{% endfor %}),
+        then open a pull request from your fork's proof branch to
         <a href="{{ settings.submissions_url }}/compare?expand=1">{{ settings.submissions_url.removeprefix('https://github.com/') }}</a>,
         with base branch <code>main</code>.
         Its author and description supply attribution; optional <code>Assisted by:</code> and

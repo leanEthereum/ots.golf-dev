@@ -29,7 +29,8 @@ class RiscvTrackTests(unittest.TestCase):
         self.config = copy.deepcopy(contract.load())
         machine = copy.deepcopy(next(t for t in self.config['tracks'] if t['slug'] == 'upper-compressions'))
         machine.update(slug='upper-riscv', title='RISC-V upper bound',
-                       cost_unit='cycles', submission_root='formal/Submissions/UpperRiscv')
+                       cost_unit='cycles', submission_root='formal/Submissions/UpperRiscv',
+                       focus='RISC-V cycles', tab_label='RISC-V cycles', cycles_per_compression=1)
         self.config['tracks'] = [t for t in self.config['tracks'] if t['slug'] != 'upper-riscv'] + [machine]
         self.config['upper_tracks'] = ['upper-compressions', 'upper-riscv']
         for framework in self.config['frameworks']:
@@ -58,7 +59,7 @@ class RiscvTrackTests(unittest.TestCase):
         seed_demo.refresh(self.session)
         html = self.client.get('/').text
         compression = self.points(html, 'chart-points')
-        machine = self.points(html, 'riscv-chart-points')
+        machine = self.points(html, 'upper-riscv-chart-points')
         self.assertTrue(all(p['unit'].startswith('compression') for p in compression))
         self.assertFalse(any(p['claim'] == 702 for p in compression))
         self.assertEqual([(p['claim'], p['login'], p['unit']) for p in machine],
@@ -71,8 +72,9 @@ class RiscvTrackTests(unittest.TestCase):
                           (960, 'vitalik-buterin', 'cycles'), (950, 'hal-finney', 'cycles'),
                           (940, 'vitalik-buterin', 'cycles'), (930, 'vitalik-buterin', 'cycles'),
                           (702, 'satoshi-nakamoto', 'cycles')])
-        self.assertIn('class="chart-btn" data-chart="cycles"', html)
-        self.assertIn('class="chart-panel riscv-dashboard" data-chart="cycles" hidden', html)
+        self.assertIn('class="chart-btn" data-chart="upper-riscv"', html)
+        self.assertIn('class="chart-panel machine-dashboard upper-riscv-dashboard" '
+                      'data-chart="upper-riscv" hidden', html)
         self.assertIn('data-track="upper-riscv"', html)
         self.assertIn('id="upper-riscv-title"', html)
         self.assertNotIn('lower-bound frameworks.</p>', html)
@@ -114,7 +116,7 @@ class RiscvTrackTests(unittest.TestCase):
         ref = svg.find("./g[@data-reference='whole-word-cycle-lower']")
         self.assertIn('· 91', ''.join(ref.itertext()))
         self.assertEqual(ref.find('./a').get('href'), f'/submissions/{lower.id}')
-        self.assertTrue(all(p['kind'] == 'upper' for p in self.points(html, 'riscv-chart-points')))
+        self.assertTrue(all(p['kind'] == 'upper' for p in self.points(html, 'upper-riscv-chart-points')))
         with patch.object(settings, 'phony', False):
             self.assertNotIn('data-reference="whole-word-cycle-lower"', self.client.get('/').text)
 

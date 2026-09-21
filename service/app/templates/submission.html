@@ -3,7 +3,7 @@
 {% block content %}
 {% set legacy_upper = t.kind == 'upper' and t.framework != 'oracle-algorithm' %}
 <p class="muted"><a class="back" href="{% if legacy_upper %}/rules#legacy-certificates{% else %}/{% if t.kind == 'lower' %}?framework={{ framework.slug }}{% else %}?upper={{ t.slug }}{% endif %}#{{ t.kind }}{% endif %}">← Back to {{ 'rules' if legacy_upper else 'leaderboard' }}</a></p>
-<h1>{% if legacy_upper %}{{ framework_title }}{% elif t.kind == 'upper' %}Upper bound · {{ 'RISC-V cycles' if t.slug == 'upper-riscv' else 'compressions' }}{% else %}Lower bound · {{ framework_title }}{% endif %} {% if sub.detail_dict.get('demo') %}<span class="tag">demo</span>{% else %}<span class="status s-{{ sub.status }}">{{ sub.status.replace('_', ' ') }}</span>{% endif %}</h1>
+<h1>{% if legacy_upper %}{{ framework_title }}{% elif t.kind == 'upper' %}Upper bound · {{ t.focus|default('compressions', true) }}{% else %}Lower bound · {{ framework_title }}{% endif %} {% if sub.detail_dict.get('demo') %}<span class="tag">demo</span>{% else %}<span class="status s-{{ sub.status }}">{{ sub.status.replace('_', ' ') }}</span>{% endif %}</h1>
 {% if sub.detail_dict.get('demo') %}<p class="notice">Fictional demo submission; this entry has not been verified.</p>{% endif %}
 {% if sub.status == 'admitting' %}<p class="notice">Your submission is being queued.</p>{% elif sub.status == 'publishing' %}<p class="notice">Verification has finished. The result will appear shortly.</p>{% endif %}
 {% if not sub.detail_dict.get('demo') and not sub.current_contract %}<p class="notice">Historical result: this submission was checked under a different or unknown contract and is excluded from the current leaderboard.</p>{% endif %}

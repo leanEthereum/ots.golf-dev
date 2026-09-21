@@ -1,0 +1,8 @@
+{
+  "challenge_module": "OptimalOTS.Challenge.UpperLeanIsa",
+  "solution_module": "Submissions.UpperLeanIsa.Solution",
+  "theorem_names": ["OptimalOTS.Challenge.UpperLeanIsa.certificate", "OptimalOTS.Challenge.UpperLeanIsa.seeded_rows"],
+  "definition_names": ["OptimalOTS.Challenge.UpperLeanIsa.submission"],
+  "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"],
+  "enable_nanoda": false
+}

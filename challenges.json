@@ -28,7 +28,11 @@
     "formal/OptimalOTS/RiscvMachine.lean",
     "formal/OptimalOTS/Riscv.lean",
     "formal/OptimalOTS/Challenge/UpperRiscv.lean.in",
-    "verifier/comparator-upper-riscv.json"
+    "verifier/comparator-upper-riscv.json",
+    "formal/OptimalOTS/LeanIsaMachine.lean",
+    "formal/OptimalOTS/LeanIsa.lean",
+    "formal/OptimalOTS/Challenge/UpperLeanIsa.lean.in",
+    "verifier/comparator-upper-leanisa.json"
   ],
   "limits": {
     "wall_clock_seconds": 1200,
@@ -66,6 +70,8 @@
       "framework": "oracle-algorithm",
       "kind": "upper",
       "direction": "-",
+      "focus": "compressions",
+      "tab_label": "Compressions",
       "submission_root": "formal/Submissions/UpperCompressions",
       "module_prefix": "Submissions.UpperCompressions",
       "solution_module": "Submissions.UpperCompressions.Solution",
@@ -88,6 +94,9 @@
       "kind": "upper",
       "direction": "-",
       "cost_unit": "cycles",
+      "focus": "RISC-V cycles",
+      "tab_label": "RISC-V cycles",
+      "cycles_per_compression": 1,
       "submission_root": "formal/Submissions/UpperRiscv",
       "module_prefix": "Submissions.UpperRiscv",
       "solution_module": "Submissions.UpperRiscv.Solution",
@@ -104,11 +113,48 @@
         "OptimalOTS.RiscvMachine",
         "OptimalOTS.Riscv"
       ]
+    },
+    {
+      "slug": "upper-leanisa",
+      "title": "leanISA upper bound",
+      "framework": "oracle-algorithm",
+      "kind": "upper",
+      "direction": "-",
+      "cost_unit": "cycles",
+      "focus": "leanISA cycles",
+      "tab_label": "leanISA cycles",
+      "cost_note": "leanVM's memory is committed before execution, so the 6016-bit public statement is re-derived inside the machine: 12 BLAKE2S compressions at 10 cycles each. 120 cycles of every leanISA claim are that fixed rehashing of the public input, which no RISC-V claim pays.",
+      "submission_root": "formal/Submissions/UpperLeanIsa",
+      "module_prefix": "Submissions.UpperLeanIsa",
+      "solution_module": "Submissions.UpperLeanIsa.Solution",
+      "challenge_template": "formal/OptimalOTS/Challenge/UpperLeanIsa.lean.in",
+      "challenge_file": "formal/OptimalOTS/Challenge/UpperLeanIsa.lean",
+      "challenge_module": "OptimalOTS.Challenge.UpperLeanIsa",
+      "comparator_config": "verifier/comparator-upper-leanisa.json",
+      "allowed_import_prefixes": [
+        "Mathlib",
+        "VCVio",
+        "LeanerVM.Parameters.Field",
+        "LeanerVM.Parameters.Generator",
+        "LeanerVM.Parameters.Isa",
+        "LeanerVM.Parameters.Blake2s",
+        "LeanerVM.Semantics.Memory",
+        "LeanerVM.Semantics.Instruction",
+        "LeanerVM.Semantics.Blake2s",
+        "LeanerVM.Semantics.Step",
+        "LeanerVM.Semantics.Execution",
+        "OptimalOTS.Model",
+        "OptimalOTS.Dag",
+        "OptimalOTS.OracleAlgorithm",
+        "OptimalOTS.LeanIsaMachine",
+        "OptimalOTS.LeanIsa"
+      ]
     }
   ],
   "upper_tracks": [
     "upper-compressions",
-    "upper-riscv"
+    "upper-riscv",
+    "upper-leanisa"
   ],
   "lean_root": "formal",
   "frameworks": [

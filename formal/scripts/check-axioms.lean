@@ -11,6 +11,7 @@ import OptimalOTS.Dag
 import OptimalOTS.WholeWords
 import OptimalOTS.OracleAlgorithm
 import OptimalOTS.Riscv
+import OptimalOTS.LeanIsa
 
 open Lean
 
@@ -47,7 +48,27 @@ def contractDecls : List Name :=
    ``OptimalOTS.Riscv.writeHash, ``OptimalOTS.Riscv.execute,
    ``OptimalOTS.Riscv.Submission, ``OptimalOTS.Riscv.Submission.run,
    ``OptimalOTS.Riscv.Submission.Implements, ``OptimalOTS.Riscv.Submission.CyclesAtMost,
-   ``OptimalOTS.Riscv.Submission.Certificate]
+   ``OptimalOTS.Riscv.Submission.Certificate,
+   ``OptimalOTS.LeanIsa.weight, ``OptimalOTS.LeanIsa.cellBits, ``OptimalOTS.LeanIsa.cellOfBits,
+   ``OptimalOTS.LeanIsa.cellBits_cellOfBits, ``OptimalOTS.LeanIsa.eq_of_cellBits_eq,
+   ``OptimalOTS.LeanIsa.execute_eq_leanerVM,
+   -- The two decision procedures are audited too: a sorried instance is the one shape
+   -- typeclass synthesis can pull into a submitter's proof with no syntactic trace.
+   ``OptimalOTS.LeanIsa.instDecidableBytecodeValid,
+   ``OptimalOTS.LeanIsa.instDecidableOracleCompressCells,
+   ``OptimalOTS.LeanIsa.hashInput, ``OptimalOTS.LeanIsa.blake2sQuery,
+   ``OptimalOTS.LeanIsa.OracleCompressCells, ``OptimalOTS.LeanIsa.execute,
+   ``OptimalOTS.LeanIsa.runCost, ``OptimalOTS.LeanIsa.maxProgramLogSize,
+   ``OptimalOTS.LeanIsa.sentinelSlot, ``OptimalOTS.LeanIsa.BytecodeValid,
+   ``OptimalOTS.LeanIsa.maxSeededRows, ``OptimalOTS.LeanIsa.Submission.seededRows,
+   ``OptimalOTS.LeanIsa.statementBits, ``OptimalOTS.LeanIsa.statementBitLength,
+   ``OptimalOTS.LeanIsa.statementBlocks, ``OptimalOTS.LeanIsa.boundaryCycles,
+   ``OptimalOTS.LeanIsa.signatureCells, ``OptimalOTS.LeanIsa.inputCells,
+   ``OptimalOTS.LeanIsa.inputWord, ``OptimalOTS.LeanIsa.loadInput,
+   ``OptimalOTS.LeanIsa.Submission, ``OptimalOTS.LeanIsa.Submission.exec,
+   ``OptimalOTS.LeanIsa.Submission.Sound, ``OptimalOTS.LeanIsa.Submission.honestRun,
+   ``OptimalOTS.LeanIsa.Submission.Faithful, ``OptimalOTS.LeanIsa.Submission.CyclesAtMost,
+   ``OptimalOTS.LeanIsa.Submission.Certificate]
 
 def whitelist : List Name := [``propext, ``Classical.choice, ``Quot.sound]
 

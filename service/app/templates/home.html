@@ -15,26 +15,18 @@
   <section class="bound-group" aria-labelledby="upper-row-title">
   <h2 class="bound-row-title" id="upper-row-title">Upper bound <span class="bound-row-hint">lower is better</span></h2>
   <div class="upper-cards">
-  <article class="upper-card" aria-labelledby="upper-compressions-title">
+  {% for b in upper_boards %}{% set cfg = b.cfg %}
+  <article class="upper-card {{ cfg.slug }}-card" aria-labelledby="{{ cfg.slug }}-title">
     <div>
-      <h3 id="upper-compressions-title"><a href="/rules#upper-compressions">By compressions</a></h3>
-      {% if upper_compressions and upper_compressions.state.record_submission_id %}
-      <p>By <a href="/submissions/{{ upper_compressions.state.record_submission_id }}">{{ upper_compressions.state.record_setter }}</a>{% if upper_compressions.state.record_demo %} <span class="tag">demo</span>{% endif %}</p>
-      {% else %}<p><a href="/rules#play">Submit a construction ↗</a></p>{% endif %}
+      <h3 id="{{ cfg.slug }}-title"><a href="/rules#{{ cfg.slug }}">By {{ cfg.focus }}</a></h3>
+      {% if b.state.record_submission_id %}
+      <p>By <a href="/submissions/{{ b.state.record_submission_id }}">{{ b.state.record_setter }}</a>{% if b.state.record_demo %} <span class="tag">demo</span>{% endif %}</p>
+      {% else %}<p><a href="/rules#play">Submit {{ 'an implementation' if cfg.cost_unit == 'cycles' else 'a construction' }} ↗</a></p>{% endif %}
     </div>
-    {% if upper_compressions %}<div class="upper-score"><span class="muted">Verification cost</span>{% if upper_compressions.state.record_claim is none %}<span class="no-record">No record yet</span>{% else %}<strong>{{ upper_compressions.state.record_claim }}</strong><span>compressions</span>{% endif %}</div>{% endif %}
+    <div class="upper-score"><span class="muted">Verification cost</span>{% if b.state.record_claim is none %}<span class="no-record">No record yet</span>{% else %}<strong>{{ b.state.record_claim }}</strong><span>{{ cfg|cost_unit(b.state.record_claim) }}</span>{% set size = b.state.record_program_size %}{% if size %}<div class="card-program-size"><a href="/submissions/{{ b.state.record_submission_id }}#program-size" title="{{ size.instruction_description }}">{{ size.instruction_label }} <span>instructions</span></a><a href="/submissions/{{ b.state.record_submission_id }}#embedded-data" title="{{ size.data_description }}">{{ size.data_label }} <span>embedded data</span></a></div>{% endif %}{% endif %}</div>
+    {% if cfg.cost_note %}<p class="upper-card-note muted">{{ cfg.cost_note }}</p>{% endif %}
   </article>
-  {% if upper_riscv %}
-  <article class="upper-card upper-riscv-card" aria-labelledby="upper-riscv-title">
-    <div>
-      <h3 id="upper-riscv-title"><a href="/rules#upper-riscv">By RISC-V cycles</a></h3>
-      {% if upper_riscv.state.record_submission_id %}
-      <p>By <a href="/submissions/{{ upper_riscv.state.record_submission_id }}">{{ upper_riscv.state.record_setter }}</a>{% if upper_riscv.state.record_demo %} <span class="tag">demo</span>{% endif %}</p>
-      {% else %}<p><a href="/rules#play">Submit an implementation ↗</a></p>{% endif %}
-    </div>
-    <div class="upper-score"><span class="muted">Verification cost</span>{% if upper_riscv.state.record_claim is none %}<span class="no-record">No record yet</span>{% else %}<strong>{{ upper_riscv.state.record_claim }}</strong><span>cycles</span>{% set size = upper_riscv.state.record_program_size %}{% if size %}<div class="card-program-size"><a href="/submissions/{{ upper_riscv.state.record_submission_id }}#program-size" title="{{ size.instruction_description }}">{{ size.instruction_label }} <span>instructions</span></a><a href="/submissions/{{ upper_riscv.state.record_submission_id }}#embedded-data" title="{{ size.data_description }}">{{ size.data_label }} <span>embedded data</span></a></div>{% endif %}{% endif %}</div>
-  </article>
-  {% endif %}
+  {% endfor %}
   </div>
   </section>
   <section class="bound-group" aria-labelledby="lower-row-title">
@@ -61,9 +53,10 @@
 
 <section class="dashboard" aria-labelledby="dash-title">
   <div class="section-heading chart-heading"><h2 id="dash-title">Progress over time</h2>
-    {% if riscv_chart %}<div class="seg chart-switch" role="group" aria-label="Chart">
+    {% if machine_charts %}<div class="seg chart-switch" role="group" aria-label="Chart">
       <button type="button" class="chart-btn" data-chart="compressions" aria-pressed="true">Compressions</button>
-      <button type="button" class="chart-btn" data-chart="cycles" aria-pressed="false">RISC-V cycles</button>
+      {% for m in machine_charts %}<button type="button" class="chart-btn" data-chart="{{ m.slug }}" aria-pressed="false">{{ m.tab_label }}</button>
+      {% endfor %}
     </div>{% endif %}
   </div>
   <div class="chart-panel" data-chart="compressions">
@@ -73,15 +66,15 @@
     </figure>
     <script id="chart-points" type="application/json">{{ chart.points|safe }}</script>
   </div>
-  {% if riscv_chart %}
-  <div class="chart-panel riscv-dashboard" data-chart="cycles" hidden>
-    <figure class="chart" data-points="riscv-chart-points">
-      <div class="chart-plot" tabindex="0" aria-label="RISC-V chart; scroll horizontally on small screens">{{ riscv_chart.svg|safe }}</div>
+  {% for m in machine_charts %}
+  <div class="chart-panel machine-dashboard {{ m.slug }}-dashboard" data-chart="{{ m.slug }}" hidden>
+    <figure class="chart" data-points="{{ m.slug }}-chart-points">
+      <div class="chart-plot" tabindex="0" aria-label="{{ m.tab_label }} chart; scroll horizontally on small screens">{{ m.chart.svg|safe }}</div>
       <div class="tooltip" hidden></div>
     </figure>
-    <script id="riscv-chart-points" type="application/json">{{ riscv_chart.points|safe }}</script>
+    <script id="{{ m.slug }}-chart-points" type="application/json">{{ m.chart.points|safe }}</script>
   </div>
-  {% endif %}
+  {% endfor %}
 </section>
 
 <section class="dashboard progress" aria-labelledby="progress-title">
@@ -124,7 +117,7 @@
     <div class="board-title-row">
       <h2 id="board-title">Leaderboard</h2>
       <div class="seg" role="group" aria-label="Leaderboard track">
-        <button type="button" class="seg-btn" data-track="upper" aria-pressed="true">Upper bound{{ "s" if upper_riscv else "" }}</button>
+        <button type="button" class="seg-btn" data-track="upper" aria-pressed="true">Upper bound{{ "s" if upper_boards|length > 1 else "" }}</button>
         <button type="button" class="seg-btn" data-track="lower" aria-pressed="false">Lower bound</button>
       </div>
     </div>
@@ -159,17 +152,17 @@
       {% endfor %}
     </div>
     <div class="board-track" data-track="upper">
-      {% if upper_riscv %}
+      {% if upper_boards|length > 1 %}
       <div class="seg upper-switch" role="group" aria-label="Upper bound track">
-        <button type="button" class="upper-btn" data-upper="upper-compressions" aria-pressed="true">Compressions</button>
-        <button type="button" class="upper-btn" data-upper="upper-riscv" aria-pressed="false">RISC-V cycles</button>
+        {% for b in upper_boards %}<button type="button" class="upper-btn" data-upper="{{ b.cfg.slug }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ b.cfg.tab_label }}</button>
+        {% endfor %}
       </div>
       {% endif %}
-      {% for b in [upper_compressions] + ([upper_riscv] if upper_riscv else []) %}
-      {% set is_riscv = b and b.cfg.slug == 'upper-riscv' %}
-      {% set upper_title = 'By RISC-V cycles' if is_riscv else 'By compressions' %}
-      {% set upper_id = 'upper-riscv-board-title' if is_riscv else 'upper-board-title' %}
-      <section class="upper-board" data-upper="{{ 'upper-riscv' if is_riscv else 'upper-compressions' }}" aria-labelledby="{{ upper_id }}"{% if is_riscv %} hidden{% endif %}>
+      {% for b in upper_boards %}
+      {% set is_riscv = b.cfg.slug == 'upper-riscv' %}
+      {% set upper_title = 'By ' + b.cfg.focus %}
+      {% set upper_id = 'upper-board-title' if loop.first else b.cfg.slug + '-board-title' %}
+      <section class="upper-board" data-upper="{{ b.cfg.slug }}" aria-labelledby="{{ upper_id }}"{% if not loop.first %} hidden{% endif %}>
         <div class="framework-board-head">
           <div><h3 id="{{ upper_id }}" class="visually-hidden">{{ upper_title }}</h3>
           {% if b %}<p class="board-stats">{{ b.frontier|length }} record{{ 's' if b.frontier|length != 1 }}, {{ b.state.solvers }} solver{{ 's' if b.state.solvers != 1 }}{% set demo_count = b.frontier|selectattr('detail_dict.demo')|list|length %}{% if demo_count %} · {{ demo_count }} demo record{{ 's' if demo_count != 1 }}{% endif %}{% if b.in_flight %}, {{ b.in_flight|length }} in verification{% endif %}</p>{% endif %}</div>

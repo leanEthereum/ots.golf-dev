@@ -10,7 +10,7 @@ from pathlib import Path
 
 import httpx
 
-from . import github
+from . import contract, github
 from .config import settings
 from .signature_diagram_format import (REGISTRY_PATH, MAX_REGISTRY_BYTES, MAX_IMAGE_BYTES,
                                        MAX_TOTAL_BYTES, parse_registry, validate_svg)
@@ -119,7 +119,7 @@ def public_preview(sub_id: str) -> dict | None:
 
 
 def for_submission(sub) -> dict | None:
-    if sub.track not in {"upper-compressions", "upper-riscv"}:
+    if sub.track not in {t["slug"] for t in contract.upper_tracks()}:
         return None
     if not sub.detail_dict.get("demo"):
         repo, diagrams = cache.snapshot

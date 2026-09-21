@@ -46,24 +46,38 @@ def track_framework_title(t: dict) -> str:
     return "Oracle algorithms" if t["kind"] == "upper" else framework(t["framework"])["title"]
 
 
-def upper_compressions_track() -> dict | None:
-    """Only the explicitly pinned generic certificate opens the public upper track."""
-    certificate = track("upper-compressions") if "upper-compressions" in upper_track_slugs() else None
+def admitted_upper_track(slug: str) -> dict | None:
+    """An upper track is public only when the pinned contract lists it and it is generic."""
+    certificate = track(slug) if slug in upper_track_slugs() else None
     if certificate and certificate["kind"] == "upper" and certificate["framework"] == "oracle-algorithm":
         return certificate
     return None
+
+
+def upper_compressions_track() -> dict | None:
+    """Only the explicitly pinned generic certificate opens the public upper track."""
+    return admitted_upper_track("upper-compressions")
 
 
 def upper_riscv_track() -> dict | None:
     """A checked machine certificate opens the separate implementation track."""
-    certificate = track("upper-riscv") if "upper-riscv" in upper_track_slugs() else None
-    if certificate and certificate["kind"] == "upper" and certificate["framework"] == "oracle-algorithm":
-        return certificate
-    return None
+    return admitted_upper_track("upper-riscv")
+
+
+def upper_leanisa_track() -> dict | None:
+    """The leanISA implementation track, scored in the same cycle unit as RISC-V."""
+    return admitted_upper_track("upper-leanisa")
 
 
 def upper_tracks() -> list[dict]:
-    return [t for t in (upper_compressions_track(), upper_riscv_track()) if t is not None]
+    """Every admitted upper track, in the order the pinned contract lists them. Derived from
+    the contract so registering a track opens it; a hard-coded list silently refuses new ones."""
+    return [t for slug in upper_track_slugs() if (t := admitted_upper_track(slug)) is not None]
+
+
+def upper_focus(t: dict) -> str:
+    """The phrase that distinguishes one upper track from another wherever the site names it."""
+    return t.get("focus", "compressions")
 
 
 def upper_track_slugs() -> list[str]:
@@ -107,7 +121,41 @@ def improves(direction: str, claim: int, record: int | None) -> bool:
 # the same algorithm used at most 1024 compressions, hence also at most 2^20. This is
 # compatibility of the proved construction, not a claim that old source compiles unchanged.
 # Lower bounds quantify over MORE schemes and need an individually verified proof port.
+# Adding the leanISA track is a pure addition to the contract: four new protected files
+# (`LeanIsaMachine.lean`, `LeanIsa.lean`, its stub and its comparator config), the new track's
+# entry and per-track display metadata in `challenges.json`, three new `require`s in
+# `formal/lakefile.lean`, and a `lake-manifest.json` regenerated for the new `leanerVM`
+# dependency. No model constant,
+# surviving declaration or comparator requirement changes, and no pre-existing package
+# revision moves — the root `require cslib` / `require PolyFun` added alongside `leanerVM` hold
+# both at exactly the revisions the VCVio pin was already built against, so every existing
+# proof compiles against the same dependencies as before. Compose with the audited relation
+# below rather than restating it: a result carried into `133f49c9…` under the keygen widening
+# keeps precisely the slugs that widening allowed. `upper-leanisa` is new and has no prior
+# result to carry.
 RESULT_COMPATIBILITY = {
+    # Adding the leanISA track is a pure addition on top of the image-budget revision above:
+    # four new protected files (`LeanIsaMachine.lean`, `LeanIsa.lean`, its stub and its
+    # comparator config), the new track's entry and per-track display metadata in
+    # `challenges.json`, three new `require`s in `formal/lakefile.lean`, and a
+    # `lake-manifest.json` regenerated for the new `leanerVM` dependency. No model constant,
+    # surviving declaration or comparator requirement changes, and no pre-existing package
+    # revision moves — the root `require cslib` / `require PolyFun` added alongside `leanerVM`
+    # hold both at exactly the revisions the VCVio pin was already built against, so every
+    # existing proof compiles against the same dependencies as before. Compose with the
+    # relations below rather than restating them: RISC-V carries forward from the image-budget
+    # contract but no further, exactly as that audit decided. `upper-leanisa` is new and has no
+    # prior result to carry.
+    "d3684f44469781b7c19d3f540e0b780f17ff5090595377445faeea0fc425279e": {
+        "56289b3f45a5fe68fba953d268860758045f1ef919dd1555d04909ba185c11dc": frozenset({
+            "lower-generality-1", "upper-compressions", "upper-riscv",
+        }),
+        "133f49c9ceaf596c3bf6aaf0941ffe126a1efe23db0785c8af1288b149cb093e": frozenset({
+            "lower-generality-1", "upper-compressions",
+        }),
+        "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb": frozenset({"upper-compressions"}),
+        "cca4d9add2f2a1d3bdc40381258e6992f146e2f3ad9087706913ff281cff22dc": frozenset({"upper-compressions"}),
+    },
     # Only the RISC-V image budget changes. RISC-V history is checked per source
     # in riscv_program_size.compatible_image_limit, never grandfathered wholesale.
     "56289b3f45a5fe68fba953d268860758045f1ef919dd1555d04909ba185c11dc": {
