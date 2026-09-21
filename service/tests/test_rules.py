@@ -107,6 +107,7 @@ class RulesTests(unittest.TestCase):
             'formal/OptimalOTS/OracleAlgorithm.lean',
             'formal/OptimalOTS/Dag.lean',
             'formal/OptimalOTS/WholeWords.lean',
+            'docs/upper-leanisa.md',
             'challenges.json',
             'AGENTS.md#rules-for-the-submission-root',
         }

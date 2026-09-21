@@ -24,7 +24,6 @@
       {% else %}<p><a href="/rules#play">Submit {{ 'an implementation' if cfg.cost_unit == 'cycles' else 'a construction' }} ↗</a></p>{% endif %}
     </div>
     <div class="upper-score"><span class="muted">Verification cost</span>{% if b.state.record_claim is none %}<span class="no-record">No record yet</span>{% else %}<strong>{{ b.state.record_claim }}</strong><span>{{ cfg|cost_unit(b.state.record_claim) }}</span>{% set size = b.state.record_program_size %}{% if size %}<div class="card-program-size"><a href="/submissions/{{ b.state.record_submission_id }}#program-size" title="{{ size.instruction_description }}">{{ size.instruction_label }} <span>instructions</span></a><a href="/submissions/{{ b.state.record_submission_id }}#embedded-data" title="{{ size.data_description }}">{{ size.data_label }} <span>embedded data</span></a></div>{% endif %}{% endif %}</div>
-    {% if cfg.cost_note %}<p class="upper-card-note muted">{{ cfg.cost_note }}</p>{% endif %}
   </article>
   {% endfor %}
   </div>

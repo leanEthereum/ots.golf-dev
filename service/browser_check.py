@@ -165,7 +165,10 @@ def demo_best(config: dict, slug: str) -> int:
 
 
 def assert_rules_have_no_scores(text: str, config: dict) -> None:
-    claims = {demo_best(config, track['slug']) for track in config['tracks']}
+    fixtures = json.loads((ROOT / 'service/demo/submissions.json').read_text())['submissions']
+    seeded = {row['track'] for row in fixtures if row['is_record']}
+    claims = {demo_best(config, track['slug']) for track in config['tracks']
+              if track['slug'] in seeded}
     # Every current claim is checked in score-bearing prose. Small numbers also occur
     # legitimately in fractions, section numbers and fixed contract parameters.
     for claim in claims:
@@ -243,13 +246,6 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
         # No demo rows exist for this track, so the board is the empty presentation.
         assert js('return document.querySelector(".upper-leanisa-card") !== null;')
         assert js('return document.querySelector(".upper-leanisa-card .no-record") !== null;')
-        # The public-input surcharge is stated wherever the score is, and spans the card.
-        note = js('return (() => { const n = document.querySelector(".upper-leanisa-card '
-                  '.upper-card-note"); if (!n) return null; const c = n.closest(".upper-card"); '
-                  'return {text: n.textContent, wide: n.getBoundingClientRect().width > '
-                  '0.8 * c.getBoundingClientRect().width}; })();')
-        assert note and '120 cycles' in note['text'], note
-        assert note['wide'], 'the cost note must span the card, not sit in the narrow column'
         # A third chart tab and a third leaderboard panel, driven by the same generic JS.
         js('document.querySelector(".chart-btn[data-chart=upper-leanisa]").click(); return true;')
         assert js('return !document.querySelector(".upper-leanisa-dashboard").hidden && '

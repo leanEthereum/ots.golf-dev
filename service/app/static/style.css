@@ -373,7 +373,7 @@ table.params th:first-child { width: 44%; }
   .chart-legend { gap: 6px 12px; }
   .lb-table { min-width: 620px; }
 }
-.upper-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 14px; margin: 0; }
+.upper-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 14px; margin: 0; container-type: inline-size; }
 .upper-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: center; padding: 12px 16px; margin: 0; border: 2px solid var(--series-2); border-radius: 8px; background: var(--surface); }
 .upper-card h3 { margin: 7px 0; font-size: 19px; }
 .upper-card p { margin: 0; color: var(--ink-2); font-size: 14px; }
@@ -386,6 +386,15 @@ table.params th:first-child { width: 44%; }
 .upper-score > .no-record { grid-column: 1 / -1; text-align: right; color: var(--muted); font-size: 15px; }
 .card-program-size { grid-column: 1 / -1; justify-self: end; display: grid; gap: 2px; text-align: right; margin-top: 4px; font-size: 12px; }
 .upper-card-note { grid-column: 1 / -1; margin: 8px 0 0; font-size: 13px; line-height: 1.45; }
+/* Three tracks need full-width headings instead of competing with their scores. */
+.upper-cards:has(> :nth-child(3)) .upper-card { grid-template-columns: 1fr; gap: 12px; align-content: start; }
+.upper-cards:has(> :nth-child(3)) .upper-score { justify-content: start; }
+.upper-cards:has(> :nth-child(3)) .upper-score .muted,
+.upper-cards:has(> :nth-child(3)) .upper-score > .no-record { text-align: left; }
+.upper-cards:has(> :nth-child(3)) .card-program-size { justify-self: start; text-align: left; }
+@container (min-width: 614px) and (max-width: 927.98px) {
+  .upper-card:last-child:nth-child(3) { grid-column: 1 / -1; }
+}
 .card-program-size a { color: var(--ink-2); }
 .card-program-size span { color: var(--muted); }
 .lb-program-size, .lb-embedded-data { font-variant-numeric: tabular-nums; }

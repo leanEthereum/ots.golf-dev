@@ -75,18 +75,12 @@ class LeanIsaTrackTests(unittest.TestCase):
                              None, [], None, None, None)
         self.assertEqual(caught.exception.status_code, 400)
 
-    def test_home_carries_a_third_board_a_third_chart_and_the_fixed_input_cost(self):
+    def test_home_carries_a_third_board_and_a_third_chart(self):
         html = self.client.get('/').text
         for marker in ('upper-leanisa-card', 'data-upper="upper-leanisa"',
                        'data-chart="upper-leanisa"', 'id="upper-leanisa-chart-points"',
                        'By leanISA cycles'):
             self.assertIn(marker, html)
-        # The 120 cycles every leanISA claim spends re-deriving the public input are stated
-        # wherever the score is, so the two cycle tracks are not compared naively.
-        note = re.search(r'<p class="upper-card-note muted">(.*?)</p>', html, re.S)
-        self.assertIsNotNone(note)
-        self.assertIn('120 cycles', note.group(1))
-        self.assertIn('public input', note.group(1))
         self.assertEqual([svg.get('data-unit') for svg in self.charts(html)],
                          ['compressions', 'cycles', 'cycles'])
         ids = re.findall(r'\bid="([^"]+)"', html)
@@ -117,10 +111,10 @@ class LeanIsaTrackTests(unittest.TestCase):
     def test_rules_state_both_obligations_and_the_surcharge_without_scores(self):
         html = self.client.get('/rules').text
         section = re.search(r'<details id="upper-leanisa">.*?</details>', html, re.S).group(0)
-        for phrase in ('committed by an untrusted prover', 'does not exist',
+        for phrase in ('prover supplies memory', 'no malicious memory',
                        'Faithful', 'Sound', 'every completing execution',
-                       'no cost on rejection', '120 cycles', '262,144 instructions',
-                       '896 bits', 'not RFC 7693 BLAKE2s'):
+                       'incur no', '120 cycles', '262,144 instructions',
+                       'fewer than 1,048,576', '896 bits', 'shared random oracle'):
             self.assertIn(phrase, section)
         self.assertIn('formal/Submissions/UpperLeanIsa/', html)
         self.assertIn('<code>upper-leanisa</code>', html)
