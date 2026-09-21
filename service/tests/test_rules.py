@@ -35,6 +35,7 @@ class RulesTests(unittest.TestCase):
         for required in ('OptimalOTS.Challenge.LowerGenerality1.candidate',
                          'OptimalOTS.Challenge.UpperCompressions.cost',
                          'OptimalOTS.Challenge.UpperRiscv.certificate',
+                         'OptimalOTS.Challenge.UpperLeanIsa.certificate',
                          '4,194,304 bytes', '24 GiB', '20 minutes',
                          'https://github.com/leanEthereum/ots.golf-submissions',
                          'base branch **main**'):
@@ -106,6 +107,7 @@ class RulesTests(unittest.TestCase):
             'formal/OptimalOTS/OracleAlgorithm.lean',
             'formal/OptimalOTS/Dag.lean',
             'formal/OptimalOTS/WholeWords.lean',
+            'docs/upper-leanisa.md',
             'challenges.json',
             'AGENTS.md#rules-for-the-submission-root',
         }

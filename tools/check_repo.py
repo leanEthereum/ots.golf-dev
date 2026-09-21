@@ -60,6 +60,7 @@ def main() -> int:
             check('Lean library', ['lake', 'build', 'OptimalOTS'], ROOT / 'formal')
             check('protected model axioms', ['lake', 'env', 'lean', 'scripts/check-axioms.lean'], ROOT / 'formal')
             check('RISC-V machine boundaries', ['lake', 'env', 'lean', 'scripts/check-riscv.lean'], ROOT / 'formal')
+            check('leanISA machine boundaries', ['lake', 'env', 'lean', 'scripts/check-leanisa.lean'], ROOT / 'formal')
             check('lower-bound witnesses', ['lake', 'build', 'Witnesses'], ROOT / 'formal')
         if args.official:
             import json

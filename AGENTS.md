@@ -1,8 +1,9 @@
 # ots.golf — submission rules
 
 ots.golf is a Lean-kernel-verified competition on the worst-case verification cost of hash-based
-one-time signatures, with one whole-word lower-bound track and two upper tracks: a fully generic
-compression bound and a RISC-V implementation bound in cycles. The DAG model is
+one-time signatures, with one whole-word lower-bound track and three upper tracks: a fully
+generic compression bound, a RISC-V implementation bound in cycles and a leanISA implementation
+bound in cycles. The DAG model is
 `formal/OptimalOTS/Dag.lean`; `formal/OptimalOTS/WholeWords.lean` defines the whole-word class.
 `challenges.json` lists the tracks; `verifier/` runs the hosted verifier's checks. This file is the
 precise specification; [ots.golf/rules](https://ots.golf/rules) presents the same rules for
@@ -34,7 +35,7 @@ proofs of any track; reference proofs are ordinary submissions.
 
 ## Frameworks
 
-All three public tracks are open.
+All four public tracks are open.
 
 - **Whole-word DAGs** (`lower-generality-1`): whole-word DAGs. Secret sources are independent
   uniform 128-bit words; hashes return 256 bits. Each deterministic node is a fixed public 128-bit
@@ -50,6 +51,12 @@ All three public tracks are open.
   with a fixed RV64IM verifier proved to compute exactly the Lean verifier's oracle computation on
   every raw input. The score is a proved bound on the cycles of every execution, accepting or
   rejecting.
+- **leanISA upper bound** (`upper-leanisa`): an OTS meeting the Upper bound requirements, together
+  with a fixed leanISA bytecode. leanVM's memory is committed by an untrusted prover and no
+  instruction writes, so there is no accept/reject output: the submission proves both that the
+  honest prover's image reproduces the verifier's decision and that no committed image completes
+  on an input the verifier rejects. The score is a proved bound on the cycles of every completing
+  execution; rejecting runs do not exist and are not charged.
 
 The whole-word DAG model uses the 128-bit nonce, 127-bit security target, cuts, forward reconstruction
 and actual-input compression costs. Proof guides for the reference proofs are in `docs/`.
@@ -116,6 +123,51 @@ instructions and data. Runtime inputs and working memory are not part of this im
 Export the additional `image_size` theorem above; the verifier checks it with the same
 statement comparison, axiom restrictions and Lean kernel as the cycle certificate.
 
+**leanISA upper bound track** (`formal/Submissions/UpperLeanIsa/`, smaller is better):
+
+```lean
+noncomputable def OptimalOTS.Challenge.UpperLeanIsa.submission : LeanIsa.Submission := ...
+theorem OptimalOTS.Challenge.UpperLeanIsa.certificate : submission.Certificate <claim> := ...
+theorem OptimalOTS.Challenge.UpperLeanIsa.seeded_rows :
+  submission.seededRows < LeanIsa.maxSeededRows := ...
+```
+
+`LeanIsa.Submission` bundles an `OracleAlgorithm.Scheme`, a fixed leanISA bytecode, the memory
+log-size the submission announces, the honest prover's memory-filling strategy and a per-input
+step count. Neither witness is a machine input, and neither can lower the score.
+
+leanVM's memory is an immutable image committed by an untrusted prover of `2^κ` words, for a
+prover-chosen `16 ≤ κ ≤ 32`; no instruction writes, and every instruction reads cells and
+asserts a relation over them. A violated assertion is not a rejection but the absence of an
+execution, so the machine has no accept/reject output and the RISC-V refinement equation splits
+in two. The certificate proves the Upper bound admissibility and 127-bit strong security of the
+OTS; that the bytecode holds at most 262144 instructions and no `JUMP` in its halt slot; that
+the honest prover's image drives the machine to the sentinel exactly when the Lean verifier
+accepts, on every public key, message and raw signature bit string; that **no** committed image,
+at any admissible memory size, completes on an input the Lean verifier rejects; and at most
+`<claim>` cycles on every completing execution, over every image and step count.
+
+Each executed instruction costs one cycle except `BLAKE2S`, which costs ten and queries the
+competition's single oracle on the exact 896 bits it consumes. Rejecting runs are not charged,
+because in this model they do not exist. Every claim also carries a fixed 120-cycle surcharge:
+leanVM's public boundary is 256 bits, so a real program re-derives the 6016-bit statement inside
+the machine with twelve `BLAKE2S`, and the contract charges for that rather than hiding it —
+so it is part of every claim. leanISA and RISC-V totals are not comparable even after
+subtracting it: one `BLAKE2S` covers the same 512-bit block as one cycle of RISC-V's `HASH` and
+costs ten, so the hash component differs by a factor of ten. The comparable quantity across the
+two tracks is the non-hashing instruction count. The machine, loader, weights and bytecode caps
+are fixed in
+`formal/OptimalOTS/LeanIsaMachine.lean`. A record needs claim ≤ record − 1.
+
+The rows the prover must seed and finalize must together be **strictly fewer than 1,048,576**:
+`2 ^ submission.program.logSize + 2 ^ submission.memLog < 1048576`. Both tables count, and every
+slot and cell counts whether or not the execution touches it — the seed and finalize phases
+flush twice per row over the whole table. The cycle score cannot see that cost, which is why it
+is bounded separately; without the bound a submission could announce `κ_mem = 32` and still show
+a three-digit score. Export the additional `seeded_rows` theorem above; the verifier checks it
+with the same statement comparison, axiom restrictions and Lean kernel as the cycle
+certificate.
+
 ## Rules for the submission root
 
 1. **Flat.** A single directory containing only identifier-named `.lean` files, `claim.txt`,
@@ -135,6 +187,7 @@ statement comparison, axiom restrictions and Lean kernel as the cycle certificat
    | `LowerGenerality1` | `OptimalOTS.WholeWords` |
    | `UpperCompressions` | `OptimalOTS.OracleAlgorithm` |
    | `UpperRiscv` | `OptimalOTS.OracleAlgorithm`, `OptimalOTS.RiscvMachine`, `OptimalOTS.Riscv` |
+   | `UpperLeanIsa` | `OptimalOTS.OracleAlgorithm`, `OptimalOTS.LeanIsaMachine`, `OptimalOTS.LeanIsa`, and the nine pinned ISA modules `LeanerVM.Parameters.{Field,Generator,Isa,Blake2s}` and `LeanerVM.Semantics.{Memory,Instruction,Blake2s,Step,Execution}` |
 
    This list restricts explicit source-header imports. Dependencies of permitted modules are
    available transitively. It does not restrict runtime module loads by Lean metaprograms or
@@ -163,7 +216,8 @@ From the root of a submissions checkout, whose `.contract` submodule is this cor
 python3 .contract/verifier/verify.py lower-generality-1 --source .       # the full pipeline
 ```
 
-Replace `lower-generality-1` by `upper-compressions` or `upper-riscv` for the upper tracks. From the core, pass the
+Replace `lower-generality-1` by `upper-compressions`, `upper-riscv` or `upper-leanisa` for the
+upper tracks. From the core, pass the
 submissions checkout as `--source`.
 
 `setup_tools.sh` requires elan and installs the pinned comparator and lean4export (and landrun on
@@ -179,7 +233,7 @@ isolation or resource enforcement.
 
 The core repository is `leanEthereum/ots.golf-dev`: model, verifier and website.
 Competition PRs go to `leanEthereum/ots.golf-submissions`. Its `main` holds the current record proof
-root for each of the three tracks, a root `records.json` registry linking each claim to its checked
+root for each of the four tracks, a root `records.json` registry linking each claim to its checked
 source commit, PR and trusted core, and a `.contract` submodule for local checking. From that
 repository, run
 `python3 .contract/verifier/verify.py <track> --source .` after following its setup instructions.

@@ -28,12 +28,13 @@ class FrameworkTests(unittest.TestCase):
         phony_patcher = patch.object(settings, 'phony', True)
         phony_patcher.start()
         self.addCleanup(phony_patcher.stop)
-        # Exercise the compression-only presentation too. The RISC-V suite checks
-        # the complete three-track layout and optional machine-track admission.
+        # Exercise the compression-only presentation too. The machine suites check the
+        # multi-track layout and optional machine-track admission, so drop every cycle track.
         cfg = copy.deepcopy(contract.load())
-        cfg['tracks'] = [t for t in cfg['tracks'] if t['slug'] != 'upper-riscv']
+        machines = {t['slug'] for t in cfg['tracks'] if t.get('cost_unit') == 'cycles'}
+        cfg['tracks'] = [t for t in cfg['tracks'] if t['slug'] not in machines]
         if 'upper_tracks' in cfg:
-            cfg['upper_tracks'] = [t for t in cfg['upper_tracks'] if t != 'upper-riscv']
+            cfg['upper_tracks'] = [t for t in cfg['upper_tracks'] if t not in machines]
         patcher = patch.object(contract, 'load', return_value=cfg)
         patcher.start()
         self.addCleanup(patcher.stop)

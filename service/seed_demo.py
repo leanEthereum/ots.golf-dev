@@ -113,8 +113,9 @@ def demo_users(session) -> dict:
 def add_rows(session, rows) -> int:
     """Insert only the requested demo rows; leave real submissions untouched."""
     # Metadata is the admission gate. A new demo track appears only after its certificate is pinned.
-    rows = [row for row in rows if contract.track(row[0])
-            and (row[0] != "upper-riscv" or contract.upper_riscv_track())]
+    admitted = {t["slug"] for t in contract.upper_tracks()}
+    rows = [row for row in rows if (t := contract.track(row[0]))
+            and (t["kind"] != "upper" or row[0] in admitted)]
     users = demo_users(session)
     for track, login, claim, hours_ago, status, is_record, assisted, coauthors in rows:
         t = NOW - timedelta(hours=hours_ago)

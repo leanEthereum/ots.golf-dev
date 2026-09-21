@@ -1,0 +1,21 @@
+import OptimalOTS.LeanIsa
+
+/-! Upper bound in leanISA cycles: an OTS and a leanISA bytecode implementing its verifier
+(`LeanIsa.lean`). -/
+
+namespace OptimalOTS.Challenge.UpperLeanIsa
+
+/-- The OTS, the bytecode, the announced memory size, the prover's memory-filling strategy and
+the step count. -/
+noncomputable def submission : LeanIsa.Submission := sorry
+
+/-- Admissibility and strong security of the OTS, well-formed bytecode, agreement of the honest
+prover's run with the verifier, soundness against every prover-chosen memory, and at most
+`{{CLAIM}}` cycles on every completing execution. -/
+theorem certificate : submission.Certificate {{CLAIM}} := sorry
+
+/-- The bytecode slots and memory cells the prover must seed and finalize, together fewer than
+`LeanIsa.maxSeededRows`. -/
+theorem seeded_rows : submission.seededRows < LeanIsa.maxSeededRows := sorry
+
+end OptimalOTS.Challenge.UpperLeanIsa

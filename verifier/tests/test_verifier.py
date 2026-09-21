@@ -80,6 +80,14 @@ class VerifierTests(unittest.TestCase):
         (self.sub / "Solution.lean").write_text("import Mathlib\nimport OptimalOTS.WholeWords\n")
         (self.sub / "claim.txt").write_bytes(b"1\n")
 
+    def leanisa_root(self, solution: str):
+        """A minimal `upper-leanisa` submission root holding one `Solution.lean`."""
+        root = self.root / "formal/Submissions/UpperLeanIsa"
+        root.mkdir(parents=True, exist_ok=True)
+        (root / "Solution.lean").write_text(solution)
+        (root / "claim.txt").write_text("1\n")
+        return root
+
     def export(self, **kwargs):
         return export_submission(str(self.root), None, self.rel, self.root / "out", **kwargs)
 
@@ -251,12 +259,91 @@ class VerifierTests(unittest.TestCase):
         for rel in (track["challenge_template"], track["comparator_config"]):
             self.assertIn(rel, self.cfg["protected"])
 
+    def test_upper_leanisa_requires_one_bundled_certificate(self):
+        track = next(t for t in self.cfg["tracks"] if t["slug"] == "upper-leanisa")
+        self.assertIn("upper-leanisa", self.cfg["upper_tracks"])
+        self.assertEqual((track["kind"], track["framework"], track["cost_unit"]),
+                         ("upper", "oracle-algorithm", "cycles"))
+        template = self.root / track["challenge_template"]
+        template.parent.mkdir(parents=True, exist_ok=True)
+        template.write_text((VERIFIER.parent / track["challenge_template"]).read_text())
+        rendered, claim = render(self.root, "upper-leanisa", 314159)
+        self.assertEqual(claim, 314159)
+        source = rendered.read_text()
+        self.assertIn("submission.Certificate 314159", source)
+        self.assertIn("def submission : LeanIsa.Submission", source)
+        # The seed/finalize budget is a separate exported obligation, as for `upper-riscv`.
+        self.assertIn("theorem seeded_rows : submission.seededRows < LeanIsa.maxSeededRows",
+                      source)
+        comparator = json.loads((VERIFIER.parent / track["comparator_config"]).read_text())
+        prefix = "OptimalOTS.Challenge.UpperLeanIsa."
+        self.assertEqual(comparator["theorem_names"],
+                         [prefix + "certificate", prefix + "seeded_rows"])
+        self.assertEqual(comparator["definition_names"], [prefix + "submission"])
+        self.assertEqual(set(track["allowed_import_prefixes"]),
+                         {"Mathlib", "VCVio",
+                          "LeanerVM.Parameters.Field", "LeanerVM.Parameters.Generator",
+                          "LeanerVM.Parameters.Isa", "LeanerVM.Parameters.Blake2s",
+                          "LeanerVM.Semantics.Memory", "LeanerVM.Semantics.Instruction",
+                          "LeanerVM.Semantics.Blake2s", "LeanerVM.Semantics.Step",
+                          "LeanerVM.Semantics.Execution",
+                          "OptimalOTS.Model", "OptimalOTS.Dag", "OptimalOTS.OracleAlgorithm",
+                          "OptimalOTS.LeanIsaMachine", "OptimalOTS.LeanIsa"})
+        for rel in (track["challenge_template"], track["comparator_config"],
+                    "formal/OptimalOTS/LeanIsaMachine.lean", "formal/OptimalOTS/LeanIsa.lean"):
+            self.assertIn(rel, self.cfg["protected"])
+
+    def test_leanisa_contract_module_is_not_an_import_prefix(self):
+        """`OptimalOTS.LeanIsa` must not license `OptimalOTS.LeanIsaMachine.Anything`."""
+        root = self.leanisa_root("import OptimalOTS.LeanIsa.Extra\n")
+        result = check(self.root, "upper-leanisa")
+        self.assertFalse(result["ok"])
+        self.assertTrue(any("is not allowed" in e for e in result["errors"]), result["errors"])
+
+    def test_leanisa_admits_the_pinned_isa_modules(self):
+        self.leanisa_root("import LeanerVM.Semantics.Execution\n"
+                          "import LeanerVM.Parameters.Field\n"
+                          "import Mathlib.Tactic\nimport OptimalOTS.LeanIsa\n")
+        self.assertEqual(check(self.root, "upper-leanisa")["errors"], [])
+
+    def test_leanisa_refuses_isa_modules_that_reach_clean(self):
+        """`Clean` carries sorried instances and `native_decide`; only the axiom audit stands
+        between them and a record, so the modules that import it are not admitted."""
+        for module in ("LeanerVM.Parameters.CleanField",
+                       "LeanerVM.Arithmetization.Statement",
+                       "LeanerVM.Arithmetization.Tables.Blake2s",
+                       "LeanerVM.Protocol.Field",
+                       "Clean.Circomlib.Poseidon",
+                       "CompPoly.Fields.Binary.BF64"):
+            with self.subTest(module=module):
+                self.leanisa_root(f"import {module}\n")
+                result = check(self.root, "upper-leanisa")
+                self.assertFalse(result["ok"])
+                self.assertTrue(any("is not allowed" in e for e in result["errors"]),
+                                result["errors"])
+
+    def test_no_track_admits_a_submodule_namespace_beyond_mathlib_and_vcvio(self):
+        """Only `Mathlib` and `VCVio` are prefixes; every other entry is an exact module, so a
+        contract or ISA module can never license its descendants."""
+        for track in self.cfg["tracks"]:
+            for prefix in track["allowed_import_prefixes"]:
+                if prefix in ("Mathlib", "VCVio"):
+                    continue
+                with self.subTest(track=track["slug"], prefix=prefix):
+                    self.leanisa_root("")
+                    (self.root / track["submission_root"]).mkdir(parents=True, exist_ok=True)
+                    (self.root / track["submission_root"] / "Solution.lean").write_text(
+                        f"import {prefix}.Descendant\n")
+                    (self.root / track["submission_root"] / "claim.txt").write_text("1\n")
+                    result = check(self.root, track["slug"])
+                    self.assertFalse(result["ok"])
+
     def test_signing_failure_bound_is_a_contract_constant(self):
         model = (VERIFIER.parent / "formal/OptimalOTS/Model.lean").read_text()
         self.assertIn("def signingFailureBits : ℕ := 128", model)
         algorithm = (VERIFIER.parent / "formal/OptimalOTS/OracleAlgorithm.lean").read_text()
         self.assertIn("S.SigningFailureAtMost (1 / 2 ^ signingFailureBits)", algorithm)
-        for slug in ("upper-compressions", "upper-riscv"):
+        for slug in ("upper-compressions", "upper-riscv", "upper-leanisa"):
             with self.subTest(track=slug):
                 track = next(t for t in self.cfg["tracks"] if t["slug"] == slug)
                 self.assertNotIn("signing_failure_allowance", track)

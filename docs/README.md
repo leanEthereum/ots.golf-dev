@@ -11,6 +11,7 @@ submission roots in the submissions repository, not in this core.
 | [upper-compressions.md](upper-compressions.md) | Upper bound: the forest construction and its certificate |
 | [upper-bound-proof.md](upper-bound-proof.md) | Upper bound: architecture of the forest's security proof |
 | [upper-riscv.md](upper-riscv.md) | RISC-V upper bound: machine ABI and certificate |
+| [upper-leanisa.md](upper-leanisa.md) | leanISA upper bound: committed memory, certificate and model boundaries |
 | [lower-generality-1.md](lower-generality-1.md) | Whole-word DAGs lower bound: the whole-word class and its proof |
 
 ## Reviews and setup

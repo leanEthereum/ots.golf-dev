@@ -1,8 +1,8 @@
 # Whole-word DAGs: whole-word DAGs
 
 Whole-word DAGs is `LowerBoundGenerality1 c`, defined in
-`formal/OptimalOTS/WholeWords.lean`. It replaces the partial-disclosure class. There are two upper
-tracks, both for generic algorithms: compressions and RISC-V cycles.
+`formal/OptimalOTS/WholeWords.lean`. It replaces the partial-disclosure class. There are three
+upper tracks, all for generic algorithms: compressions, RISC-V cycles and leanISA cycles.
 
 ## Exact restriction
 

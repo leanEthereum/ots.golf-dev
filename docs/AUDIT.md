@@ -1,7 +1,7 @@
 # Audit of the bare-oracle contract
 
 Scope: the pinned whole-word lower-bound and oracle-algorithm upper-bound contracts, the
-RISC-V machine, and their shared oracle and cost semantics. The internal whole-word witness
+RISC-V and leanISA machines, and their shared oracle and cost semantics. The internal whole-word witness
 (`formal/Witnesses/Generality1/`) checks that the lower class is non-empty. Reference proofs live
 in the submissions repository; current scores are on [ots.golf](https://ots.golf).
 Operational launch gates are in [the deployment guide](../service/deploy/README.md).
@@ -103,6 +103,62 @@ its Lean verifier by the machine's oracle computation on every raw input (no tra
 exhaustion), and a cycle bound on every execution, accepting or rejecting.
 `formal/scripts/check-riscv.lean` holds kernel-checked boundary tests of the machine. See
 [the track notes](upper-riscv.md).
+
+## leanISA contract
+
+`LeanIsaMachine.lean` fixes the cycle weights, the loader, the bytecode caps and the one changed
+instruction; `LeanIsa.lean` defines `Submission.Certificate`. The ISA semantics are `leanerVM` at
+`8563b05b`, taken as a Lake dependency and reused unchanged except for `BLAKE2S`, which queries
+the shared oracle on the exact 896 bits it consumes in place of the concrete RFC 7693
+compression — the same idealisation `upper-riscv` makes for `HASH`, and necessary because
+`Scheme.Secure` is a random-oracle statement. The other five opcodes are a catch-all arm that
+calls `LeanerVM.Semantics.execute`, so they cannot drift from the pin;
+`LeanIsa.execute_eq_leanerVM` records this.
+
+leanVM's memory is committed by an untrusted prover and no instruction writes, so the machine has
+no accept/reject output and `Riscv.Submission.Implements` has no counterpart. A certificate
+instead proves `Faithful` (the honest prover's image reproduces the verifier's decision, both
+directions, under the shared cached oracle) and `Sound` (no committed image at any admissible
+`κ ∈ [16, 32]` completes on an input the verifier rejects), alongside admissibility, strong
+security, `BytecodeValid` and the cycle bound.
+
+Trusted boundaries specific to this track, in full in [the track notes](upper-leanisa.md):
+
+- The semantics is `LeanerVM.Semantics.run`, which tests the sentinel before each fetch. A
+  bus-balanced assignment of the arithmetization may contain closed walks `run` does not admit
+  (§6.1, Proposition 6.1). `BytecodeValid` forecloses the one case that could execute the halt
+  slot; the general gap is trusted, because the theorem that would consume the hypothesis exists
+  in `leanerVM` only inside a doc-comment of the blocked Layer 9.
+- `maxProgramLogSize = 18` is load-bearing, not hygiene: `Program.code` is a function, so
+  `κ_bc ≤ 32` alone would admit a free constant-time lookup table and the score would measure
+  only the hashes.
+- The public boundary is idealised: `loadInput` pins the 6016-bit statement into 47 cells,
+  where leanVM pins 256 bits. Routing it through a digest would make `Sound` unsatisfiable for
+  every program, since a `probTrue … = 0` quantifies over oracle assignments and two statements
+  collide on some assignment. `CyclesAtMost` charges `boundaryCycles = 120` for the difference.
+- `CyclesAtMost` is a `support` statement and `support` has no cache, so the bound must hold on
+  incoherent answer paths. The cycle count therefore may not depend on hash binding.
+- Nine `leanerVM` modules are admitted as *exact* imports rather than a `LeanerVM` prefix:
+  `LeanerVM.Arithmetization.*` reaches `Clean`, which carries a sorried
+  `Fact (Nat.Prime BN254_PRIME)` instance that typeclass synthesis could pick up with no
+  syntactic trace. The nine admitted modules reach only Mathlib and CompPoly.
+
+A submission also exports `seeded_rows : submission.seededRows < LeanIsa.maxSeededRows`,
+bounding `2 ^ κ_bc + 2 ^ κ_mem` by 1,048,576. This is the leanISA counterpart of `upper-riscv`'s
+`image_size` and is enforced the same way, by the comparator rather than by a measurement: the
+seed and finalize phases flush twice per bytecode slot and twice per memory cell over the whole
+table, which no per-opcode weight reflects, so an unbounded announced memory would be an
+unbounded prover cost invisible to the score. Proving rather than measuring also keeps the
+trusted surface unchanged — no measurement program, sandbox budget or historical catalog.
+
+`formal/scripts/check-leanisa.lean` holds kernel-checked boundary tests of the weights, the
+boundary arithmetic, the bytecode caps and the loop, and the derived facts
+`probTrue_eq_zero_iff`, `Submission.cyclesAtMost_of_no_completion`,
+`Submission.sound_of_never_completes`, `Submission.sound_adaptive` (soundness against an
+oracle-adaptive prover, via a cache-weakening lemma proved there because VCVio ships only the
+forward direction), `mem_support_of_mem_support_run` and `Submission.boundaryCycles_le` (the
+converse: on a submission whose honest run completes, the claim really is bounded below). Unlike `check-riscv.lean` it cannot execute a program:
+`gLog?` is `Classical.choose`-based, so no run reduces in the kernel.
 
 ## Whole-word lower-bound proof
 

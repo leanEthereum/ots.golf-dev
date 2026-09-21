@@ -4,6 +4,7 @@ formal/.lake/
 formal/OptimalOTS/Challenge/UpperCompressions.lean
 formal/OptimalOTS/Challenge/LowerGenerality1.lean
 formal/OptimalOTS/Challenge/UpperRiscv.lean
+formal/OptimalOTS/Challenge/UpperLeanIsa.lean
 # verifier tools and scratch
 verifier/.tools/
 
