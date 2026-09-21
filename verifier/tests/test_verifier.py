@@ -22,10 +22,43 @@ from render_challenge import render
 from linux_exec import isolation_check
 from linux_storage import MAX_WORK_BYTES, linux_work_preflight, mount_path
 from verify import (PolicyReject, bounded_output, export_submission, linux_command, linux_preflight,
-                    read_notes, run, tools_env)
+                    read_notes, run, tools_env, measure_riscv)
 
 
 class VerifierTests(unittest.TestCase):
+    def test_size_metadata_uses_protected_file_not_candidate_output(self):
+        env = {"COMPARATOR_BIN": "/trusted/comparator/.lake/build/bin/comparator",
+               "COMPARATOR_LEAN4EXPORT": "/trusted/export/.lake/build/bin/lean4export"}
+        sandbox = {"PATH": "/bin", "HOME": "/empty"}
+        limits = {"memory_bytes": 1234, "wall_clock_seconds": 1200}
+        def run_size(raw, output=b''):
+            def child(cmd, limit, **kwargs):
+                self.assertNotIn(str(self.root), kwargs['env']['LEAN_PATH'])
+                self.assertTrue(kwargs['env']['LEAN_PATH'].startswith('/trusted/comparator/'))
+                self.assertEqual(kwargs['timeout'], 130)
+                if raw is not None:
+                    (self.root / 'riscv-size.json').write_text(json.dumps(raw))
+                return output
+            with patch('verify.platform.system', return_value='Darwin'), patch('verify.bounded_output', side_effect=child):
+                return measure_riscv(self.root, 'formal', 'config.json', env, sandbox, limits)
+        self.assertIsNone(run_size(None, b'{"instructions":4,"data_bytes":3}'))
+        self.assertEqual(run_size({'instructions': 4, 'data_bytes': 3}), {'instructions': 4, 'data_bytes': 3})
+        for invalid in [{'instructions': True, 'data_bytes': 3}, {'instructions': 262145, 'data_bytes': 0},
+                        {'instructions': 4, 'data_bytes': -1}, [], {'instructions': 4}]:
+            self.assertIsNone(run_size(invalid))
+        with patch('verify.platform.system', return_value='Darwin'), \
+                patch('verify.bounded_output', side_effect=subprocess.TimeoutExpired('lean', 130)):
+            self.assertIsNone(measure_riscv(self.root, 'formal', 'config.json', env, sandbox, limits))
+
+    def test_size_sandbox_writable_exception_is_only_the_output_file(self):
+        output = self.root / 'riscv-size.json'
+        cmd = linux_command(['lean', 'MeasureRiscv.lean'], self.root / 'formal', {},
+                            {'memory_bytes': 1234, 'wall_clock_seconds': 120}, 'size-test',
+                            writable_files=(output,))
+        self.assertIn(f'ReadWritePaths={output}', cmd)
+        self.assertNotIn(f'ReadWritePaths={self.root}', cmd)
+        self.assertIn('ProtectSystem=strict', cmd)
+
     def setUp(self):
         self.env = patch.dict(os.environ, {"OTS_VERIFIER_HOST_DEV": "-1", "OTS_VERIFIER_HOST_SHM_DEV": "", "OTS_VERIFIER_HOST_PIDNS": "-1"})
         self.env.start()

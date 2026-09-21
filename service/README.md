@@ -47,6 +47,17 @@ lock files enforce this across processes on the same host.
 
 ## How it works
 
+RISC-V record cards, leaderboard rows and submission pages show the number of instructions in
+the fixed program and the byte length of its embedded data, separately from execution cycles.
+The worker automatically collects these after verification. The optional collector reuses the
+pinned comparator's export, comparison and kernel checks, then reduces the image's lists in the
+kernel; it never imports candidate modules into the trusted process. A separate Linux job limits
+collection to 120 seconds, with the verifier's memory and isolation limits. Failure to measure
+leaves the proof verdict unchanged and the metrics unavailable. The bot stores successful
+measurements in its GitHub verdict so recovery needs no server-only data. The Git-tracked
+[`riscv-program-sizes.json`](riscv-program-sizes.json) catalog supplies measurements for older
+submissions, matched to their exact checked source SHA and contract.
+
 Owners may add the approved per-instruction table to selected verified RISC-V submission pages
 by committing `riscv-profiles.json` to submissions `main`. The web process refreshes its in-memory
 copy every 60 seconds; page requests never wait on GitHub. Entries match the exact submission ID,

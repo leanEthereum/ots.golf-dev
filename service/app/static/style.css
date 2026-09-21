@@ -384,6 +384,10 @@ table.params th:first-child { width: 44%; }
 .upper-score strong { font-size: 34px; font-weight: 600; line-height: 1.2; }
 .no-record { color: var(--muted); font-size: 15px; font-weight: 400; }
 .upper-score > .no-record { grid-column: 1 / -1; text-align: right; color: var(--muted); font-size: 15px; }
+.card-program-size { grid-column: 1 / -1; justify-self: end; display: grid; gap: 2px; text-align: right; margin-top: 4px; font-size: 12px; }
+.card-program-size a { color: var(--ink-2); }
+.card-program-size span { color: var(--muted); }
+.lb-program-size, .lb-embedded-data { font-variant-numeric: tabular-nums; }
 .upper-board { padding-top: 24px; }
 .upper-board h3 { margin: 0; }
 .signature-scheme { margin: 32px 0; padding-top: 24px; border-top: 1px solid var(--line); }
@@ -419,6 +423,7 @@ table.params th:first-child { width: 44%; }
   .bound-group { padding: 12px 12px 14px; border-radius: 14px; }
   .upper-card { grid-template-columns: 1fr; gap: 8px; padding: 12px 14px; }
   .upper-score { justify-content: start; }
+  .card-program-size { justify-self: start; text-align: left; }
   .upper-score .muted, .upper-score > .no-record { text-align: left; }
 }
 

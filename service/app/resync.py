@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
-from . import auth, contract, git_authors, github, hall_of_fame, source_archive
+from . import auth, contract, git_authors, github, hall_of_fame, riscv_program_size, source_archive
 from .config import settings
 from .db import SessionLocal, Submission, init_db, local_lock, legacy_pr_submission_id, schedule_report
 
@@ -195,6 +195,10 @@ def _resync(queue_open_heads: bool = True) -> dict:
                         continue
                 detail = {"contract": v.get("contract"), "restored": True,
                           "recorded_record": v.get("record") is True}
+                if v["track"] == "upper-riscv" and v["status"] == "verified":
+                    size = riscv_program_size.validate(v.get("riscv_program_size"), v["commit"], v.get("contract"))
+                    if size:
+                        detail["riscv_program_size"] = size
                 if receipt:
                     detail.update(source_ref=v["source_ref"], receipt=receipt)
                 if type(comment_id) is int:

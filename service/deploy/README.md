@@ -319,6 +319,14 @@ stored and hidden.
 
 ### Webhook delivery
 
+RISC-V image measurements are included in new durable verdicts and restored along with them.
+The core's `service/riscv-program-sizes.json` contains the frozen measurements for older
+submissions; both sources are on GitHub. No database backfill or server-local annotation is
+needed. The optional collector uses the existing pinned comparator tools (including their
+`Main.olean` and lean4export libraries); `verifier/setup_tools.sh` provisions these on a fresh
+host. It runs in a separate 120-second sandbox after proof verification. Only the trusted
+collector can write its result file outside `.lake`; candidate exports have no writable paths.
+
 Webhook events can be duplicated or missed. GitHub does not automatically retry failed deliveries:
 use its delivery history to redeliver a lost push event, or restart the website, whose resync queues
 open heads without a verdict. Records are

@@ -81,11 +81,11 @@ def tools_env(root: Path) -> dict:
     return env
 
 
-def bounded_output(cmd: list[str], limit: int, timeout: float = 60) -> bytes:
+def bounded_output(cmd: list[str], limit: int, timeout: float = 60, *, cwd=None, env=None) -> bytes:
     """Bound output bytes and the time until both the command and its output pipe finish."""
     deadline = time.monotonic() + timeout
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            start_new_session=True, bufsize=0)
+                            start_new_session=True, bufsize=0, cwd=cwd, env=env)
     _BOUNDED_PROCESSES.add(proc)
     chunks: list[bytes] = []
     size = 0
@@ -289,7 +289,7 @@ def landlock_abi() -> int:
 
 
 def linux_command(cmd: list[str], cwd: Path, sandbox_env: dict, limits: dict, unit: str,
-                  hidden: list[Path] = ()) -> list[str]:
+                  hidden: list[Path] = (), writable_files: tuple[Path, ...] = ()) -> list[str]:
     """Mandatory service isolation, shared with the on-host launch smoke test. `hidden` paths (the
     service's database, logs and configuration) become inaccessible, so a proof cannot print them
     into its public log."""
@@ -313,6 +313,7 @@ def linux_command(cmd: list[str], cwd: Path, sandbox_env: dict, limits: dict, un
              "PrivateDevices=yes", "TemporaryFileSystem=/dev/shm", "PrivateIPC=yes", "SystemCallErrorNumber=EPERM",
              "SystemCallFilter=~@network-io @debug ptrace process_vm_readv process_vm_writev "
              "pidfd_getfd kill tkill tgkill pidfd_send_signal"]
+    props.extend(f"ReadWritePaths={p}" for p in writable_files)
     launch = [sys.executable, str(HERE / "linux_exec.py")] + cmd
     launch_env = {"OTS_VERIFIER_HOST_DEV": str(Path("/dev").stat().st_dev),
                   "OTS_VERIFIER_HOST_PIDNS": (str(Path("/proc/self/ns/pid").stat().st_ino)
@@ -323,6 +324,52 @@ def linux_command(cmd: list[str], cwd: Path, sandbox_env: dict, limits: dict, un
     return (["systemd-run", "--user", "--wait", "--collect", "--pipe", "--quiet", f"--unit={unit}",
              f"--working-directory={cwd}"]
             + [x for p in props for x in ("-p", p)] + ["--"] + clean_cmd)
+
+
+def measure_riscv(project: Path, lean_root: str, config: str, env: dict,
+                  sandbox_env: dict, limits: dict, hidden=()) -> dict | None:
+    """Best-effort metadata from kernel-checked exports, under a separate bounded sandbox.
+
+    The output file is writable only by the trusted driver. Comparator's Landlock
+    export subprocesses have no writable paths. Never parse candidate stdout as metadata.
+    A failure here leaves an already verified certificate and its score unchanged.
+    """
+    output = project / "riscv-size.json"
+    tool_paths = [Path(env[k]).parent.parent / "lib" / "lean"
+                  for k in ("COMPARATOR_BIN", "COMPARATOR_LEAN4EXPORT")]
+    size_env = {**sandbox_env, "LEAN_PATH": os.pathsep.join(map(str, tool_paths)),
+                "OTS_SIZE_CONFIG": str(project / config), "OTS_SIZE_OUTPUT": str(output)}
+    cmd = [shutil.which("lean", path=size_env["PATH"]) or "lean", str(HERE / "MeasureRiscv.lean")]
+    cenv, unit = size_env, None
+    try:
+        output.write_text("")
+        if platform.system() == "Linux":
+            unit = f"ots-size-{uuid.uuid4().hex[:12]}"
+            cmd = linux_command(cmd, project / lean_root, size_env,
+                                {**limits, "wall_clock_seconds": 120}, unit, hidden, (output,))
+            runtime = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
+            cenv = {"PATH": size_env["PATH"], "HOME": size_env["HOME"], "XDG_RUNTIME_DIR": runtime,
+                    "DBUS_SESSION_BUS_ADDRESS": os.environ.get("DBUS_SESSION_BUS_ADDRESS", f"unix:path={runtime}/bus")}
+        bounded_output(cmd, LOG_CAP, timeout=130, cwd=project / lean_root, env=cenv)
+        with output.open("rb") as stream:
+            raw = stream.read(1025)
+        if len(raw) > 1024:
+            return None
+        value = json.loads(raw)
+        if (isinstance(value, dict) and set(value) == {"instructions", "data_bytes"}
+                and type(value["instructions"]) is int and 0 <= value["instructions"] <= 262144
+                and type(value["data_bytes"]) is int and 0 <= value["data_bytes"] <= 1048576):
+            return value
+    except (OSError, ValueError, PolicyReject, subprocess.SubprocessError):
+        pass
+    finally:
+        if unit:
+            try:
+                subprocess.run(["systemctl", "--user", "kill", "--signal=KILL", unit], env=cenv,
+                               capture_output=True, timeout=10, check=False)
+            except (OSError, subprocess.SubprocessError):
+                pass
+    return None
 
 
 def clone_tree(src: Path, dst: Path, ignore=None) -> None:
@@ -495,6 +542,7 @@ def main() -> int:
         lake = shutil.which("lake", path=path) or "lake"
         cmd = [lake, "env", env["COMPARATOR_BIN"], str(project / t["comparator_config"])]
         cenv, unit = dict(sandbox_env), None
+        hidden = []
         if platform.system() == "Linux":
             # A transient user SERVICE, not a scope: only a service can carry RestrictAddressFamilies,
             # which comparator requires because Landlock cannot block unix sockets, and only a service
@@ -542,6 +590,11 @@ def main() -> int:
             return finish("timeout", limit_s=lim["wall_clock_seconds"])
         text = log_path.read_text(errors="replace")
         if proc.returncode == 0 and "Your solution is okay!" in text:
+            if a.track == "upper-riscv":
+                size = measure_riscv(project, lean_root, t["comparator_config"], env,
+                                     sandbox_env, lim, hidden)
+                if size is not None:
+                    result["riscv_program_size"] = size
             return finish("verified", comparator_exit=0)
         return finish("rejected", comparator_exit=proc.returncode, tail=text[-2000:])
     except PolicyReject as exc:

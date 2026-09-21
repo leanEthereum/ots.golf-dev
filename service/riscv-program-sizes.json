@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "measurements": {
+    "62a2338b982a2519abca182bc3772687": {
+      "version": 1,
+      "commit": "2d25dd58d7a2fa1fe3ec1bf13be5240ccd04631f",
+      "contract": "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",
+      "instructions": 1337,
+      "data_bytes": 64
+    },
+    "9b14a2f7299b08b6db5f775a2190e91b": {
+      "version": 1,
+      "commit": "3e7d133026ea3023082de0a758c4475e76b7904b",
+      "contract": "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",
+      "instructions": 1337,
+      "data_bytes": 64
+    },
+    "331b3fd9cc7f6fe00748977d5f55f162": {
+      "version": 1,
+      "commit": "75948eb6a8d1e73d7c7fb88f1fe0557542d30d72",
+      "contract": "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",
+      "instructions": 1337,
+      "data_bytes": 64
+    },
+    "522749553cc13e81e9160e19a7785d04": {
+      "version": 1,
+      "commit": "693fa47ec742816c78a3d3c3189980141a53185c",
+      "contract": "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",
+      "instructions": 1338,
+      "data_bytes": 64
+    },
+    "10c99e5059eaabb0989525a47f35ea82": {
+      "version": 1,
+      "commit": "cce86d768ab601384e315acc29a61c44f7231351",
+      "contract": "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",
+      "instructions": 1337,
+      "data_bytes": 72
+    },
+    "40030e6f1ab38bfad05a86bf4e5258cf": {
+      "version": 1,
+      "commit": "e9bc82671c259152d5a9c1c47fed9c4175e75e8f",
+      "contract": "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",
+      "instructions": 1331,
+      "data_bytes": 72
+    },
+    "b7855667e4f3fc9164ff0f34982436e4": {
+      "version": 1,
+      "commit": "26d90cf4f38f47a699c9245786047f5c2783c648",
+      "contract": "133f49c9ceaf596c3bf6aaf0941ffe126a1efe23db0785c8af1288b149cb093e",
+      "instructions": 1331,
+      "data_bytes": 72
+    },
+    "3af3a3087df0b0f71a387ddb900042ef": {
+      "version": 1,
+      "commit": "a12c7abf5958fc85a726cbbf4010df416c0fa9d4",
+      "contract": "133f49c9ceaf596c3bf6aaf0941ffe126a1efe23db0785c8af1288b149cb093e",
+      "instructions": 904,
+      "data_bytes": 80
+    },
+    "6c3ce75a7918f05b437728d9faa8daf1": {
+      "version": 1,
+      "commit": "a32d8105e49e55e6850165708dbeaf394aad087e",
+      "contract": "133f49c9ceaf596c3bf6aaf0941ffe126a1efe23db0785c8af1288b149cb093e",
+      "instructions": 898,
+      "data_bytes": 80
+    },
+    "fe27a7e23baac04fbeb2800111ed4feb": {
+      "version": 1,
+      "commit": "063993ae2268d595f5c39d9c736d0bc445cee82c",
+      "contract": "133f49c9ceaf596c3bf6aaf0941ffe126a1efe23db0785c8af1288b149cb093e",
+      "instructions": 897,
+      "data_bytes": 80
+    },
+    "014c955e5f7e4818be9d40e746fc7456": {
+      "version": 1,
+      "commit": "e530bcc1d087f059fe668e8b300577ec300572f9",
+      "contract": "133f49c9ceaf596c3bf6aaf0941ffe126a1efe23db0785c8af1288b149cb093e",
+      "instructions": 896,
+      "data_bytes": 80
+    }
+  }
+}

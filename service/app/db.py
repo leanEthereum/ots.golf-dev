@@ -79,6 +79,11 @@ class Submission(Base):
     user: Mapped[User] = relationship(back_populates="submissions")
 
     @property
+    def riscv_program_size(self):
+        from .riscv_program_size import for_submission
+        return for_submission(self)
+
+    @property
     def co_authors_list(self) -> list[str]:
         try:
             value = json.loads(self.co_authors or "[]")

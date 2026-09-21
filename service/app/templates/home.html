@@ -32,7 +32,7 @@
       <p>By <a href="/submissions/{{ upper_riscv.state.record_submission_id }}">{{ upper_riscv.state.record_setter }}</a>{% if upper_riscv.state.record_demo %} <span class="tag">demo</span>{% endif %}</p>
       {% else %}<p><a href="/rules#play">Submit an implementation ↗</a></p>{% endif %}
     </div>
-    <div class="upper-score"><span class="muted">Verification cost</span>{% if upper_riscv.state.record_claim is none %}<span class="no-record">No record yet</span>{% else %}<strong>{{ upper_riscv.state.record_claim }}</strong><span>cycles</span>{% endif %}</div>
+    <div class="upper-score"><span class="muted">Verification cost</span>{% if upper_riscv.state.record_claim is none %}<span class="no-record">No record yet</span>{% else %}<strong>{{ upper_riscv.state.record_claim }}</strong><span>cycles</span>{% set size = upper_riscv.state.record_program_size %}{% if size %}<div class="card-program-size"><a href="/submissions/{{ upper_riscv.state.record_submission_id }}#program-size" title="{{ size.instruction_description }}">{{ size.instruction_label }} <span>instructions</span></a><a href="/submissions/{{ upper_riscv.state.record_submission_id }}#embedded-data" title="{{ size.data_description }}">{{ size.data_label }} <span>embedded data</span></a></div>{% endif %}{% endif %}</div>
   </article>
   {% endif %}
   </div>
@@ -184,6 +184,7 @@
             <thead><tr>
               <th class="l" scope="col">Solver</th>
               <th class="r" scope="col" aria-sort="ascending"><button type="button" class="sort-btn" data-key="score" data-dir="asc" aria-pressed="true">Score <span class="arr">↕</span></button></th>
+              {% if is_riscv %}<th class="r" scope="col" title="Number of instructions in the fixed program">Instructions</th><th class="r" scope="col" title="Bytes loaded from the fixed data image at startup">Embedded data</th>{% endif %}
               <th class="r" scope="col" aria-sort="none"><button type="button" class="sort-btn" data-key="gain" data-dir="desc" aria-pressed="false">Gain <span class="arr">↕</span></button></th>
               <th class="r" scope="col">Date</th>
             </tr></thead>

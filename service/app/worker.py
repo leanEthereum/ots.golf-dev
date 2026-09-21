@@ -18,7 +18,7 @@ from datetime import timedelta
 
 from sqlalchemy import func, select
 
-from . import contract, github, record_snapshot, revalidations, source_archive
+from . import contract, github, record_snapshot, revalidations, riscv_program_size, source_archive
 from .config import settings
 from .db import GithubReport, SessionLocal, Submission, init_db, local_lock, schedule_report, utcnow
 
@@ -174,6 +174,10 @@ def verdict_entry(sub: Submission) -> dict:
                  finished_at=sub.finished_at.isoformat(timespec="microseconds") + "Z" if sub.finished_at else None,
                  contract=detail.get("contract"), record=bool(sub.is_record),
                  source_archive=detail.get("source_archive"), failure=failure)
+    if sub.track == "upper-riscv" and status == "verified":
+        size = riscv_program_size.validate(detail.get("riscv_program_size"), sub.commit, detail.get("contract"))
+        if size:
+            entry["riscv_program_size"] = size
     return entry
 
 
@@ -432,6 +436,13 @@ def process(sub_id: str) -> None:
         detail = sub.detail_dict  # preserve the durable comment identity
         detail.update(failure=failure, commit=result.get("commit"), comparator_exit=result.get("comparator_exit"),
                       contract=sub.detail_dict.get("contract"))
+        detail.pop("riscv_program_size", None)
+        raw_size = result.get("riscv_program_size")
+        if sub.track == "upper-riscv" and sub.status == "verified" and isinstance(raw_size, dict):
+            size = riscv_program_size.validate({**raw_size, "version": 1, "commit": sub.commit,
+                                               "contract": detail.get("contract")}, sub.commit, detail.get("contract"))
+            if size:
+                detail["riscv_program_size"] = size
         notes = result.get("notes")
         if isinstance(notes, str) and notes.strip():
             detail["notes"] = notes[:64 * 1024]

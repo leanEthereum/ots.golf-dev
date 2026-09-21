@@ -9,6 +9,7 @@
 {% if not sub.detail_dict.get('demo') and not sub.current_contract %}<p class="notice">Historical result: this submission was checked under a different or unknown contract and is excluded from the current leaderboard.</p>{% endif %}
 <dl class="facts">
   <dt>Claim</dt><dd>{% if sub.claim is not none %}{{ sub.claim }} {{ t|cost_unit(sub.claim) }}{% else %}–{% endif %}{% if sub.is_record %} <span class="tag">{{ 'demo record' if sub.detail_dict.get('demo') else 'record' }}</span>{% endif %}</dd>
+  {% set size = sub.riscv_program_size %}{% if size %}<dt id="program-size">Instructions</dt><dd title="{{ size.instruction_description }}">{{ size.instruction_label }}</dd><dt id="embedded-data">Embedded data</dt><dd title="{{ size.data_description }}">{{ size.data_label }}</dd>{% endif %}
   <dt>Submitter</dt><dd><a href="/solvers/{{ sub.user.login }}">{{ sub.user.login }}</a>{% for c in sub.co_authors_list %}, {{ c }}{% endfor %}</dd>
   {% if sub.assisted_by %}<dt>Assisted by</dt><dd>{{ sub.assisted_by }}</dd>{% endif %}
   {% if not sub.detail_dict.get('demo') %}<dt>Commit</dt><dd>{% if sub.commit_url %}<a href="{{ sub.commit_url }}"><code>{{ sub.commit|short }}</code></a>{% else %}<code>{{ sub.commit|short }}</code>{% endif %} in <code>{{ sub.source_repo }}</code></dd>{% endif %}

@@ -51,6 +51,7 @@ def track_state(session: Session, t: dict) -> dict:
         "slug": t["slug"], "title": t["title"], "direction": t["direction"],
         "cost_unit": contract.cost_unit(t),
         "record_claim": rec.claim if rec else None,
+        "record_program_size": rec.riscv_program_size if rec else None,
         "record_verified": bool(rec and not rec.detail_dict.get("demo")),
         "record_demo": bool(rec and rec.detail_dict.get("demo")),
         "record_submission_id": rec.id if rec else None,

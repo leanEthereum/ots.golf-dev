@@ -21,6 +21,46 @@ from app.db import Base, GithubReport, Submission, User, legacy_pr_submission_id
 
 
 class ServiceWorkerTests(unittest.TestCase):
+    def test_riscv_measurement_survives_worker_and_github_round_trip(self):
+        from app import github
+        sub = self.submission(status='pending', claim=436)
+        with self.sessions() as session:
+            session.get(Submission, sub.id).track = 'upper-riscv'
+            session.commit()
+        result = {'status': 'verified', 'claim': 436, 'commit': sub.commit,
+                  'riscv_program_size': {'instructions': 896, 'data_bytes': 80}}
+        with patch('app.worker.run_pipeline', return_value=(result, None)):
+            worker.process(sub.id)
+        with self.sessions() as session:
+            checked = session.get(Submission, sub.id)
+            self.assertEqual(checked.riscv_program_size.instructions, 896)
+            entry = github.parse_verdicts(github.verdict_block([worker.verdict_entry(checked)]))[0]
+            self.assertEqual(entry['riscv_program_size'], checked.detail_dict['riscv_program_size'])
+            self.assertEqual(entry['riscv_program_size']['commit'], sub.commit)
+
+    def test_riscv_measurement_restores_without_server_only_state(self):
+        from app import github, resync
+        size = {'version': 1, 'commit': 'a' * 40, 'contract': contract.contract_id(),
+                'instructions': 896, 'data_bytes': 80}
+        block = github.verdict_block([{'track': 'upper-riscv', 'commit': 'a' * 40, 'status': 'verified',
+            'claim': 436, 'finished_at': '2026-09-20T17:47:20Z', 'contract': contract.contract_id(),
+            'record': True, 'riscv_program_size': size}])
+        pulls = [{'number': 7, 'state': 'closed', 'merged_at': None, 'body': '',
+                  'created_at': '2026-09-20T17:30:00Z', 'user': {'login': 'alice', 'id': 42},
+                  'base': {'ref': 'main', 'repo': {'default_branch': 'main'}},
+                  'head': {'sha': 'a' * 40, 'repo': {'clone_url': 'https://github.com/alice/entries.git'}}}]
+        comments = [{'id': 55, 'user': {'login': 'ots-bot'}, 'body': block}]
+        with patch.object(settings, 'github_token', 'test'), patch.object(settings, 'bot_login', 'ots-bot'), \
+                patch('app.resync.SessionLocal', self.sessions), \
+                patch('app.resync.github.list_pulls', return_value=pulls), \
+                patch('app.resync.github.list_comments', return_value=comments), \
+                patch('app.resync.github.read_file', return_value=None):
+            self.assertEqual(resync.resync(False)['restored'], 1)
+        with self.sessions() as session:
+            sub = session.get(Submission, legacy_pr_submission_id('owner/repo', 7, 'a' * 40))
+            self.assertEqual(sub.detail_dict['riscv_program_size'], size)
+            self.assertEqual(sub.riscv_program_size.data_label, '80 B')
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.data = Path(self.temp.name)

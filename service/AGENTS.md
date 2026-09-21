@@ -157,6 +157,16 @@ record bot must preserve it, including concurrent owner edits. Refresh it in the
 never fetch GitHub while rendering a submission page. GitHub is the durable store, and removal
 of an entry removes its table. The demo fixture is confined to its explicitly enabled demo row.
 
+Show two separate RISC-V image metrics on the record card, leaderboard and submission page:
+the static instruction count and embedded-data bytes. These do not change cycle scores or ranking.
+After a successful certificate check, `verifier/MeasureRiscv.lean` re-exports and checks the
+certificate with the pinned comparator, then counts the image lists by kernel reduction.
+Its optional, separately bounded sandbox cannot change a proof verdict. Read measurements
+only from the trusted driver's output file; candidate stdout is never a metadata channel.
+New measurements travel in the bot's durable GitHub verdict and are restored by resync.
+`riscv-program-sizes.json` preserves measurements of pre-feature submissions, pinned to
+their original source SHA and contract. Missing or invalid measurements remain absent.
+
 Ask the user before making substantial visible website changes. Permission to improve documentation
 or agent discovery does not authorize changing navigation or the visible page layout. Explicitly
 requested feature previews stay local and uncommitted until the user validates them.
