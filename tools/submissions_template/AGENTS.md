@@ -21,6 +21,11 @@ do not edit another track, root `records.json` or `.contract`. Every root must s
 import policy independently, even though `main` contains record proofs for the other tracks.
 PRs from an older `main` remain eligible; subsequent base-branch record updates are not their changes.
 
+New RISC-V proof PRs must also export `OptimalOTS.Challenge.UpperRiscv.image_size`, proving
+`submission.image.byteSize < 1048576` (four bytes per instruction plus embedded-data bytes).
+When extending a pre-rule record snapshot, add this theorem to `Solution.lean`; its absence
+is a verification failure even when the existing cycle certificate still checks.
+
 After a new record's verdict is durable, the bot copies only its checked root and registry entry
 to `main` in a separate commit. It never merges or closes the proof PR. Protected source tags and
 bot receipt/verdict comments remain the authority for the original checked source and result.

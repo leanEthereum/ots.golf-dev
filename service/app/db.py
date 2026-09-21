@@ -101,10 +101,11 @@ class Submission(Base):
 
     @property
     def current_contract(self) -> bool:
-        from . import contract, revalidations
+        from . import contract, revalidations, riscv_program_size
         return (self.detail_dict.get("contract") == contract.contract_id()
                 or (self.status == "verified"
                     and (contract.compatible_result(self.track, self.detail_dict.get("contract"))
+                         or riscv_program_size.compatible_image_limit(self)
                          or revalidations.for_original(self) is not None)))
 
     @property

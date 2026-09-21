@@ -14,6 +14,17 @@ def state (code : List Instr) : MachineState :=
   { regs := fun _ => 0, mem := fun _ => 0, pc := codeBase,
     code := loadProgram codeBase code }
 
+-- The image budget counts both sections, and its upper boundary is strict.
+example : (Image.mk [.ECALL] [0, 0, 0]).byteSize = 7 := by decide
+example : (Image.mk (List.replicate 262143 .ECALL) [0, 0, 0]).byteSize < 1048576 := by
+  norm_num [Image.byteSize]
+example : ¬ (Image.mk (List.replicate 262143 .ECALL) [0, 0, 0, 0]).byteSize < 1048576 := by
+  norm_num [Image.byteSize]
+example : ¬ (Image.mk (List.replicate 262144 .ECALL) []).byteSize < 1048576 := by
+  norm_num [Image.byteSize]
+example : ¬ (Image.mk [] (List.replicate 1048576 0)).byteSize < 1048576 := by
+  norm_num [Image.byteSize]
+
 -- HALT itself is charged, and the accept/reject bit is explicit.
 example : execute 1 (state [.ECALL]) = pure (some (false, 1)) := by rfl
 example : execute 1 ((state [.ECALL]).setReg .x10 1) = pure (some (true, 1)) := by rfl

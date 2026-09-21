@@ -153,7 +153,9 @@ class RiscvTrackTests(unittest.TestCase):
         section = re.search(r'<details id="upper-riscv">.*?</details>', html, re.S).group(0)
         for phrase in ('every execution, accepting or rejecting', 'Every execution must terminate',
                        'same oracle', 'raw signature bit string', 'max(1, ⌈n / 512⌉)',
-                       'no additional instruction charge', 'RV64IM'):
+                       'no additional instruction charge', 'RV64IM',
+                       'strictly less than 1 MiB (1,048,576 bytes)',
+                       'four bytes per instruction plus all embedded data', 'image_size'):
             self.assertIn(phrase, section)
         self.assertNotIn('702', html)
         self.assertNotRegex(html, r'<details\b[^>]*\bopen\b')

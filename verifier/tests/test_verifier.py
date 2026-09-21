@@ -226,7 +226,7 @@ class VerifierTests(unittest.TestCase):
                          {prefix + name for name in ("admissible", "secure", "cost")})
         self.assertEqual(comparator["definition_names"], [prefix + "scheme"])
 
-    def test_upper_riscv_requires_one_bundled_certificate(self):
+    def test_upper_riscv_requires_certificate_and_strict_image_size_proof(self):
         track = next(t for t in self.cfg["tracks"] if t["slug"] == "upper-riscv")
         self.assertIn("upper-riscv", self.cfg["upper_tracks"])
         self.assertEqual((track["kind"], track["framework"], track["cost_unit"]),
@@ -242,7 +242,8 @@ class VerifierTests(unittest.TestCase):
         self.assertIn("def submission : Riscv.Submission", source)
         comparator = json.loads((VERIFIER.parent / track["comparator_config"]).read_text())
         prefix = "OptimalOTS.Challenge.UpperRiscv."
-        self.assertEqual(comparator["theorem_names"], [prefix + "certificate"])
+        self.assertEqual(comparator["theorem_names"], [prefix + "certificate", prefix + "image_size"])
+        self.assertIn("theorem image_size : submission.image.byteSize < 1048576", rendered.read_text())
         self.assertEqual(comparator["definition_names"], [prefix + "submission"])
         self.assertEqual(set(track["allowed_import_prefixes"]),
                          {"Mathlib", "VCVio", "OptimalOTS.Model", "OptimalOTS.Dag",

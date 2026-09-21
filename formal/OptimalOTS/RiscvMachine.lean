@@ -46,6 +46,9 @@ structure Image where
   code : List Instr
   data : List Byte
 
+/-- Serialized RV64IM instruction bytes plus the fixed data loaded at startup. -/
+def Image.byteSize (image : Image) : ℕ := 4 * image.code.length + image.data.length
+
 def Image.Valid (image : Image) : Prop :=
   image.code.length ≤ 262144 ∧ image.data.length ≤ 1048576 ∧
     ∀ i ∈ image.code, admittedInstruction i = true

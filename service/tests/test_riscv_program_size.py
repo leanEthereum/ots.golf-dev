@@ -10,6 +10,7 @@ from app.riscv_program_size import for_submission, historical_sizes, validate
 import seed_demo
 import test_riscv_track
 import unittest
+from unittest.mock import patch
 
 
 def measurement(sub):
@@ -18,6 +19,36 @@ def measurement(sub):
 
 
 class ProgramSizeValidationTests(unittest.TestCase):
+    def test_image_limit_migration_preserves_only_audited_sources(self):
+        from app.riscv_program_size import IMAGE_LIMIT_CONTRACT
+        with patch('app.contract.contract_id', return_value=IMAGE_LIMIT_CONTRACT):
+            for sid, value in historical_sizes().items():
+                sub = Submission(id=sid, track='upper-riscv', status='verified', commit=value['commit'],
+                                 detail=json.dumps({'contract': value['contract']}))
+                self.assertTrue(sub.current_contract)
+                sub.commit = 'f' * 40
+                self.assertFalse(sub.current_contract)
+                sub.commit = value['commit']
+                sub.status = 'pending'
+                self.assertFalse(sub.current_contract)
+            sub = Submission(id='f' * 32, track='upper-riscv', status='verified', commit=value['commit'],
+                             detail=json.dumps({'contract': value['contract'], 'riscv_program_size': value}))
+            self.assertFalse(sub.current_contract)  # Display metadata is not a migration approval.
+
+    def test_image_limit_migration_is_strict_and_bound_to_this_contract(self):
+        from app.riscv_program_size import IMAGE_LIMIT_CONTRACT
+        sid, value = next(iter(historical_sizes().items()))
+        sub = Submission(id=sid, track='upper-riscv', status='verified', commit=value['commit'],
+                         detail=json.dumps({'contract': value['contract']}))
+        with patch('app.contract.contract_id', return_value=IMAGE_LIMIT_CONTRACT):
+            for count, data, accepted in [(262143, 3, True), (262143, 4, False),
+                                          (262144, 0, False), (0, 1048576, False)]:
+                entry = {**value, 'instructions': count, 'data_bytes': data}
+                with patch('app.riscv_program_size.historical_sizes', return_value={sid: entry}):
+                    self.assertEqual(sub.current_contract, accepted)
+        with patch('app.contract.contract_id', return_value='f' * 64):
+            self.assertFalse(sub.current_contract)
+
     def test_historical_measurements_are_pinned_and_recoverable_from_git(self):
         for sid, size in historical_sizes().items():
             self.assertEqual(len(sid), 32)

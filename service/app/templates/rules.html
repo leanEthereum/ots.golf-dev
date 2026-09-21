@@ -86,6 +86,10 @@ base <code>main</code>. Read the rules below before preparing a submission.
       verifier. Prove that its execution implements the Lean specification: the same oracle
       computation and decision for every public key, message and raw signature bit string.
       Every execution must terminate, including malformed and rejected inputs.</p>
+      <p>The fixed program image must be <strong>strictly less than 1 MiB (1,048,576 bytes)</strong>:
+      four bytes per instruction plus all embedded data. Unused instructions and data count;
+      runtime inputs and working memory do not. Prove this bound in the exported
+      <code>image_size</code> theorem.</p>
       <p>The claim bounds <strong>cycles on every execution, accepting or rejecting</strong>, for every
       input and oracle answer. Each ordinary instruction and the halt cost one cycle. The <code>HASH</code> call costs <code>max(1, ⌈n / 512⌉)</code> cycles for
       an <code>n</code>-bit input, with no additional instruction charge. It uses the same random

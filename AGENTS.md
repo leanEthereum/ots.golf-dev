@@ -96,6 +96,7 @@ oracle-answer path, including rejection. A record needs claim ≤ record − 1.
 ```lean
 noncomputable def OptimalOTS.Challenge.UpperRiscv.submission : Riscv.Submission := ...
 theorem OptimalOTS.Challenge.UpperRiscv.certificate : submission.Certificate <claim> := ...
+theorem OptimalOTS.Challenge.UpperRiscv.image_size : submission.image.byteSize < 1048576 := ...
 ```
 
 `Riscv.Submission` bundles an `OracleAlgorithm.Scheme`, a fixed RV64IM image and a per-input fuel
@@ -107,6 +108,13 @@ or rejecting. Refinement excludes traps and fuel exhaustion, so every execution 
 ordinary instruction and HALT costs one cycle; HASH costs `max(1, ⌈bits / 512⌉)` on its exact
 input and uses the competition's single oracle. The machine, loader and system calls are fixed in
 `formal/OptimalOTS/RiscvMachine.lean`. A record needs claim ≤ record − 1.
+
+The fixed program image must be **strictly less than 1 MiB (1,048,576 bytes)**:
+`4 * submission.image.code.length + submission.image.data.length < 1048576`.
+Every RV64IM instruction counts as four bytes; all embedded data counts, including unused
+instructions and data. Runtime inputs and working memory are not part of this image.
+Export the additional `image_size` theorem above; the verifier checks it with the same
+statement comparison, axiom restrictions and Lean kernel as the cycle certificate.
 
 ## Rules for the submission root
 

@@ -5,6 +5,12 @@ import json
 from pathlib import Path
 
 CATALOG = Path(__file__).resolve().parents[1] / "riscv-program-sizes.json"
+IMAGE_LIMIT_CONTRACT = "56289b3f45a5fe68fba953d268860758045f1ef919dd1555d04909ba185c11dc"
+IMAGE_LIMIT_PREDECESSORS = frozenset({
+    "133f49c9ceaf596c3bf6aaf0941ffe126a1efe23db0785c8af1288b149cb093e",
+    "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",
+    "cca4d9add2f2a1d3bdc40381258e6992f146e2f3ad9087706913ff281cff22dc",
+})
 
 
 @lru_cache(maxsize=1)
@@ -53,3 +59,23 @@ def for_submission(sub) -> ProgramSize | None:
     value = detail.get("riscv_program_size", historical_sizes().get(getattr(sub, "id", None)))
     value = validate(value, sub.commit, detail.get("contract"))
     return ProgramSize(value["instructions"], value["data_bytes"]) if value else None
+
+
+def compatible_image_limit(sub) -> bool:
+    """Audited pre-rule images meet the new bound; retain their original credit.
+
+    Only the source-pinned, Git-tracked migration catalog authorizes this. Display
+    annotations and arbitrary old receipts cannot grandfather an unmeasured image.
+    """
+    if sub.track != "upper-riscv" or sub.status != "verified" or sub.detail_dict.get("demo"):
+        return False
+    return compatible_image_source(sub.id, sub.commit, sub.detail_dict.get("contract"))
+
+
+def compatible_image_source(sid, commit, previous) -> bool:
+    """Also used to preserve links to previously approved, individually checked proof ports."""
+    from . import contract
+    if contract.contract_id() != IMAGE_LIMIT_CONTRACT or previous not in IMAGE_LIMIT_PREDECESSORS:
+        return False
+    value = validate(historical_sizes().get(sid), commit, previous)
+    return bool(value and 4 * value["instructions"] + value["data_bytes"] < 1048576)

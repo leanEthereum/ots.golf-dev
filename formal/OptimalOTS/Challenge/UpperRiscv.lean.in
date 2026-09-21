@@ -12,4 +12,7 @@ noncomputable def submission : Riscv.Submission := sorry
 image, and at most `{{CLAIM}}` cycles on every execution. -/
 theorem certificate : submission.Certificate {{CLAIM}} := sorry
 
+/-- Instructions and embedded data together occupy strictly less than 1 MiB. -/
+theorem image_size : submission.image.byteSize < 1048576 := sorry
+
 end OptimalOTS.Challenge.UpperRiscv

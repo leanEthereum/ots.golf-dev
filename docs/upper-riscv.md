@@ -56,8 +56,15 @@ code and data, and sets these registers:
 
 The first 5504 signature bits are loaded; the length sentinel distinguishes oversized inputs.
 A signature is the 128-bit nonce followed by the payload, so the payload starts at `0x400040`.
-The image contains at most 262144 instructions and 1 MiB of fixed data, loaded at `0x200000`.
+The complete image must occupy strictly less than 1 MiB (1,048,576 bytes): four bytes per
+instruction plus all embedded data, loaded at `0x200000`. Unused code and data count too.
 Code is immutable. Parsing, arithmetic, copying and comparison run inside the machine.
+
+New submissions additionally export
+`OptimalOTS.Challenge.UpperRiscv.image_size : submission.image.byteSize < 1048576`.
+Prove the two list lengths, unfold `OptimalOTS.Riscv.Image.byteSize`, and finish the numeric
+inequality. This theorem is checked by the same comparator and Lean kernel as the cycle
+certificate. The website's optional size measurement is independent of this admission rule.
 
 ## Certified submission
 

@@ -10,7 +10,7 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
-from . import contract
+from . import contract, riscv_program_size
 from .config import settings
 
 
@@ -32,7 +32,10 @@ def _match(sub, side: str) -> dict | None:
     if sub.detail_dict.get("demo"):
         return None
     for entry in entries():
-        if ((side == "check" or entry["check_contract"] == contract.contract_id())
+        if ((side == "check" or entry["check_contract"] == contract.contract_id()
+             or contract.compatible_result(entry["track"], entry["check_contract"])
+             or (entry["track"] == "upper-riscv" and riscv_program_size.compatible_image_source(
+                 entry["check_id"], entry["check_commit"], entry["check_contract"])))
                 and sub.id == entry[side + "_id"]
                 and sub.commit == entry[side + "_commit"]
                 and sub.pr_url == entry[side + "_pr_url"]

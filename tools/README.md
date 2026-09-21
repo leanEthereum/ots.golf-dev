@@ -9,6 +9,7 @@ preparation script. Numerical results are exploration only: every claim requires
 | `search_forest.py` | search for forest constructions (needs NumPy) |
 | `literature_chain_baseline.py` | reproduce the chart's equal-chain comparison with exact integers |
 | `check_repo.py` | repository regression checks |
+| `check_historical_riscv_sizes.py` | kernel-check the frozen pre-limit RISC-V images against the strict 1 MiB budget |
 | `prepare_submissions_repo.py` | create a new, empty submissions repository pinned to this core |
 
 ## Numerical tools

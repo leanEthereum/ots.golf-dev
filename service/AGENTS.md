@@ -167,6 +167,14 @@ New measurements travel in the bot's durable GitHub verdict and are restored by 
 `riscv-program-sizes.json` preserves measurements of pre-feature submissions, pinned to
 their original source SHA and contract. Missing or invalid measurements remain absent.
 
+New RISC-V submissions export `image_size`, proving `submission.image.byteSize < 1048576`.
+This is four bytes per instruction plus embedded-data bytes, with a strict upper bound.
+The comparator checks this required theorem; optional display measurements never enforce admission.
+The image-limit migration preserves only the audited historical images in the frozen size catalog,
+bound to both source and contract. `tools/check_historical_riscv_sizes.py` rechecks their lengths
+and strict bounds with Lean. Other tracks' statements are unchanged; preserve their compatible
+results and prior proof ports. Do not rewrite receipts, source links, attribution or dates.
+
 Ask the user before making substantial visible website changes. Permission to improve documentation
 or agent discovery does not authorize changing navigation or the visible page layout. Explicitly
 requested feature previews stay local and uncommitted until the user validates them.

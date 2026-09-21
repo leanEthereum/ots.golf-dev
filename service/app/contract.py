@@ -108,6 +108,15 @@ def improves(direction: str, claim: int, record: int | None) -> bool:
 # compatibility of the proved construction, not a claim that old source compiles unchanged.
 # Lower bounds quantify over MORE schemes and need an individually verified proof port.
 RESULT_COMPATIBILITY = {
+    # Only the RISC-V image budget changes. RISC-V history is checked per source
+    # in riscv_program_size.compatible_image_limit, never grandfathered wholesale.
+    "56289b3f45a5fe68fba953d268860758045f1ef919dd1555d04909ba185c11dc": {
+        "133f49c9ceaf596c3bf6aaf0941ffe126a1efe23db0785c8af1288b149cb093e": frozenset({
+            "lower-generality-1", "upper-compressions",
+        }),
+        "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb": frozenset({"upper-compressions"}),
+        "cca4d9add2f2a1d3bdc40381258e6992f146e2f3ad9087706913ff281cff22dc": frozenset({"upper-compressions"}),
+    },
     "133f49c9ceaf596c3bf6aaf0941ffe126a1efe23db0785c8af1288b149cb093e": {
         previous: frozenset({"upper-compressions", "upper-riscv"}) for previous in (
             "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb",

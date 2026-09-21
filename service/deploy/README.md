@@ -389,3 +389,19 @@ For future migrations, stage and verify replacement proofs before switching the 
 Check the full leaderboard and original attribution before reopening the site. Use a temporary
 maintenance response if a transition cannot be atomic; never expose an empty board. Stop the
 idle worker before replacing its trusted checkout, and restart both web and worker afterward.
+
+### RISC-V image-size limit
+
+New submissions must export `OptimalOTS.Challenge.UpperRiscv.image_size`, proving that the
+instruction bytes (four per instruction) plus embedded data are strictly below 1,048,576 bytes.
+The pinned comparator checks this theorem along with the cycle certificate. Its enforcement
+does not depend on the optional post-verification size collector.
+
+The frozen historical size catalog binds each existing image to its original source and contract.
+Run `python3 tools/check_historical_riscv_sizes.py /path/to/ots.golf-submissions` after building
+`OptimalOTS.Riscv`; the checkout must contain the retained source commits. The audit rechecks
+every recorded length and the new strict bound in Lean. It does not rerun or rewrite historical
+OTS verdicts. Only these audited images remain eligible under the exact new contract fingerprint;
+unmeasured historical images are not automatically exempted. Scores, authors, dates and source
+links remain unchanged. Lower and compression statements are unchanged, including the validity
+of previously approved proof ports. All migration data is Git-tracked for fresh-server recovery.
