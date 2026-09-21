@@ -319,7 +319,7 @@ async def webhook(request: Request):
             raise ValueError
     except (ValueError, KeyError, TypeError):
         raise HTTPException(400, "malformed event")
-    if action not in ("opened", "synchronize", "reopened"):
+    if action not in ("opened", "synchronize", "reopened", "ready_for_review"):
         return {"ignored": True}
     if not settings.submissions_repo:
         raise HTTPException(503, "GitHub submission admission is not configured")
@@ -337,6 +337,8 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str, announce: b
         return {"queued": False, "reason": "not the submissions repository"}
     try:
         pr = github.get_pr(owner_repo, number)
+        if pr.get("draft", False):
+            return {"queued": False, "reason": "draft pull request"}
         slug, outside = github.pr_track(owner_repo, number, expected_files=pr.get("changed_files"))
         pr_after = github.get_pr(owner_repo, number)
     except httpx.HTTPError as exc:
@@ -344,6 +346,8 @@ def handle_pull_request(owner_repo: str, number: int, head_sha: str, announce: b
     if (pr.get("state") != "open" or pr_after.get("state") != "open"
             or pr["head"]["sha"] != head_sha or pr_after["head"]["sha"] != head_sha):
         return {"queued": False, "reason": "the pull request moved on; its newer event is the one that counts"}
+    if pr_after.get("draft", False):
+        return {"queued": False, "reason": "draft pull request"}
     if not (github.targets_default_branch(pr) and github.targets_default_branch(pr_after)):
         if announce:
             github.post_comment(owner_repo, number, "**ots.golf verifier:** not queued. A submission must "

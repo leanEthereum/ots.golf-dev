@@ -245,7 +245,8 @@ There is one way in: a pull request against the submissions repository that crea
 only your admitted track's submission root. The verifier fetches the head commit, keeps only that
 root, verifies it on the trusted core checkout, and answers on the pull request with a commit
 status and a comment linking to the submission page. Pushing to the pull request re-queues its new
-head. A PR opened from an older `main` remains eligible: later bot updates to `main` do not count as
+head. Draft PRs are not queued; marking a PR ready for review submits its current head.
+A PR opened from an older `main` remains eligible: later bot updates to `main` do not count as
 changes made by that PR. Your PR must still change only its own admitted root; do not edit
 `records.json`, other tracks or `.contract` as part of a proof submission.
 

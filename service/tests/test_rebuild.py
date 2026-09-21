@@ -80,6 +80,17 @@ class RecoveryTests(unittest.TestCase):
             resync.resync()
             queue.assert_called_once_with("owner/entries", 7, "f" * 40, announce=False)
 
+    def test_resync_ignores_unsubmitted_drafts_until_they_are_ready(self):
+        self.pr.update(state="open", draft=True, head={"sha": self.commit, "repo": None})
+        with patch("app.resync.github.list_pulls", return_value=[self.pr]), \
+             patch("app.resync.github.list_comments", return_value=[]), \
+             patch("app.main.handle_pull_request") as queue:
+            self.assertEqual(resync.resync()["queued"], 0)
+            queue.assert_not_called()
+            self.pr["draft"] = False
+            self.assertEqual(resync.resync()["queued"], 1)
+            queue.assert_called_once_with("owner/entries", 7, self.commit, announce=False)
+
     def row(self, *, entry=None, status="verified"):
         entry = entry or self.entry()
         detail = {"contract": entry["contract"], "source_ref": entry["source_ref"],

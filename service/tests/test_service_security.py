@@ -87,6 +87,15 @@ class ServiceSecurityTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             handle.assert_called_once_with('owner/repo', 7, 'a' * 40)
 
+    def test_ready_for_review_dispatches_the_exact_head(self):
+        event = self.event()
+        event['action'] = 'ready_for_review'
+        with patch('app.main.handle_pull_request', return_value={'queued': True}) as handle:
+            response = self.send_event(event)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.json()['queued'])
+            handle.assert_called_once_with('owner/repo', 7, 'a' * 40)
+
     def test_core_repository_webhooks_do_not_queue_proofs(self):
         with patch.object(settings, 'contract_repo', 'owner/core'), patch('app.main.handle_pull_request') as queue:
             event = self.event()

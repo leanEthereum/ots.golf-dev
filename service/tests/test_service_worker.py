@@ -261,6 +261,27 @@ class ServiceWorkerTests(unittest.TestCase):
                 self.assertEqual(command[command.index('--commit') + 1], sub.commit)
                 self.assertEqual(launch.call_args.kwargs['cwd'], settings.repo_root)
 
+    def test_draft_pr_never_enters_the_queue_or_receives_a_receipt(self):
+        with patch('app.main.github.get_pr', return_value={'draft': True}), \
+             patch('app.main.github.pr_track') as files, \
+             patch('app.main.queue_submission') as queue, \
+             patch('app.main.github.post_comment') as comment:
+            result = main.handle_pull_request('owner/repo', 9, 'b' * 40)
+            self.assertEqual(result, {'queued': False, 'reason': 'draft pull request'})
+            files.assert_not_called()
+            queue.assert_not_called()
+            comment.assert_not_called()
+
+    def test_pr_returned_to_draft_during_admission_is_not_queued(self):
+        pr = {'state': 'open', 'draft': False, 'changed_files': 1,
+              'head': {'sha': 'b' * 40}}
+        with patch('app.main.github.get_pr', side_effect=[pr, dict(pr, draft=True)]), \
+             patch('app.main.github.pr_track', return_value=('upper-leanisa', [])), \
+             patch('app.main.queue_submission') as queue:
+            result = main.handle_pull_request('owner/repo', 9, 'b' * 40)
+            self.assertEqual(result, {'queued': False, 'reason': 'draft pull request'})
+            queue.assert_not_called()
+
     def test_pull_requests_not_targeting_the_default_branch_are_refused(self):
         pr = {'state': 'open', 'changed_files': 1, 'body': '', 'user': {'login': 'alice', 'id': 42},
               'base': {'ref': 'side', 'repo': {'default_branch': 'main'}},

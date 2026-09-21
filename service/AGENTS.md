@@ -115,6 +115,8 @@ receives GitHub credentials. The bot creates retention tags, writes receipt/verd
 commit statuses, and commits new record snapshots to submissions `main`. It never merges or closes
 pull requests or changes an existing source tag. The bot's authorized `main` ruleset bypass must
 not grant bypass of source-tag update/deletion protection.
+Draft PRs are not admitted, including during startup resync. The `ready_for_review` webhook
+admits the current head through the same checks as a new PR. Recheck draft status before queueing.
 A verified improvement becomes public only after the verdict comment is durable, with record
 ordering determined by verification-finish time under the results lock. Preserve reporting retries. Never bypass Linux isolation or bounded-storage
 checks to make a host pass. See `deploy/README.md` for the launch gates.

@@ -15,6 +15,7 @@
 
 Proof PRs belong in the submissions repository. `leanEthereum/ots.golf-dev` maintains the
 model, verifier and website; `.contract` is its pinned submodule for local checking.
+Draft PRs stay out of the queue; mark yours ready for review when the proof is complete.
 The bot posts a result and submission-page link on your PR. A new verified record is copied to
 submissions `main` automatically; your PR stays open. No website upload or maintainer merge is needed.
 

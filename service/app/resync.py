@@ -249,7 +249,7 @@ def _resync(queue_open_heads: bool = True) -> dict:
                     existing.started_at, existing.log_path = None, None
                     pending += int(v["status"] == "pending")
                 session.commit()
-        if (queue_open_heads and pr.get("state") == "open"
+        if (queue_open_heads and pr.get("state") == "open" and not pr.get("draft", False)
                 and not hall_of_fame.contains_pr_head(pr_url, head)) and head not in {
                 v["commit"] for v in verdicts if v.get("contract") == contract.contract_id()}:
             with SessionLocal() as session:
