@@ -35,7 +35,7 @@ class VerifierTests(unittest.TestCase):
             def child(cmd, limit, **kwargs):
                 self.assertNotIn(str(self.root), kwargs['env']['LEAN_PATH'])
                 self.assertTrue(kwargs['env']['LEAN_PATH'].startswith('/trusted/comparator/'))
-                self.assertEqual(kwargs['timeout'], 130)
+                self.assertEqual(kwargs['timeout'], 310)
                 if raw is not None:
                     (self.root / 'riscv-size.json').write_text(json.dumps(raw))
                 return output

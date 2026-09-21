@@ -744,6 +744,19 @@ class ServiceWorkerTests(unittest.TestCase):
             self.assertTrue(Path(log_path).is_file())
             return result
 
+    def test_pipeline_reserves_time_for_optional_riscv_measurement(self):
+        sub = self.submission()
+        limit = contract.load()['limits']['wall_clock_seconds']
+        for track, extra in [('lower-generality-1', 0), ('upper-riscv', 330)]:
+            sub.track = track
+            proc = Mock(returncode=0)
+            proc.communicate.return_value = (json.dumps({'status': 'rejected'}), '')
+            with patch('app.worker.subprocess.Popen', return_value=proc), \
+                    patch('app.worker.source_archive.recover_metadata', return_value={}):
+                result, _ = worker.run_pipeline(sub)
+            self.assertEqual(result['status'], 'rejected')
+            proc.communicate.assert_called_once_with(timeout=limit + 600 + extra)
+
     def test_pipeline_rejects_forged_or_inconsistent_success_metadata(self):
         sub = self.submission()
         valid = {'status': 'verified', 'track': 'lower-generality-1', 'claim': 19, 'commit': sub.commit}

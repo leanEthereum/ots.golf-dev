@@ -346,11 +346,11 @@ def measure_riscv(project: Path, lean_root: str, config: str, env: dict,
         if platform.system() == "Linux":
             unit = f"ots-size-{uuid.uuid4().hex[:12]}"
             cmd = linux_command(cmd, project / lean_root, size_env,
-                                {**limits, "wall_clock_seconds": 120}, unit, hidden, (output,))
+                                {**limits, "wall_clock_seconds": 300}, unit, hidden, (output,))
             runtime = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
             cenv = {"PATH": size_env["PATH"], "HOME": size_env["HOME"], "XDG_RUNTIME_DIR": runtime,
                     "DBUS_SESSION_BUS_ADDRESS": os.environ.get("DBUS_SESSION_BUS_ADDRESS", f"unix:path={runtime}/bus")}
-        bounded_output(cmd, LOG_CAP, timeout=130, cwd=project / lean_root, env=cenv)
+        bounded_output(cmd, LOG_CAP, timeout=310, cwd=project / lean_root, env=cenv)
         with output.open("rb") as stream:
             raw = stream.read(1025)
         if len(raw) > 1024:

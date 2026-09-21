@@ -13,7 +13,7 @@ def exportModule (module : Name) (targets : Array Name) : Comparator.M String :=
   -- The driver's LEAN_PATH contains only trusted tool libraries. Lake computes the
   -- candidate search path inside the sandbox from the protected project lakefile.
   Comparator.runSandBoxedWithStdout {
-    cmd := "lake"
+    cmd := (ctx.leanPrefix / "bin" / "lake").toString
     args := #["env", ctx.whichLean4Export, module.toString, "--"] ++ targets.map Name.toString
     envPass := #["PATH", "HOME", "LEAN_ABORT_ON_PANIC"]
     envOverride := #[("LEAN_ABORT_ON_PANIC", some "1")]
@@ -38,8 +38,16 @@ def measure : Comparator.M Json := do
     ++ (← Comparator.getDefinitionNames)
   let challenge ← exportModule (← Comparator.getChallengeModule) targets
   let solution ← exportModule (← Comparator.getSolutionModule) targets
-  Comparator.verifyMatch challenge solution
+  -- Keep verifyMatch's statement, primitive and axiom checks, but retain the
+  -- replayed environment for counting instead of replaying the same proof twice.
+  let expected ← Export.parseStream (← Comparator.stringStream challenge)
   let exported ← Export.parseStream (← Comparator.stringStream solution)
+  let theorems ← Comparator.getTheoremNames
+  let definitions ← Comparator.getDefinitionNames
+  let axioms ← Comparator.getLegalAxioms
+  IO.ofExcept <| Comparator.compareAt expected exported (theorems ++ axioms)
+    definitions (← Comparator.primitiveTargets)
+  IO.ofExcept <| Comparator.checkAxioms exported theorems definitions axioms
   let env ← mkEmptyEnvironment
   let env ← env.replay (exported.constMap.erase `Quot.mk |>.erase `Quot.lift |>.erase `Quot.ind)
   let image := Expr.proj `OptimalOTS.Riscv.Submission 1
@@ -56,7 +64,7 @@ def run : IO Unit := do
   let cfg : Comparator.Config ← IO.ofExcept <| fromJson? <| ← IO.ofExcept <|
     Json.parse (← IO.FS.readFile configPath)
   unless cfg.solution_module == "Submissions.UpperRiscv.Solution" &&
-      cfg.challenge_module == "OptimalOTS.Challenge.UpperRiscv" do
+      cfg.challenge_module == "OptimalOTS.Challenge.UpperRiscv" && !cfg.enable_nanoda do
     throw <| IO.userError "RISC-V config required"
   let result ← Comparator.M.run measure cfg
   IO.FS.writeFile outputPath result.compress

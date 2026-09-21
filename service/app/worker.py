@@ -62,7 +62,10 @@ def run_pipeline(sub: Submission) -> tuple[dict, str | None]:
     proc = subprocess.Popen(cmd, cwd=settings.repo_root, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             text=True, start_new_session=True)
     try:
-        stdout, stderr = proc.communicate(timeout=limit + 600)
+        # Preserve the existing proof/fetch allowance when the optional RISC-V
+        # collector uses its full five-minute budget, including sandbox teardown.
+        metadata_allowance = 330 if sub.track == "upper-riscv" else 0
+        stdout, stderr = proc.communicate(timeout=limit + 600 + metadata_allowance)
     except subprocess.TimeoutExpired:
         timed_out = True
         stdout, stderr = _stop_pipeline(proc)

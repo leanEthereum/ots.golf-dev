@@ -327,7 +327,8 @@ The core's `service/riscv-program-sizes.json` contains the frozen measurements f
 submissions; both sources are on GitHub. No database backfill or server-local annotation is
 needed. The optional collector uses the existing pinned comparator tools (including their
 `Main.olean` and lean4export libraries); `verifier/setup_tools.sh` provisions these on a fresh
-host. It runs in a separate 120-second sandbox after proof verification. Only the trusted
+host. It runs in a separate 300-second sandbox after proof verification; the worker reserves
+this additional time without reducing the existing proof/fetch allowance. Only the trusted
 collector can write its result file outside `.lake`; candidate exports have no writable paths.
 
 Webhook events can be duplicated or missed. GitHub does not automatically retry failed deliveries:
