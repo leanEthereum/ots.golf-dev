@@ -59,6 +59,28 @@ chmod o+x "${OTS_HOME}"
 # Bounded job storage: a fully allocated (not sparse) 48 GiB image on the system disk, mounted at
 # /srv/ots-work at every boot. A runaway proof can fill only this volume.
 work_image=/var/lib/ots-work.img
+# Scheduled fstrim must not punch holes in this fully reserved loop image. Update
+# existing installations too; the exclusion is read from fstab without a remount.
+python3 - "${work_image}" <<'PY'
+from pathlib import Path
+import sys
+image = sys.argv[1]
+fstab = Path('/etc/fstab')
+lines, found = [], False
+for line in fstab.read_text().splitlines():
+    fields = line.split()
+    if len(fields) >= 4 and fields[:2] == [image, '/srv/ots-work']:
+        options = [o for o in fields[3].split(',') if o != 'discard']
+        for option in ('nodiscard', 'X-fstrim.notrim'):
+            if option not in options:
+                options.append(option)
+        fields[3] = ','.join(options)
+        line, found = ' '.join(fields), True
+    lines.append(line)
+if not found:
+    lines.append(f'{image} /srv/ots-work ext4 loop,nosuid,nodev,nodiscard,X-fstrim.notrim 0 2')
+fstab.write_text('\n'.join(lines) + '\n')
+PY
 if ! mountpoint -q /srv/ots-work; then
   if [[ ! -f "${work_image}" ]]; then
     fallocate -l 48G "${work_image}"
@@ -68,9 +90,11 @@ if ! mountpoint -q /srv/ots-work; then
     mkfs.ext4 -q -m 0 -E nodiscard,lazy_itable_init=0,lazy_journal_init=0 "${work_image}"
     fallocate -l 48G "${work_image}"
   fi
-  grep -q "^${work_image} " /etc/fstab || echo "${work_image} /srv/ots-work ext4 loop,nosuid,nodev 0 2" >> /etc/fstab
   mount /srv/ots-work
 fi
+# Restore the reservation if an older installation was trimmed. fallocate fills
+# holes without overwriting existing filesystem contents.
+fallocate -l "$(stat -c %s "${work_image}")" "${work_image}"
 chown ots:ots-state /srv/ots-work
 chmod 2770 /srv/ots-work
 loginctl enable-linger ots   # systemd --user for the sandbox scope of the worker
