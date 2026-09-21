@@ -61,7 +61,9 @@ instruction count.
 All parties share one random oracle on bit strings, returning 256 bits. Equal inputs always share
 an answer across all uses. Input lengths include explicit parameters and tweaks. Each query
 costs one compression per started 512-bit input block, at least one.
-Messages are 256 bits; key generation costs at most 1024 compressions and signing at most 2^20.
+Messages are 256 bits; key generation, signing and verification each cost at most 2^20
+compressions. The verification budget is not a score; it keeps the security statement from being
+inflated by an expensive verifier.
 Computation is free. Key generation and signing may use private randomness; verification is
 deterministic. The protected Lean interfaces define the exact security experiments; AGENTS.md
 lists submission requirements.

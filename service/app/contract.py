@@ -133,7 +133,43 @@ def improves(direction: str, claim: int, record: int | None) -> bool:
 # below rather than restating it: a result carried into `133f49c9…` under the keygen widening
 # keeps precisely the slugs that widening allowed. `upper-leanisa` is new and has no prior
 # result to carry.
+# Capping verification cost (`Admissible.verifyCost : VerifyCostAtMost verifyBudget`, with
+# `verifyBudget = 2^20`) STRENGTHENS admissibility, so this one is not a pure addition and is
+# audited per track rather than carried wholesale. It closes a hole in `Secure`: `B` is a budget
+# for the whole experiment, which ends with a verification, so an unbounded verifier inflated
+# every valid `B` until `B / 2^127 > 1` held vacuously.
 RESULT_COMPATIBILITY = {
+    # The verification-cost cap. Not a pure addition: `Admissible` gained a field, so an old
+    # certificate carries forward only where what was already checked implies it.
+    #   upper-compressions — its certificate exports `scheme.VerifyCostAtMost <claim>` and the
+    #     verifier rejects claim > limits.max_claim = 1_000_000 < 2^20 = verifyBudget. So every
+    #     accepted compressions result already proved a strictly tighter bound than the new
+    #     field asks for, and `VerifyCostAtMost.mono` supplies it.
+    #   upper-riscv — `Implements` equates `scheme.verify` with the machine run as oracle
+    #     computations, so they make the same queries, and the machine charges exactly
+    #     `blockCost input.1` cycles per hash (`RiscvMachine.execute`) plus one per other
+    #     instruction. `Submission.no_fault` rules out faulting paths, so `CyclesAtMost <claim>`
+    #     bounds the verifier's compression cost by claim <= 1_000_000 < 2^20 on every path.
+    #   lower-generality-1 — quantifies over `Dag.Scheme`, not `OracleAlgorithm.Admissible`.
+    #     `Dag.lean` is byte-identical and no model constant moved, so the statement is
+    #     unchanged and every verified lower certificate still proves exactly it.
+    #   upper-leanisa — deliberately NOT carried. Its clauses (`Faithful`, `Sound`) tie bytecode
+    #     to specification by acceptance decisions only and never by query cost, so it is the one
+    #     track where an old certificate could rest on the very hole this revision closes. A
+    #     leanISA result must be re-checked under this contract. No result exists yet.
+    "bf2e347843dc8a1ff1fd87b38832e7e4f19a07837328e1950f9be290fe97a29d": {
+        "d3684f44469781b7c19d3f540e0b780f17ff5090595377445faeea0fc425279e": frozenset({
+            "lower-generality-1", "upper-compressions", "upper-riscv",
+        }),
+        "56289b3f45a5fe68fba953d268860758045f1ef919dd1555d04909ba185c11dc": frozenset({
+            "lower-generality-1", "upper-compressions", "upper-riscv",
+        }),
+        "133f49c9ceaf596c3bf6aaf0941ffe126a1efe23db0785c8af1288b149cb093e": frozenset({
+            "lower-generality-1", "upper-compressions",
+        }),
+        "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb": frozenset({"upper-compressions"}),
+        "cca4d9add2f2a1d3bdc40381258e6992f146e2f3ad9087706913ff281cff22dc": frozenset({"upper-compressions"}),
+    },
     # Adding the leanISA track is a pure addition on top of the image-budget revision above:
     # four new protected files (`LeanIsaMachine.lean`, `LeanIsa.lean`, its stub and its
     # comparator config), the new track's entry and per-track display metadata in

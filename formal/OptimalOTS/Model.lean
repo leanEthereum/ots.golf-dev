@@ -43,6 +43,10 @@ def maxSignatureBits : ℕ := 5504
 def keygenBudget : ℕ := 2 ^ 20
 /-- Maximal cost of signing. -/
 def signBudget : ℕ := 2 ^ 20
+/-- Maximal cost of verification. Verification is part of the security experiment, so an
+unbounded verifier would inflate every attack budget `B` and make the security statement
+vacuous; this caps that inflation at the same budget key generation and signing get. -/
+def verifyBudget : ℕ := 2 ^ 20
 /-- Signing may fail with probability at most `1 / 2 ^ signingFailureBits`. -/
 def signingFailureBits : ℕ := 128
 
@@ -73,6 +77,19 @@ def queryCost : Spec.Domain → ℕ
 /-- `oa` costs at most `B` on every execution path, whatever the oracle answers. -/
 def CostAtMost {α : Type} (oa : OracleComp Spec α) (B : ℕ) : Prop :=
   oa.IsQueryBound B (fun t b => queryCost t ≤ b) (fun t b => b - queryCost t)
+
+/-- Raising the budget preserves a cost bound: the per-query test `queryCost t ≤ b` is upward
+closed in `b`, and the budget left after a query is monotone in it. A submission that proves a
+tight verification cost meets `verifyBudget` through this. -/
+theorem CostAtMost.mono {α : Type} {oa : OracleComp Spec α} :
+    ∀ {b b' : ℕ}, CostAtMost oa b → b ≤ b' → CostAtMost oa b' := by
+  induction oa using OracleComp.inductionOn with
+  | pure x => intro b b' _ _; trivial
+  | query_bind t k ih =>
+      intro b b' h hle
+      unfold CostAtMost at h ⊢
+      rw [isQueryBound_query_bind_iff] at h ⊢
+      exact ⟨le_trans h.1 hle, fun u => ih u (h.2 u) (Nat.sub_le_sub_right hle _)⟩
 
 /-- `oa` uses no private randomness: on every path, every query goes to the hash oracle. -/
 def Deterministic {α : Type} (oa : OracleComp Spec α) : Prop :=

@@ -78,6 +78,11 @@ base <code>main</code>. Read the rules below before preparing a submission.
       <p>Signatures are bit strings. Every possible signer output has at most 5,504 bits, and
       verification rejects longer strings. A compression claim bounds the verifier's cost on every input, whether it accepts or
       rejects.</p>
+      <p>Verification itself costs at most <strong>2<sup>20</sup></strong> compressions on every
+      input and every oracle-answer path, like key generation and signing. This is a requirement,
+      not the score: the security budget is measured over the whole experiment, which ends with a
+      verification, so an unbounded verifier would inflate the budget instead of resisting an
+      attack. No honest verifier comes close to this cap.</p>
     </div>
   </details>
 

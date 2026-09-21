@@ -93,10 +93,13 @@ theorem OptimalOTS.Challenge.UpperCompressions.cost : scheme.VerifyCostAtMost <c
 `scheme` is a definition hole: any term of the stated type is admissible, and the theorems pin it
 down. Admissibility includes perfect correctness, deterministic verification, signing failure at
 most `2^-128`, signatures that are bit strings of at most 5504 bits, rejection of longer bit
-strings, and pathwise limits of 2^20 key-generation compressions and `2^20` signing
-compressions. Availability is averaged over honest key generation and signing from a fresh oracle,
-for every message chosen as a function of the public key. Verification cost covers every input and
-oracle-answer path, including rejection. A record needs claim ≤ record − 1.
+strings, and pathwise limits of 2^20 key-generation compressions, `2^20` signing compressions
+and `2^20` verification compressions. Availability is averaged over honest key generation and
+signing from a fresh oracle, for every message chosen as a function of the public key.
+Verification cost covers every input and oracle-answer path, including rejection. The
+verification budget is not the score; it bounds how far an expensive verifier can inflate the
+budget `B` in the security experiment, which every upper track's `Secure` clause quantifies over.
+A record needs claim ≤ record − 1.
 
 **RISC-V upper bound track** (`formal/Submissions/UpperRiscv/`, smaller is better):
 

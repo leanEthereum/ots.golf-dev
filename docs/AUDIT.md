@@ -68,8 +68,19 @@ malleability of a signature on the signed message.
 
 `OracleAlgorithm.lean` supplies arbitrary terminating oracle programs, signatures as bit strings,
 perfect correctness, deterministic verification (`Admissible.verifyDeterministic`), signing
-availability, pathwise resource limits and oversized-signature rejection. Key generation and
-signing may use private randomness; verification is deterministic.
+availability, pathwise resource limits for all three programs (`Admissible.keygenCost`,
+`Admissible.signCost`, `Admissible.verifyCost`) and oversized-signature rejection. Key generation
+and signing may use private randomness; verification is deterministic.
+
+`Admissible.verifyCost` is load-bearing for security, not for scoring. `Secure` bounds the
+attacker's advantage by `B / 2 ^ securityBits` for every pathwise budget `B` of the *whole*
+experiment, and the experiment ends with a verification. Without a cap on it, a scheme could make
+verification hash a `2 ^ 137`-bit input, costing `2 ^ 128` on every path, so that every valid `B`
+satisfied `B / 2 ^ 127 ≥ 2 > 1` and the clause held of a scheme with one valid signature per key.
+The RISC-V track was never exposed to this — `Implements` demands equality of oracle computations,
+so the machine must make the same queries and pay for them in cycles — and the compressions track
+scores the verification cost itself. The leanISA track ties machine to specification by acceptance
+decisions only, so the cap is what carries security onto its bytecode.
 
 The generic upper challenge fixes signing failure at most `2^-128` and requires separate proofs
 of admissibility, strong security, and pathwise verification cost. Its forest certificate uses the
