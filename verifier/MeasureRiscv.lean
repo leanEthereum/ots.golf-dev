@@ -19,7 +19,7 @@ def exportModule (module : Name) (targets : Array Name) : Comparator.M String :=
     envOverride := #[("LEAN_ABORT_ON_PANIC", some "1")]
     readablePaths := #[ctx.projectDir, ctx.projectDir / ".lake"]
     writablePaths := #[]
-    executablePaths := #[ctx.leanPrefix, ctx.gitLocation]
+    executablePaths := #[ctx.leanPrefix, ctx.gitLocation, System.FilePath.mk ctx.whichLean4Export]
   }
 
 def listLength (env : Environment) (value : Expr) (limit : Nat) : IO Nat := do
