@@ -308,6 +308,13 @@ preserves existing environment files. Restart web and worker after the update, c
 respond successfully, check `/rules` for the deployed commit, inspect all three boards and the service journal, and repeat
 actual-host isolation/reference checks whenever the verifier or sandbox changes.
 
+The production web process also advances the submissions repository's `.contract` submodule to
+the deployed core commit, in a separate bot commit that preserves proofs and record metadata.
+Confirm `Submissions contract synchronized` in the web journal and compare the GitHub pin with
+the deployed SHA before considering the update complete. GitHub failures retry every minute
+without delaying page serving. Synchronization refuses older or divergent core revisions; an
+intentional rollback needs a separate maintainer pin update. Local previews never update the pin.
+
 ### Upgrading from the single-user setup
 
 When upgrading from the earlier single-user setup, stop both services, create `ots-web` and

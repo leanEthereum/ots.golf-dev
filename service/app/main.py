@@ -27,7 +27,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import auth, charts, contract, git_authors, github, literature, records, riscv_breakdown, scheme_art, source_archive
 from .config import settings
 from .visibility import visible
-from . import signature_diagram
+from . import signature_diagram, contract_sync
 from . import hall_of_fame, revalidations
 from .db import (SessionLocal, Submission, User, get_session, init_db, local_lock, pr_submission_id,
                  schedule_report, stable_id, utcnow)
@@ -39,7 +39,9 @@ async def lifespan(_app):
         raise RuntimeError("the production website must run with OTS_ROLE=web under its separate Unix identity")
     init_db()
     await run_in_threadpool(prepare_board)
-    task = resync_task = profiles_task = diagrams_task = None
+    task = resync_task = profiles_task = diagrams_task = contract_task = None
+    if contract_sync.enabled():
+        contract_task = asyncio.create_task(contract_sync.sync_on_start())
     if settings.github_token and settings.submissions_repo:
         profiles_task = asyncio.create_task(riscv_breakdown.refresh_loop())
         diagrams_task = asyncio.create_task(signature_diagram.refresh_loop())
@@ -64,7 +66,7 @@ async def lifespan(_app):
     try:
         yield
     finally:
-        for running in (task, resync_task, profiles_task, diagrams_task):
+        for running in (task, resync_task, profiles_task, diagrams_task, contract_task):
             if running is not None and not running.done():
                 running.cancel()
                 with suppress(asyncio.CancelledError):

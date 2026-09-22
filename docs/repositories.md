@@ -68,8 +68,12 @@ Review and commit the prepared files. Publish the pinned core commit before publ
 repository, so contributors can obtain the submodule. Contributors fork the submissions repository,
 clone with `--recurse-submodules`, and follow its README for tool setup and local verification.
 
-To update an existing competition contract, first deploy the reviewed core and then update the
-submodule pin in a maintainer PR. The preparation command never overwrites an existing repository.
+After deploying a reviewed core, the production website synchronizes the submissions repository's
+`.contract` pin to that deployed commit in a separate bot commit. It retries GitHub failures,
+preserves concurrent repository edits, and never rolls the pin back to an older or divergent core.
+Local previews do not synchronize pins. Check the startup journal for successful synchronization;
+an intentional contract rollback requires a separate maintainer pin update.
+The preparation command never overwrites an existing repository.
 
 ## Service configuration
 

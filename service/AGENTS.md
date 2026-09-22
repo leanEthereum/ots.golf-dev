@@ -115,6 +115,10 @@ receives GitHub credentials. The bot creates retention tags, writes receipt/verd
 commit statuses, and commits new record snapshots to submissions `main`. It never merges or closes
 pull requests or changes an existing source tag. The bot's authorized `main` ruleset bypass must
 not grant bypass of source-tag update/deletion protection.
+On production web startup, synchronize the submissions `.contract` pin to the deployed core in
+a separate bot commit. Retry publication failures and preserve concurrent edits. Never repin from
+local previews, overwrite proof roots, or automatically roll a pin back to an older/divergent core.
+Verify synchronization in the deployment journal and on GitHub after each deployment.
 Draft PRs are not admitted, including during startup resync. The `ready_for_review` webhook
 admits the current head through the same checks as a new PR. Recheck draft status before queueing.
 A verified improvement becomes public only after the verdict comment is durable, with record
