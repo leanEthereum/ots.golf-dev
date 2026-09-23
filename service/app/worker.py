@@ -7,6 +7,7 @@ Run with ``.venv/bin/python -m app.worker``; a file lock prevents concurrent wor
 from __future__ import annotations
 
 import json
+import fcntl
 import os
 import shutil
 import signal
@@ -15,12 +16,33 @@ import sys
 import time
 import traceback
 from datetime import timedelta
+from contextlib import contextmanager
+from pathlib import Path
 
 from sqlalchemy import func, select
 
 from . import contract, github, record_snapshot, revalidations, riscv_program_size, source_archive
 from .config import settings
 from .db import GithubReport, SessionLocal, Submission, init_db, local_lock, schedule_report, utcnow
+
+@contextmanager
+def shared_verify_slot():
+    """Optionally serialize proof builds with another competition on this host.
+
+    The lock file is provisioned outside either disposable checkout. flock releases it
+    automatically if a worker or its verifier dies.
+    """
+    path = os.environ.get("OTS_SHARED_VERIFY_LOCK")
+    if not path:
+        yield
+        return
+    with Path(path).open("a") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle, fcntl.LOCK_UN)
+
 
 POLL_SECONDS = 3
 TERMINAL_STATUSES = {"verified", "rejected", "policy_rejected", "timeout", "failed"}
@@ -417,7 +439,8 @@ def process(sub_id: str) -> None:
         if not sub.current_contract:
             result, log_path = {"status": "failed", "reason": "queued contract changed; resubmit for the current contract"}, None
         else:
-            result, log_path = run_pipeline(sub)
+            with shared_verify_slot():
+                result, log_path = run_pipeline(sub)
     except Exception:
         _log(traceback.format_exc())
         result, log_path = {"status": "failed", "reason": "internal error in the verifier; the operator has the trace"}, None
