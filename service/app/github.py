@@ -206,7 +206,7 @@ VERDICT_OPEN, VERDICT_CLOSE = "<!-- ots-result", "-->"
 VERDICT_RE = re.compile(r"<!-- ots-result\n(.*)\n-->\s*", re.S)
 VERDICT_KEYS = ("id", "track", "commit", "status", "claim", "duration_s", "finished_at", "contract", "record", "source_archive",
                 "source_ref", "created_at", "author", "description", "co_authors", "assisted_by",
-                "contract_commit", "submission_root", "failure", "git_authors", "riscv_program_size")
+                "contract_commit", "submission_root", "failure", "git_authors", "riscv_program_size", "leanisa_program_size")
 
 
 def verdict_block(entries: list[dict]) -> str:

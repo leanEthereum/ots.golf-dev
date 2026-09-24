@@ -21,7 +21,7 @@ from pathlib import Path
 
 from sqlalchemy import func, select
 
-from . import contract, github, record_snapshot, revalidations, riscv_program_size, source_archive
+from . import leanisa_program_size, contract, github, record_snapshot, revalidations, riscv_program_size, source_archive
 from .config import settings
 from .db import GithubReport, SessionLocal, Submission, init_db, local_lock, schedule_report, utcnow
 
@@ -203,6 +203,10 @@ def verdict_entry(sub: Submission) -> dict:
         size = riscv_program_size.validate(detail.get("riscv_program_size"), sub.commit, detail.get("contract"))
         if size:
             entry["riscv_program_size"] = size
+    if sub.track == "upper-leanisa" and status == "verified":
+        size = leanisa_program_size.validate(detail.get("leanisa_program_size"), sub.commit, detail.get("contract"))
+        if size:
+            entry["leanisa_program_size"] = size
     return entry
 
 
@@ -469,6 +473,13 @@ def process(sub_id: str) -> None:
                                                "contract": detail.get("contract")}, sub.commit, detail.get("contract"))
             if size:
                 detail["riscv_program_size"] = size
+        detail.pop("leanisa_program_size", None)
+        raw_size = result.get("leanisa_program_size")
+        if sub.track == "upper-leanisa" and sub.status == "verified" and isinstance(raw_size, dict):
+            size = leanisa_program_size.validate({**raw_size, "version": 1, "commit": sub.commit,
+                                                 "contract": detail.get("contract")}, sub.commit, detail.get("contract"))
+            if size:
+                detail["leanisa_program_size"] = size
         notes = result.get("notes")
         if isinstance(notes, str) and notes.strip():
             detail["notes"] = notes[:64 * 1024]

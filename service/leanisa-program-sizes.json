@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "measurements": {
+    "65878d04fc2916d99848d240cfcda1dc": {
+      "version": 1,
+      "commit": "86ed7c9a912323b158afd78d3bfa9baff8c0ac4b",
+      "contract": "bf2e347843dc8a1ff1fd87b38832e7e4f19a07837328e1950f9be290fe97a29d",
+      "instructions": 131072,
+      "source_audit": {
+        "log_size": 17,
+        "files_sha256": {
+          "Solution.lean": "404e272ce799a7bd061130df8845d81349afac3cb3f63363f31a9b85254a84ab",
+          "MachineProgram.lean": "366f478a2ded20f13bce95389031b6c97c0525e35270308baab88aba64bcbf1d",
+          "MachineFaithful.lean": "b1285282f1f236f1814686ca3e9e6983e18ac64b9ff15fde794441f61db77717"
+        }
+      }
+    },
+    "138ee2d53b13d598cf6b58168584ec7e": {
+      "version": 1,
+      "commit": "5de084e274fe3a3692c0b4ff4d69e833128f9819",
+      "contract": "bf2e347843dc8a1ff1fd87b38832e7e4f19a07837328e1950f9be290fe97a29d",
+      "instructions": 131072,
+      "source_audit": {
+        "log_size": 17,
+        "files_sha256": {
+          "Solution.lean": "5b92a62975fc7619e95a1754a85713226d5e9861d802f560bf94c5264c4f04ed",
+          "MachineProgram.lean": "65512a9819d91dd7fe1499d63e1b31cbde40cb95fde94970e14d46846352bd76",
+          "MachineFaithful.lean": "5c24ce9901bca6676ebc7dd7ff37263b912cb50d1436aa3cbe3cd189cc0a912f"
+        }
+      }
+    },
+    "61da18fcc3c5a8516b7b3967ee3d4c85": {
+      "version": 1,
+      "commit": "4ffe343ea4cb309b7fae61c1b20f1d224d22f4a5",
+      "contract": "bf2e347843dc8a1ff1fd87b38832e7e4f19a07837328e1950f9be290fe97a29d",
+      "instructions": 65536,
+      "source_audit": {
+        "log_size": 16,
+        "files_sha256": {
+          "Solution.lean": "d502d3d91f4e85d29b48388046793478d677545822fd0a31872feba2f2052ffd",
+          "MachineProgram.lean": "78a66d19a13b3891a8bed900a312233eb62671e2f0f1d91389ab73843c3d16ed",
+          "MachineFaithful.lean": "b3877f77f4d4c94c2dd5c72093f82946b113828b2c6b976c3d3d9f01220abd22"
+        }
+      }
+    },
+    "207742d1fef2b75bb31f77ff00bd17b2": {
+      "version": 1,
+      "commit": "ecf3bde4a3932c5d8dd83f03ad4330c7fbff6bb2",
+      "contract": "bf2e347843dc8a1ff1fd87b38832e7e4f19a07837328e1950f9be290fe97a29d",
+      "instructions": 65536,
+      "source_audit": {
+        "log_size": 16,
+        "files_sha256": {
+          "Solution.lean": "4d5d9ab7b580899285f8271f005385db7c0046663ca8692c5abe333243fc9388",
+          "MachineProgram.lean": "20deaf2d1552c30aa15b650f58976983aa8b87314230e4dd525f6dbd9ae62473",
+          "MachineFaithful.lean": "f00189f32e4d888aa2009d867915e84dfbe87068d2a9223a64ff255ada106a86"
+        }
+      }
+    },
+    "d89aca58e882ec1d8aee7c369fba2917": {
+      "version": 1,
+      "commit": "ac76c2cda97c6863789430bfad1b34bd7afda09b",
+      "contract": "bf2e347843dc8a1ff1fd87b38832e7e4f19a07837328e1950f9be290fe97a29d",
+      "instructions": 65536,
+      "source_audit": {
+        "log_size": 16,
+        "files_sha256": {
+          "Solution.lean": "4d5d9ab7b580899285f8271f005385db7c0046663ca8692c5abe333243fc9388",
+          "MachineProgram.lean": "20deaf2d1552c30aa15b650f58976983aa8b87314230e4dd525f6dbd9ae62473",
+          "MachineFaithful.lean": "f00189f32e4d888aa2009d867915e84dfbe87068d2a9223a64ff255ada106a86"
+        }
+      }
+    },
+    "80b6a4678130c2f42515667a81102ccf": {
+      "version": 1,
+      "commit": "d1aa44714395371ed77971c6877c345f27efd64e",
+      "contract": "bf2e347843dc8a1ff1fd87b38832e7e4f19a07837328e1950f9be290fe97a29d",
+      "instructions": 262144,
+      "source_audit": {
+        "log_size": 18,
+        "files_sha256": {
+          "Solution.lean": "41cac3cd04bc166f38ffb80234008ce57a3e7853e23c9f69d7f41d1a441c1535",
+          "MachineProgram.lean": "54db751556798d7cb8a4ec11ba7a568297feda0f64ac3cbe0748a9b968015063",
+          "MachineFaithful.lean": "6f46a3986b9333464a471625dfe9cbf553b546273fe501266fb1a82fb9bf127e"
+        }
+      }
+    }
+  }
+}

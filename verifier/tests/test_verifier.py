@@ -22,7 +22,7 @@ from render_challenge import render
 from linux_exec import isolation_check
 from linux_storage import MAX_WORK_BYTES, linux_work_preflight, mount_path
 from verify import (PolicyReject, bounded_output, export_submission, linux_command, linux_preflight,
-                    read_notes, run, tools_env, measure_riscv)
+                    read_notes, run, tools_env, measure_riscv, measure_leanisa)
 
 
 class VerifierTests(unittest.TestCase):
@@ -49,6 +49,23 @@ class VerifierTests(unittest.TestCase):
         with patch('verify.platform.system', return_value='Darwin'), \
                 patch('verify.bounded_output', side_effect=subprocess.TimeoutExpired('lean', 130)):
             self.assertIsNone(measure_riscv(self.root, 'formal', 'config.json', env, sandbox, limits))
+
+    def test_leanisa_size_uses_only_protected_metadata(self):
+        env = {"COMPARATOR_BIN": "/trusted/comparator/.lake/build/bin/comparator",
+               "COMPARATOR_LEAN4EXPORT": "/trusted/export/.lake/build/bin/lean4export"}
+        sandbox = {"PATH": "/bin", "HOME": "/empty"}
+        def measure(raw):
+            def child(cmd, limit, **kwargs):
+                self.assertTrue(cmd[-1].endswith('MeasureLeanIsa.lean'))
+                if raw is not None:
+                    (self.root / 'leanisa-size.json').write_text(json.dumps(raw))
+                return b'{"instructions":512}'
+            with patch('verify.platform.system', return_value='Darwin'), patch('verify.bounded_output', side_effect=child):
+                return measure_leanisa(self.root, 'formal', 'config.json', env, sandbox, {})
+        self.assertEqual(measure({'instructions':512}), {'instructions':512})
+        for bad in [None, {}, {'instructions':True}, {'instructions':0}, {'instructions':513},
+                    {'instructions':524288}, {'instructions':512, 'data_bytes':0}]:
+            self.assertIsNone(measure(bad))
 
     def test_size_sandbox_writable_exception_is_only_the_output_file(self):
         output = self.root / 'riscv-size.json'

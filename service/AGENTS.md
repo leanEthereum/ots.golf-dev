@@ -196,6 +196,17 @@ New measurements travel in the bot's durable GitHub verdict and are restored by 
 `riscv-program-sizes.json` preserves measurements of pre-feature submissions, pinned to
 their original source SHA and contract. Missing or invalid measurements remain absent.
 
+Show leanISA bytecode instruction counts on its record card, leaderboard and submission page.
+Count the full fixed table (`2 ^ program.logSize`), including padding and the halt slot.
+Do not invent a serialized byte size or a separate embedded-data section for this machine.
+`verifier/MeasureLeanIsa.lean` replays the certificate through the same trusted export boundary
+before reducing the log-size. Optional measurement failures never change the proof verdict.
+Persist `leanisa_program_size` in GitHub verdicts, pinned to source and contract, and restore it
+during resync. Missing measurements stay absent, never zero. Demo counts are preview data only.
+`leanisa-program-sizes.json` preserves the six pre-feature counts from reviewed, retained source
+definitions; `tools/check_historical_leanisa_sizes.py` checks their exact source hashes and literal
+log-size bindings. This display-only catalog neither rechecks nor changes historical verdicts.
+
 New RISC-V submissions export `image_size`, proving `submission.image.byteSize < 1048576`.
 This is four bytes per instruction plus embedded-data bytes, with a strict upper bound.
 The comparator checks this required theorem; optional display measurements never enforce admission.

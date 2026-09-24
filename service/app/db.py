@@ -84,6 +84,13 @@ class Submission(Base):
         return for_submission(self)
 
     @property
+    def program_size(self):
+        if self.track == "upper-leanisa":
+            from .leanisa_program_size import for_submission
+            return for_submission(self)
+        return self.riscv_program_size
+
+    @property
     def co_authors_list(self) -> list[str]:
         try:
             value = json.loads(self.co_authors or "[]")

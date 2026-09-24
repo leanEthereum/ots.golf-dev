@@ -326,20 +326,20 @@ def linux_command(cmd: list[str], cwd: Path, sandbox_env: dict, limits: dict, un
             + [x for p in props for x in ("-p", p)] + ["--"] + clean_cmd)
 
 
-def measure_riscv(project: Path, lean_root: str, config: str, env: dict,
-                  sandbox_env: dict, limits: dict, hidden=()) -> dict | None:
+def measure_program(project: Path, lean_root: str, config: str, env: dict,
+                  sandbox_env: dict, limits: dict, hidden=(), *, leanisa=False) -> dict | None:
     """Best-effort metadata from kernel-checked exports, under a separate bounded sandbox.
 
     The output file is writable only by the trusted driver. Comparator's Landlock
     export subprocesses have no writable paths. Never parse candidate stdout as metadata.
     A failure here leaves an already verified certificate and its score unchanged.
     """
-    output = project / "riscv-size.json"
+    output = project / ("leanisa-size.json" if leanisa else "riscv-size.json")
     tool_paths = [Path(env[k]).parent.parent / "lib" / "lean"
                   for k in ("COMPARATOR_BIN", "COMPARATOR_LEAN4EXPORT")]
     size_env = {**sandbox_env, "LEAN_PATH": os.pathsep.join(map(str, tool_paths)),
                 "OTS_SIZE_CONFIG": str(project / config), "OTS_SIZE_OUTPUT": str(output)}
-    cmd = [shutil.which("lean", path=size_env["PATH"]) or "lean", str(HERE / "MeasureRiscv.lean")]
+    cmd = [shutil.which("lean", path=size_env["PATH"]) or "lean", str(HERE / ("MeasureLeanIsa.lean" if leanisa else "MeasureRiscv.lean"))]
     cenv, unit = size_env, None
     try:
         output.write_text("")
@@ -356,6 +356,12 @@ def measure_riscv(project: Path, lean_root: str, config: str, env: dict,
         if len(raw) > 1024:
             return None
         value = json.loads(raw)
+        if leanisa:
+            if isinstance(value, dict) and set(value) == {"instructions"}:
+                n = value["instructions"]
+                if type(n) is int and 1 <= n <= 262144 and n & (n - 1) == 0:
+                    return value
+            return None
         if (isinstance(value, dict) and set(value) == {"instructions", "data_bytes"}
                 and type(value["instructions"]) is int and 0 <= value["instructions"] <= 262144
                 and type(value["data_bytes"]) is int and 0 <= value["data_bytes"] <= 1048576):
@@ -370,6 +376,14 @@ def measure_riscv(project: Path, lean_root: str, config: str, env: dict,
             except (OSError, subprocess.SubprocessError):
                 pass
     return None
+
+
+def measure_riscv(project, lean_root, config, env, sandbox_env, limits, hidden=()):
+    return measure_program(project, lean_root, config, env, sandbox_env, limits, hidden)
+
+
+def measure_leanisa(project, lean_root, config, env, sandbox_env, limits, hidden=()):
+    return measure_program(project, lean_root, config, env, sandbox_env, limits, hidden, leanisa=True)
 
 
 def clone_tree(src: Path, dst: Path, ignore=None) -> None:
@@ -595,6 +609,11 @@ def main() -> int:
                                      sandbox_env, lim, hidden)
                 if size is not None:
                     result["riscv_program_size"] = size
+            elif a.track == "upper-leanisa":
+                size = measure_leanisa(project, lean_root, t["comparator_config"], env,
+                                       sandbox_env, lim, hidden)
+                if size is not None:
+                    result["leanisa_program_size"] = size
             return finish("verified", comparator_exit=0)
         return finish("rejected", comparator_exit=proc.returncode, tail=text[-2000:])
     except PolicyReject as exc:
