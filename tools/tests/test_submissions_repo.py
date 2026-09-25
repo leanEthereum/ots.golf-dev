@@ -43,7 +43,8 @@ class SubmissionsRepositoryTests(unittest.TestCase):
         destination = Path(self.temp.name) / 'entries'
         result = prepare(self.root, destination)
         self.assertEqual(set(result['tracks']),
-                         {'lower-generality-1', 'upper-compressions', 'upper-riscv', 'upper-leanisa'})
+                         {'lower-generality-1', 'upper-compressions', 'upper-riscv', 'upper-leanisa',
+                          'upper-riscv-hint'})
         self.assertEqual(git(destination, 'remote', 'get-url', 'origin'), SUBMISSIONS_URL)
         self.assertEqual(git(destination, 'config', '-f', '.gitmodules', 'submodule.contract.url'), CORE_URL)
         self.assertEqual(git(destination / '.contract', 'remote', 'get-url', 'origin'), CORE_URL)

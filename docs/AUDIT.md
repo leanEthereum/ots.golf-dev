@@ -1,7 +1,8 @@
 # Audit of the bare-oracle contract
 
 Scope: the pinned whole-word lower-bound and oracle-algorithm upper-bound contracts, the
-RISC-V and leanISA machines, and their shared oracle and cost semantics. The internal whole-word witness
+RISC-V and leanISA machines, the hinted reading of the RISC-V machine, and their shared oracle
+and cost semantics. The internal whole-word witness
 (`formal/Witnesses/Generality1/`) checks that the lower class is non-empty. Reference proofs live
 in the submissions repository; current scores are on [ots.golf](https://ots.golf).
 Operational launch gates are in [the deployment guide](../service/deploy/README.md).
@@ -170,6 +171,49 @@ oracle-adaptive prover, via a cache-weakening lemma proved there because VCVio s
 forward direction), `mem_support_of_mem_support_run` and `Submission.boundaryCycles_le` (the
 converse: on a submission whose honest run completes, the claim really is bounded below). Unlike `check-riscv.lean` it cannot execute a program:
 `gLog?` is `Classical.choose`-based, so no run reduces in the kernel.
+
+## Hinted RISC-V contract
+
+`RiscvHint.lean` reuses `RiscvMachine.lean` unchanged — the same image type, instruction
+prices, `HASH` query and `execute` — and changes only the third input: `loadView` places a
+prover-chosen view of at most `maxViewBits = 1048576` bits where `Riscv.initialState` places the
+raw signature, with the length register capped at `maxViewBits + 1`. A submission adds a pure
+`compress : View → Signature` and an oracle `expand : PublicKey → Message → Signature →
+OracleComp Spec View`. The signature is `compress view`; views are never transmitted.
+
+Because the machine's input is adversarial, `Riscv.Submission.Implements` has no counterpart
+and the certificate splits as the leanISA one does: `Expands` (`compress ∘ expand = id` on every
+path), `Faithful` (the honest view's run halts with the verifier's decision, both directions,
+under the shared cached oracle), `Sound` (no view and no fuel make the machine halt accepting on
+an input whose projected signature the verifier rejects) and `CyclesAtMost` (every accepting
+execution over every view and every fuel, stated over `support`). `Admissible` and `Secure` are
+`OracleAlgorithm.lean`'s, on signatures, and are unchanged: many views compress to one
+signature, so a second accepted view of the honest signature is not a forgery of anything, and
+`Sound` is the bridge from an accepted view to an accepted signature.
+
+Trusted boundaries specific to this track, in full in [the track notes](upper-riscv-hint.md):
+
+- Rejecting and faulting runs are not charged, as on leanISA and unlike `upper-riscv`. The honest
+  prover's rejecting runs must still halt (`Faithful`), but their length is unbounded.
+- `Sound` quantifies views and fuels plainly; `Submission.sound_adaptive` in
+  `check-riscv-hint.lean` proves that an oracle-adaptive prover is no stronger.
+- Hints cannot replace compressions: `Sound` is a `probTrue … = 0`, and an accepted run that did
+  not query an answer its decision depends on has a coherent assignment on which the verifier
+  rejects. Hints replace only the instructions around the queries.
+- The honest `expand` carries no cost bound, as leanISA's `prover` carries none. Non-hash
+  computation is free everywhere in the model, so a bound in compressions would not bound it.
+
+`formal/scripts/check-riscv-hint.lean` holds the loader agreement `loadView_eq_initialState`
+(on views no longer than a signature the two loaders coincide), the vacuity facts
+`Submission.cyclesAtMost_of_never_accepts` and `Submission.sound_of_never_accepts`,
+`Submission.sound_adaptive`, and `Riscv.Submission.hinted_certificate`: a `Riscv.Submission.Certificate c`
+is a `RiscvHint.Submission.Certificate c` for the identity view, given that the image halts
+rejecting on views longer than a signature. That proof needs three facts about the machine and
+the oracle that the track's clauses rest on, each kernel-checked there: `execute_fuel_agree`
+(a run that halts under one fuel halts identically under any other or runs it out, proved once
+for the uncached and the cached path semantics), `subcache_run_grow` (the cached simulation only
+adds entries) and `replay_deterministic` (a computation with no private randomness, run again
+from a cache holding a completed run's answers, returns the same result and samples nothing).
 
 ## Whole-word lower-bound proof
 

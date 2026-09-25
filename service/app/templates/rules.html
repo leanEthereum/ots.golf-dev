@@ -56,6 +56,9 @@ base <code>main</code>. Read the rules below before preparing a submission.
         {% if upper_leanisa_track %}<li><a href="#upper-leanisa"><strong>By leanISA cycles.</strong></a> Implement the
         verifier in leanISA, prove it accepts exactly the valid signatures even with malicious hints,
         and bound the cycles of every accepting execution.</li>{% endif %}
+        {% if upper_riscv_hint_track %}<li><a href="#upper-riscv-hint"><strong>By hinted RISC-V cycles.</strong></a> Implement the
+        verifier in RISC-V over a prover-chosen view of the signature, prove it accepts exactly the
+        valid signatures whatever the view, and bound the cycles of every accepting execution.</li>{% endif %}
       </ul>
       <h3 id="model">Lower bound</h3>
       <p>Prove that <em>every</em> secure <a href="#whole-words">whole-word DAG scheme</a>
@@ -129,6 +132,38 @@ base <code>main</code>. Read the rules below before preparing a submission.
       256 chaining bits, a 512-bit block and 128 metadata bits. This models hashing rather than
       executing RFC 7693 BLAKE2s.
       {{ source_link('docs/upper-leanisa.md', 'Full specification') }}.</p>
+    </div>
+  </details>
+  {% endif %}
+
+  {% if upper_riscv_hint_track %}
+  <details id="upper-riscv-hint">
+    <summary><h2>Hinted RISC-V upper bound</h2></summary>
+    <div class="more prose">
+      <p>Submit an OTS meeting the algorithm requirements above, a fixed RV64IM verifier for the
+      same machine as the RISC-V track, a projection from views to signatures, an honest prover's
+      expansion of a signature into a view, and a fuel witness. The loader places a
+      <strong>prover-chosen view</strong> of at most 1,048,576 bits where the RISC-V track places
+      the raw signature. The signature is what the projection recovers from the view; only it is
+      signed, verified and bounded by the 5,504-bit cap. A view may carry anything derived from the
+      signature and the oracle, such as an aligned layout, digit decompositions or jump targets,
+      and the program must check what it reads rather than trust it.</p>
+      <ul>
+        <li><strong>Faithful:</strong> on the honest view the machine halts with the Lean verifier's
+        decision, for every public key, message and signature bit string, and the projection
+        recovers that signature from the honest view.</li>
+        <li><strong>Sound:</strong> no view and no fuel make the machine accept unless the Lean
+        verifier accepts the view's projected signature.</li>
+      </ul>
+      <p>The fixed program image must be <strong>strictly less than 1 MiB (1,048,576 bytes)</strong>:
+      four bytes per instruction plus all embedded data.</p>
+      <p>The claim bounds <strong>cycles on every accepting execution</strong>, over every view and
+      every fuel. Rejecting and faulting runs are not charged. Instructions and <code>HASH</code>
+      cost what they cost on the RISC-V track and query the same random oracle. Hints cannot
+      replace hash queries: an accepting run must query the oracle for every answer its decision
+      depends on. Strong unforgeability is a statement about signatures, not views; a second
+      accepted view of the same signature is not a forgery.
+      {{ source_link('docs/upper-riscv-hint.md', 'Full specification') }}.</p>
     </div>
   </details>
   {% endif %}

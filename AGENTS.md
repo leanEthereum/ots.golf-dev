@@ -1,9 +1,9 @@
 # ots.golf — submission rules
 
 ots.golf is a Lean-kernel-verified competition on the worst-case verification cost of hash-based
-one-time signatures, with one whole-word lower-bound track and three upper tracks: a fully
-generic compression bound, a RISC-V implementation bound in cycles and a leanISA implementation
-bound in cycles. The DAG model is
+one-time signatures, with one whole-word lower-bound track and four upper tracks: a fully
+generic compression bound, a RISC-V implementation bound in cycles, a leanISA implementation
+bound in cycles and a hinted RISC-V implementation bound in cycles. The DAG model is
 `formal/OptimalOTS/Dag.lean`; `formal/OptimalOTS/WholeWords.lean` defines the whole-word class.
 `challenges.json` lists the tracks; `verifier/` runs the hosted verifier's checks. This file is the
 precise specification; [ots.golf/rules](https://ots.golf/rules) presents the same rules for
@@ -35,7 +35,7 @@ proofs of any track; reference proofs are ordinary submissions.
 
 ## Frameworks
 
-All four public tracks are open.
+All five public tracks are open.
 
 - **Whole-word DAGs** (`lower-generality-1`): whole-word DAGs. Secret sources are independent
   uniform 128-bit words; hashes return 256 bits. Each deterministic node is a fixed public 128-bit
@@ -57,6 +57,14 @@ All four public tracks are open.
   honest prover's image reproduces the verifier's decision and that no committed image completes
   on an input the verifier rejects. The score is a proved bound on the cycles of every completing
   execution; rejecting runs do not exist and are not charged.
+- **Hinted RISC-V upper bound** (`upper-riscv-hint`): an OTS meeting the Upper bound
+  requirements, together with a fixed RV64IM verifier for the same machine as the RISC-V track,
+  run on a prover-chosen *view* of the signature instead of the raw signature. The submission
+  fixes a pure projection from views to signatures and an honest expansion from signatures to
+  views, and proves that the honest view drives the machine to the verifier's decision and that
+  no view makes the machine accept unless the verifier accepts the view's projected signature.
+  The score is a proved bound on the cycles of every accepting execution over every view;
+  rejecting and faulting runs are not charged.
 
 The whole-word DAG model uses the 128-bit nonce, 127-bit security target, cuts, forward reconstruction
 and actual-input compression costs. Proof guides for the reference proofs are in `docs/`.
@@ -126,6 +134,36 @@ instructions and data. Runtime inputs and working memory are not part of this im
 Export the additional `image_size` theorem above; the verifier checks it with the same
 statement comparison, axiom restrictions and Lean kernel as the cycle certificate.
 
+**Hinted RISC-V upper bound track** (`formal/Submissions/UpperRiscvHint/`, smaller is better):
+
+```lean
+noncomputable def OptimalOTS.Challenge.UpperRiscvHint.submission : RiscvHint.Submission := ...
+theorem OptimalOTS.Challenge.UpperRiscvHint.certificate : submission.Certificate <claim> := ...
+theorem OptimalOTS.Challenge.UpperRiscvHint.image_size : submission.image.byteSize < 1048576 := ...
+```
+
+`RiscvHint.Submission` bundles an `OracleAlgorithm.Scheme`, a fixed RV64IM image for the
+machine of `formal/OptimalOTS/RiscvMachine.lean`, a pure projection `compress` from views to
+signatures, the honest prover's oracle expansion `expand` from signatures to views, and a
+per-signature fuel witness. The loader of `formal/OptimalOTS/RiscvHint.lean` places the view,
+truncated to 1,048,576 bits, where the RISC-V track places the raw signature, with `a3` holding
+its bit length capped at 1,048,577. The signature is `compress view`: it is what the scheme
+signs and verifies and what the 5504-bit cap bounds. Neither `expand` nor the fuel is a machine
+input, and neither can lower the score. The certificate proves the Upper bound admissibility and
+127-bit strong security of the OTS, a valid image, `Expands` (`compress` undoes `expand` on
+every path), `Faithful` (on every public key, message and raw signature the honest view's run
+halts with the Lean verifier's decision, under the shared cached oracle), `Sound` (**no** view
+and no fuel make the machine halt accepting on an input whose projected signature the Lean
+verifier rejects), and at most `<claim>` cycles on every accepting execution over every view
+and every fuel. Rejecting and faulting runs are not charged. Instruction and `HASH` costs are the
+RISC-V track's. Strong unforgeability is a property of signatures, unchanged from the RISC-V
+track; a second accepted view of one signature is not a forgery, and `Sound` is what turns an
+accepted view into an accepted signature. Export the same `image_size` theorem as the RISC-V
+track; the verifier checks it with the same statement comparison, axiom restrictions and Lean
+kernel as the cycle certificate. `formal/scripts/check-riscv-hint.lean` proves that a RISC-V
+track certificate whose image halts rejecting on views longer than a signature is a hinted
+certificate at the same claim with the identity view. A record needs claim ≤ record − 1.
+
 **leanISA upper bound track** (`formal/Submissions/UpperLeanIsa/`, smaller is better):
 
 ```lean
@@ -190,6 +228,7 @@ certificate.
    | `LowerGenerality1` | `OptimalOTS.WholeWords` |
    | `UpperCompressions` | `OptimalOTS.OracleAlgorithm` |
    | `UpperRiscv` | `OptimalOTS.OracleAlgorithm`, `OptimalOTS.RiscvMachine`, `OptimalOTS.Riscv` |
+   | `UpperRiscvHint` | `OptimalOTS.OracleAlgorithm`, `OptimalOTS.RiscvMachine`, `OptimalOTS.Riscv`, `OptimalOTS.RiscvHint` |
    | `UpperLeanIsa` | `OptimalOTS.OracleAlgorithm`, `OptimalOTS.LeanIsaMachine`, `OptimalOTS.LeanIsa`, and the nine pinned ISA modules `LeanerVM.Parameters.{Field,Generator,Isa,Blake2s}` and `LeanerVM.Semantics.{Memory,Instruction,Blake2s,Step,Execution}` |
 
    This list restricts explicit source-header imports. Dependencies of permitted modules are
@@ -219,8 +258,8 @@ From the root of a submissions checkout, whose `.contract` submodule is this cor
 python3 .contract/verifier/verify.py lower-generality-1 --source .       # the full pipeline
 ```
 
-Replace `lower-generality-1` by `upper-compressions`, `upper-riscv` or `upper-leanisa` for the
-upper tracks. From the core, pass the
+Replace `lower-generality-1` by `upper-compressions`, `upper-riscv`, `upper-leanisa` or
+`upper-riscv-hint` for the upper tracks. From the core, pass the
 submissions checkout as `--source`.
 
 `setup_tools.sh` requires elan and installs the pinned comparator and lean4export (and landrun on
@@ -236,7 +275,7 @@ isolation or resource enforcement.
 
 The core repository is `leanEthereum/ots.golf-dev`: model, verifier and website.
 Competition PRs go to `leanEthereum/ots.golf-submissions`. Its `main` holds the current record proof
-root for each of the four tracks, a root `records.json` registry linking each claim to its checked
+root for each of the five tracks, a root `records.json` registry linking each claim to its checked
 source commit, PR and trusted core, and a `.contract` submodule for local checking. From that
 repository, run
 `python3 .contract/verifier/verify.py <track> --source .` after following its setup instructions.

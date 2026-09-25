@@ -52,8 +52,12 @@ def validate(value, commit, contract) -> dict | None:
     return {"version": 1, "commit": commit, "contract": contract, "instructions": count, "data_bytes": data}
 
 
+# Both RISC-V tracks fix a `Riscv.Image`, measured by the same trusted collector.
+IMAGE_TRACKS = frozenset({"upper-riscv", "upper-riscv-hint"})
+
+
 def for_submission(sub) -> ProgramSize | None:
-    if sub.track != "upper-riscv" or sub.status != "verified":
+    if sub.track not in IMAGE_TRACKS or sub.status != "verified":
         return None
     detail = sub.detail_dict
     value = detail.get("riscv_program_size", historical_sizes().get(getattr(sub, "id", None)))

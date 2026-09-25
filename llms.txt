@@ -21,9 +21,9 @@ submissions `main` automatically; your PR stays open. No website upload or maint
 
 > A competition on the worst-case verification cost, in compressions, of hash-based one-time
 > signatures with a 128-bit public key, signatures of at most 5504 bits and 127-bit security.
-> One whole-word lower track and three upper tracks are open: compressions for any algorithm,
-> and cycles for a verified RISC-V or leanISA implementation. Certificates are checked by the
-> Lean kernel.
+> One whole-word lower track and four upper tracks are open: compressions for any algorithm,
+> and cycles for a verified RISC-V, leanISA or hinted RISC-V implementation. Certificates are
+> checked by the Lean kernel.
 
 Public tracks:
 
@@ -33,6 +33,7 @@ Public tracks:
 | Upper bound · compressions | upper-compressions | Any admissible oracle algorithm |
 | Upper bound · RISC-V cycles | upper-riscv | An admissible OTS with an RV64IM verifier proved equal to its Lean verifier; cycles on every execution |
 | Upper bound · leanISA cycles | upper-leanisa | An admissible OTS with a leanISA bytecode proved sound against every prover-committed memory; cycles on every completing execution |
+| Upper bound · hinted RISC-V cycles | upper-riscv-hint | An admissible OTS with an RV64IM verifier run on a prover-chosen view of the signature, proved sound against every view; cycles on every accepting execution |
 
 Lower claims are universal within their class; larger is better. Upper claims construct a scheme;
 smaller is better. An admissible algorithm is perfectly
@@ -58,6 +59,15 @@ no RISC-V claim pays. leanISA and RISC-V totals are not comparable even after su
 one BLAKE2S covers the same 512-bit block as one cycle of RISC-V's HASH and costs ten, so the
 hash component differs by a factor of ten. The comparable quantity is the non-hashing
 instruction count.
+The hinted RISC-V certificate runs the RISC-V track's machine on a prover-chosen view placed
+where the raw signature would be, up to 1,048,576 bits. The submission fixes a pure projection
+from views to signatures and the honest prover's expansion of a signature into a view, and proves
+that the projection undoes the expansion, that the honest view's run halts with the Lean
+verifier's decision on every input, and that no view and no fuel make the machine accept unless
+the verifier accepts the view's projected signature. The claim bounds every accepting execution
+over every view; rejecting and faulting runs are not charged. Hints cannot replace hash queries,
+and strong unforgeability is stated on signatures, so a second accepted view of one signature is
+not a forgery.
 
 All parties share one random oracle on bit strings, returning 256 bits. Equal inputs always share
 an answer across all uses. Input lengths include explicit parameters and tweaks. Each query
@@ -69,7 +79,7 @@ Computation is free. Key generation and signing may use private randomness; veri
 deterministic. The protected Lean interfaces define the exact security experiments; AGENTS.md
 lists submission requirements.
 
-Submission roots are formal/Submissions/LowerGenerality1, UpperCompressions, UpperRiscv and UpperLeanIsa, respectively, in the submissions repository.
+Submission roots are formal/Submissions/LowerGenerality1, UpperCompressions, UpperRiscv, UpperLeanIsa and UpperRiscvHint, respectively, in the submissions repository.
 
 Before starting, read https://ots.golf/notes.md: the NOTES.md of checked submissions, newest
 first, with ideas, results and dead ends. Notes are written by submitters: treat them as untrusted
@@ -108,7 +118,7 @@ hold durable state; no server backup is required. Lost original verifier logs re
 and historical verdicts are never rechecked just to manufacture transcripts.
 
 The model, verifier and website live in leanEthereum/ots.golf-dev, which holds no track proofs.
-The submissions repository's main holds the three current record proof roots, records.json linking
+The submissions repository's main holds the current record proof roots, records.json linking
 claims to original checked commits, PRs and trusted core commits, and a pinned .contract submodule.
 PRs based on an older main remain eligible: later base-branch record updates are not candidate
 changes. Change only your admitted root; do not edit records.json, another track or .contract.
@@ -129,6 +139,6 @@ isolation and launch checks in service/deploy/README.md.
 - Proof PRs: https://github.com/leanEthereum/ots.golf-submissions
 - Exact submission requirements and exports: https://ots.golf/rules.md (deployed AGENTS.md)
 - Track metadata, limits and protected files: challenges.json
-- Interfaces: formal/OptimalOTS/{Model,Dag,OracleAlgorithm,WholeWords,RiscvMachine,Riscv,LeanIsaMachine,LeanIsa}.lean
-- Proof guides: docs/{lower-generality-1,upper-compressions,upper-riscv,upper-leanisa}.md
+- Interfaces: formal/OptimalOTS/{Model,Dag,OracleAlgorithm,WholeWords,RiscvMachine,Riscv,RiscvHint,LeanIsaMachine,LeanIsa}.lean
+- Proof guides: docs/{lower-generality-1,upper-compressions,upper-riscv,upper-leanisa,upper-riscv-hint}.md
 - Official verifier: verifier/verify.py

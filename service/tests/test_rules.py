@@ -36,6 +36,7 @@ class RulesTests(unittest.TestCase):
                          'OptimalOTS.Challenge.UpperCompressions.cost',
                          'OptimalOTS.Challenge.UpperRiscv.certificate',
                          'OptimalOTS.Challenge.UpperLeanIsa.certificate',
+                         'OptimalOTS.Challenge.UpperRiscvHint.certificate',
                          '4,194,304 bytes', '24 GiB', '20 minutes',
                          'https://github.com/leanEthereum/ots.golf-submissions',
                          'base branch **main**'):
@@ -108,6 +109,7 @@ class RulesTests(unittest.TestCase):
             'formal/OptimalOTS/Dag.lean',
             'formal/OptimalOTS/WholeWords.lean',
             'docs/upper-leanisa.md',
+            'docs/upper-riscv-hint.md',
             'challenges.json',
             'AGENTS.md#rules-for-the-submission-root',
         }

@@ -23,7 +23,7 @@
       <p>By <a href="/submissions/{{ b.state.record_submission_id }}">{{ b.state.record_setter }}</a>{% if b.state.record_demo %} <span class="tag">demo</span>{% endif %}</p>
       {% else %}<p><a href="/rules#play">Submit {{ 'an implementation' if cfg.cost_unit == 'cycles' else 'a construction' }} ↗</a></p>{% endif %}
     </div>
-    <div class="upper-score"><span class="muted">Verification cost</span>{% if b.state.record_claim is none %}<span class="no-record">No record yet</span>{% else %}<strong>{{ b.state.record_claim }}</strong><span>{{ cfg|cost_unit(b.state.record_claim) }}</span>{% set size = b.state.record_program_size %}{% if size %}<div class="card-program-size"><a href="/submissions/{{ b.state.record_submission_id }}#program-size" title="{{ size.instruction_description }}">{{ size.instruction_label }} <span>instructions</span></a>{% if cfg.slug == 'upper-riscv' %}<a href="/submissions/{{ b.state.record_submission_id }}#embedded-data" title="{{ size.data_description }}">{{ size.data_label }} <span>embedded data</span></a>{% endif %}</div>{% endif %}{% endif %}</div>
+    <div class="upper-score"><span class="muted">Verification cost</span>{% if b.state.record_claim is none %}<span class="no-record">No record yet</span>{% else %}<strong>{{ b.state.record_claim }}</strong><span>{{ cfg|cost_unit(b.state.record_claim) }}</span>{% set size = b.state.record_program_size %}{% if size %}<div class="card-program-size"><a href="/submissions/{{ b.state.record_submission_id }}#program-size" title="{{ size.instruction_description }}">{{ size.instruction_label }} <span>instructions</span></a>{% if cfg.slug in ['upper-riscv', 'upper-riscv-hint'] %}<a href="/submissions/{{ b.state.record_submission_id }}#embedded-data" title="{{ size.data_description }}">{{ size.data_label }} <span>embedded data</span></a>{% endif %}</div>{% endif %}{% endif %}</div>
   </article>
   {% endfor %}
   </div>
@@ -158,7 +158,7 @@
       </div>
       {% endif %}
       {% for b in upper_boards %}
-      {% set is_riscv = b.cfg.slug == 'upper-riscv' %}
+      {% set is_riscv = b.cfg.slug in ['upper-riscv', 'upper-riscv-hint'] %}
       {% set upper_title = 'By ' + b.cfg.focus %}
       {% set upper_id = 'upper-board-title' if loop.first else b.cfg.slug + '-board-title' %}
       <section class="upper-board" data-upper="{{ b.cfg.slug }}" aria-labelledby="{{ upper_id }}"{% if not loop.first %} hidden{% endif %}>
@@ -176,7 +176,7 @@
             <thead><tr>
               <th class="l" scope="col">Solver</th>
               <th class="r" scope="col" aria-sort="ascending"><button type="button" class="sort-btn" data-key="score" data-dir="asc" aria-pressed="true">Score <span class="arr">↕</span></button></th>
-              {% if b.cfg.slug in ['upper-riscv', 'upper-leanisa'] %}<th class="r" scope="col" title="Number of instructions in the fixed program">Instructions</th>{% endif %}{% if is_riscv %}<th class="r" scope="col" title="Bytes loaded from the fixed data image at startup">Embedded data</th>{% endif %}
+              {% if b.cfg.slug in ['upper-riscv', 'upper-leanisa', 'upper-riscv-hint'] %}<th class="r" scope="col" title="Number of instructions in the fixed program">Instructions</th>{% endif %}{% if is_riscv %}<th class="r" scope="col" title="Bytes loaded from the fixed data image at startup">Embedded data</th>{% endif %}
               <th class="r" scope="col" aria-sort="none"><button type="button" class="sort-btn" data-key="gain" data-dir="desc" aria-pressed="false">Gain <span class="arr">↕</span></button></th>
               <th class="r" scope="col">Date</th>
             </tr></thead>

@@ -138,6 +138,7 @@ def render(request: Request, name: str, **ctx) -> HTMLResponse:
     ctx.setdefault("upper_compressions_track", contract.upper_compressions_track())
     ctx.setdefault("upper_riscv_track", contract.upper_riscv_track())
     ctx.setdefault("upper_leanisa_track", contract.upper_leanisa_track())
+    ctx.setdefault("upper_riscv_hint_track", contract.upper_riscv_hint_track())
     upper = contract.upper_tracks()
     ctx.setdefault("machine_tracks", [t for t in upper if t.get("cost_unit") == "cycles"])
     ctx.setdefault("open_tracks", [t for t in contract.tracks()

@@ -32,7 +32,15 @@ def listLength (env : Environment) (value : Expr) (limit : Nat) : IO Nat := do
     tail := reduced.getAppArgs[2]!
   throw <| IO.userError "image exceeds the contract size limit"
 
-def measure : Comparator.M Json := do
+/-- The two RISC-V tracks share `Riscv.Image` as the second field of their submission
+structure, so one driver measures both; the config names the track. -/
+def tracks : List (String × String × Name × Name) :=
+  [("Submissions.UpperRiscv.Solution", "OptimalOTS.Challenge.UpperRiscv",
+    `OptimalOTS.Riscv.Submission, `OptimalOTS.Challenge.UpperRiscv.submission),
+   ("Submissions.UpperRiscvHint.Solution", "OptimalOTS.Challenge.UpperRiscvHint",
+    `OptimalOTS.RiscvHint.Submission, `OptimalOTS.Challenge.UpperRiscvHint.submission)]
+
+def measure (structName submissionName : Name) : Comparator.M Json := do
   let targets := (← Comparator.builtinTargets) ++ (← Comparator.getTheoremNames)
     ++ (← Comparator.getLegalAxioms) ++ (← Comparator.primitiveTargets)
     ++ (← Comparator.getDefinitionNames)
@@ -50,8 +58,7 @@ def measure : Comparator.M Json := do
   IO.ofExcept <| Comparator.checkAxioms exported theorems definitions axioms
   let env ← mkEmptyEnvironment
   let env ← env.replay (exported.constMap.erase `Quot.mk |>.erase `Quot.lift |>.erase `Quot.ind)
-  let image := Expr.proj `OptimalOTS.Riscv.Submission 1
-    (mkConst `OptimalOTS.Challenge.UpperRiscv.submission)
+  let image := Expr.proj structName 1 (mkConst submissionName)
   let instructions ← listLength env (.proj `OptimalOTS.Riscv.Image 0 image) 262144
   let dataBytes ← listLength env (.proj `OptimalOTS.Riscv.Image 1 image) 1048576
   return Json.mkObj [("instructions", toJson instructions), ("data_bytes", toJson dataBytes)]
@@ -63,10 +70,11 @@ def run : IO Unit := do
     | throw <| IO.userError "missing output path"
   let cfg : Comparator.Config ← IO.ofExcept <| fromJson? <| ← IO.ofExcept <|
     Json.parse (← IO.FS.readFile configPath)
-  unless cfg.solution_module == "Submissions.UpperRiscv.Solution" &&
-      cfg.challenge_module == "OptimalOTS.Challenge.UpperRiscv" && !cfg.enable_nanoda do
-    throw <| IO.userError "RISC-V config required"
-  let result ← Comparator.M.run measure cfg
+  let some (_, _, structName, submissionName) := tracks.find? fun (solution, challenge, _, _) =>
+      cfg.solution_module == solution && cfg.challenge_module == challenge
+    | throw <| IO.userError "RISC-V config required"
+  if cfg.enable_nanoda then throw <| IO.userError "RISC-V config required"
+  let result ← Comparator.M.run (measure structName submissionName) cfg
   IO.FS.writeFile outputPath result.compress
 
 end OtsRiscvSize

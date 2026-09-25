@@ -25,9 +25,9 @@
     {% if s.assisted_by %}<span class="lb-model" title="Assisted by {{ s.assisted_by }}">{{ s.assisted_by }}</span>{% endif %}
   </td>
   <td class="r lb-score"><a href="/submissions/{{ s.id }}">{% if s.claim is not none %}{{ s.claim }} <span class="lb-unit">{{ cfg|cost_unit(s.claim) }}</span>{% else %}–{% endif %}</a></td>
-  {% if cfg.slug in ['upper-riscv', 'upper-leanisa'] %}{% set size = s.program_size %}
+  {% if cfg.slug in ['upper-riscv', 'upper-leanisa', 'upper-riscv-hint'] %}{% set size = s.program_size %}
   <td class="r lb-program-size">{% if size %}<a href="/submissions/{{ s.id }}#program-size" title="{{ size.instruction_description }}">{{ size.instruction_label }}</a>{% else %}<span class="muted" title="Program size has not been measured">–</span>{% endif %}</td>
-  {% if cfg.slug == 'upper-riscv' %}<td class="r lb-embedded-data">{% if size %}<a href="/submissions/{{ s.id }}#embedded-data" title="{{ size.data_description }}">{{ size.data_label }}</a>{% else %}<span class="muted" title="Embedded data has not been measured">–</span>{% endif %}</td>{% endif %}
+  {% if cfg.slug in ['upper-riscv', 'upper-riscv-hint'] %}<td class="r lb-embedded-data">{% if size %}<a href="/submissions/{{ s.id }}#embedded-data" title="{{ size.data_description }}">{{ size.data_label }}</a>{% else %}<span class="muted" title="Embedded data has not been measured">–</span>{% endif %}</td>{% endif %}
   {% endif %}
   <td class="r lb-gain">
     {%- if kind == 'record' %}{% if d is not none %}<span class="good">{{ '+' if d > 0 else '' }}{{ d }}</span>{% else %}<span class="muted">{{ 'first demo record' if s.detail_dict.get('demo') else 'first record' }}</span>{% endif %}
@@ -41,5 +41,5 @@
 {# frontier is newest first; the gain of a record is measured against the record before it #}
 {% for s in frontier %}{{ lbrow(s, loop.index, frontier[loop.index] if loop.index < frontier|length else none, 'record', cfg) }}{% endfor %}
 {% for s in in_flight %}{{ lbrow(s, none, none, 'pending', cfg) }}{% endfor %}
-{% if not frontier and not in_flight %}<tr><td colspan="{{ 6 if cfg.slug == 'upper-riscv' else (5 if cfg.slug == 'upper-leanisa' else 4) }}" class="muted lb-empty">No submissions yet.</td></tr>{% endif %}
+{% if not frontier and not in_flight %}<tr><td colspan="{{ 6 if cfg.slug in ['upper-riscv', 'upper-riscv-hint'] else (5 if cfg.slug == 'upper-leanisa' else 4) }}" class="muted lb-empty">No submissions yet.</td></tr>{% endif %}
 {%- endmacro %}

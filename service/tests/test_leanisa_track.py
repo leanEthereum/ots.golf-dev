@@ -51,7 +51,7 @@ class LeanIsaTrackTests(unittest.TestCase):
         """`upper_tracks()` is derived from the contract. A hard-coded list would leave the
         track registered everywhere except the one place that admits submissions."""
         self.assertEqual([t['slug'] for t in contract.upper_tracks()],
-                         ['upper-compressions', 'upper-riscv', 'upper-leanisa'])
+                         ['upper-compressions', 'upper-riscv', 'upper-leanisa', 'upper-riscv-hint'])
         self.assertIsNotNone(contract.upper_leanisa_track())
         user = User(login='leanisa-solver')
         self.session.add(user)
@@ -82,7 +82,7 @@ class LeanIsaTrackTests(unittest.TestCase):
                        'By leanISA cycles'):
             self.assertIn(marker, html)
         self.assertEqual([svg.get('data-unit') for svg in self.charts(html)],
-                         ['compressions', 'cycles', 'cycles'])
+                         ['compressions', 'cycles', 'cycles', 'cycles'])
         ids = re.findall(r'\bid="([^"]+)"', html)
         self.assertEqual(len(ids), len(set(ids)))
 

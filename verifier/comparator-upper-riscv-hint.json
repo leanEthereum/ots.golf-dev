@@ -1,0 +1,8 @@
+{
+  "challenge_module": "OptimalOTS.Challenge.UpperRiscvHint",
+  "solution_module": "Submissions.UpperRiscvHint.Solution",
+  "theorem_names": ["OptimalOTS.Challenge.UpperRiscvHint.certificate", "OptimalOTS.Challenge.UpperRiscvHint.image_size"],
+  "definition_names": ["OptimalOTS.Challenge.UpperRiscvHint.submission"],
+  "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"],
+  "enable_nanoda": false
+}

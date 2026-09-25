@@ -86,7 +86,7 @@ def run_pipeline(sub: Submission) -> tuple[dict, str | None]:
     try:
         # Preserve the existing proof/fetch allowance when the optional RISC-V
         # collector uses its full five-minute budget, including sandbox teardown.
-        metadata_allowance = 330 if sub.track == "upper-riscv" else 0
+        metadata_allowance = 330 if sub.track in riscv_program_size.IMAGE_TRACKS else 0
         stdout, stderr = proc.communicate(timeout=limit + 600 + metadata_allowance)
     except subprocess.TimeoutExpired:
         timed_out = True
@@ -199,7 +199,7 @@ def verdict_entry(sub: Submission) -> dict:
                  finished_at=sub.finished_at.isoformat(timespec="microseconds") + "Z" if sub.finished_at else None,
                  contract=detail.get("contract"), record=bool(sub.is_record),
                  source_archive=detail.get("source_archive"), failure=failure)
-    if sub.track == "upper-riscv" and status == "verified":
+    if sub.track in riscv_program_size.IMAGE_TRACKS and status == "verified":
         size = riscv_program_size.validate(detail.get("riscv_program_size"), sub.commit, detail.get("contract"))
         if size:
             entry["riscv_program_size"] = size
@@ -468,7 +468,7 @@ def process(sub_id: str) -> None:
                       contract=sub.detail_dict.get("contract"))
         detail.pop("riscv_program_size", None)
         raw_size = result.get("riscv_program_size")
-        if sub.track == "upper-riscv" and sub.status == "verified" and isinstance(raw_size, dict):
+        if sub.track in riscv_program_size.IMAGE_TRACKS and sub.status == "verified" and isinstance(raw_size, dict):
             size = riscv_program_size.validate({**raw_size, "version": 1, "commit": sub.commit,
                                                "contract": detail.get("contract")}, sub.commit, detail.get("contract"))
             if size:

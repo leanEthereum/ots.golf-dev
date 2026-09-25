@@ -12,6 +12,7 @@ import OptimalOTS.WholeWords
 import OptimalOTS.OracleAlgorithm
 import OptimalOTS.Riscv
 import OptimalOTS.LeanIsa
+import OptimalOTS.RiscvHint
 
 open Lean
 
@@ -70,7 +71,13 @@ def contractDecls : List Name :=
    ``OptimalOTS.LeanIsa.Submission, ``OptimalOTS.LeanIsa.Submission.exec,
    ``OptimalOTS.LeanIsa.Submission.Sound, ``OptimalOTS.LeanIsa.Submission.honestRun,
    ``OptimalOTS.LeanIsa.Submission.Faithful, ``OptimalOTS.LeanIsa.Submission.CyclesAtMost,
-   ``OptimalOTS.LeanIsa.Submission.Certificate]
+   ``OptimalOTS.LeanIsa.Submission.Certificate,
+   ``OptimalOTS.RiscvHint.maxViewBits, ``OptimalOTS.RiscvHint.loadView,
+   ``OptimalOTS.RiscvHint.decision, ``OptimalOTS.RiscvHint.Submission,
+   ``OptimalOTS.RiscvHint.Submission.exec, ``OptimalOTS.RiscvHint.Submission.Sound,
+   ``OptimalOTS.RiscvHint.Submission.Expands, ``OptimalOTS.RiscvHint.Submission.honestRun,
+   ``OptimalOTS.RiscvHint.Submission.Faithful, ``OptimalOTS.RiscvHint.Submission.CyclesAtMost,
+   ``OptimalOTS.RiscvHint.Submission.Certificate]
 
 def whitelist : List Name := [``propext, ``Classical.choice, ``Quot.sound]
 

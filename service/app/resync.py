@@ -195,7 +195,7 @@ def _resync(queue_open_heads: bool = True) -> dict:
                         continue
                 detail = {"contract": v.get("contract"), "restored": True,
                           "recorded_record": v.get("record") is True}
-                if v["track"] == "upper-riscv" and v["status"] == "verified":
+                if v["track"] in riscv_program_size.IMAGE_TRACKS and v["status"] == "verified":
                     size = riscv_program_size.validate(v.get("riscv_program_size"), v["commit"], v.get("contract"))
                     if size:
                         detail["riscv_program_size"] = size

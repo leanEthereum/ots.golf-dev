@@ -276,6 +276,37 @@ class VerifierTests(unittest.TestCase):
         for rel in (track["challenge_template"], track["comparator_config"]):
             self.assertIn(rel, self.cfg["protected"])
 
+    def test_upper_riscv_hint_requires_certificate_and_strict_image_size_proof(self):
+        track = next(t for t in self.cfg["tracks"] if t["slug"] == "upper-riscv-hint")
+        self.assertIn("upper-riscv-hint", self.cfg["upper_tracks"])
+        self.assertEqual((track["kind"], track["framework"], track["cost_unit"]),
+                         ("upper", "oracle-algorithm", "cycles"))
+        template = self.root / track["challenge_template"]
+        template.parent.mkdir(parents=True, exist_ok=True)
+        template.write_text((VERIFIER.parent / track["challenge_template"]).read_text())
+        rendered, claim = render(self.root, "upper-riscv-hint", 271828)
+        self.assertEqual(claim, 271828)
+        source = rendered.read_text()
+        self.assertIn("submission.Certificate 271828", source)
+        self.assertIn("def submission : RiscvHint.Submission", source)
+        # The image budget is the same separate exported obligation as for `upper-riscv`.
+        self.assertIn("theorem image_size : submission.image.byteSize < 1048576", source)
+        comparator = json.loads((VERIFIER.parent / track["comparator_config"]).read_text())
+        prefix = "OptimalOTS.Challenge.UpperRiscvHint."
+        self.assertEqual(comparator["theorem_names"], [prefix + "certificate", prefix + "image_size"])
+        self.assertEqual(comparator["definition_names"], [prefix + "submission"])
+        self.assertEqual(set(track["allowed_import_prefixes"]),
+                         {"Mathlib", "VCVio", "OptimalOTS.Model", "OptimalOTS.Dag",
+                          "OptimalOTS.OracleAlgorithm", "OptimalOTS.RiscvMachine", "OptimalOTS.Riscv",
+                          "OptimalOTS.RiscvHint"})
+        for rel in (track["challenge_template"], track["comparator_config"],
+                    "formal/OptimalOTS/RiscvHint.lean"):
+            self.assertIn(rel, self.cfg["protected"])
+        # The hinted contract reuses the machine and does not touch the deterministic track's files.
+        hint = (VERIFIER.parent / "formal/OptimalOTS/RiscvHint.lean").read_text()
+        self.assertIn("import OptimalOTS.RiscvMachine", hint)
+        self.assertNotIn("def execute", hint)
+
     def test_upper_leanisa_requires_one_bundled_certificate(self):
         track = next(t for t in self.cfg["tracks"] if t["slug"] == "upper-leanisa")
         self.assertIn("upper-leanisa", self.cfg["upper_tracks"])
@@ -360,7 +391,7 @@ class VerifierTests(unittest.TestCase):
         self.assertIn("def signingFailureBits : ℕ := 128", model)
         algorithm = (VERIFIER.parent / "formal/OptimalOTS/OracleAlgorithm.lean").read_text()
         self.assertIn("S.SigningFailureAtMost (1 / 2 ^ signingFailureBits)", algorithm)
-        for slug in ("upper-compressions", "upper-riscv", "upper-leanisa"):
+        for slug in ("upper-compressions", "upper-riscv", "upper-leanisa", "upper-riscv-hint"):
             with self.subTest(track=slug):
                 track = next(t for t in self.cfg["tracks"] if t["slug"] == slug)
                 self.assertNotIn("signing_failure_allowance", track)

@@ -32,7 +32,10 @@
     "formal/OptimalOTS/LeanIsaMachine.lean",
     "formal/OptimalOTS/LeanIsa.lean",
     "formal/OptimalOTS/Challenge/UpperLeanIsa.lean.in",
-    "verifier/comparator-upper-leanisa.json"
+    "verifier/comparator-upper-leanisa.json",
+    "formal/OptimalOTS/RiscvHint.lean",
+    "formal/OptimalOTS/Challenge/UpperRiscvHint.lean.in",
+    "verifier/comparator-upper-riscv-hint.json"
   ],
   "limits": {
     "wall_clock_seconds": 1200,
@@ -149,12 +152,42 @@
         "OptimalOTS.LeanIsaMachine",
         "OptimalOTS.LeanIsa"
       ]
+    },
+    {
+      "slug": "upper-riscv-hint",
+      "title": "Hinted RISC-V upper bound",
+      "framework": "oracle-algorithm",
+      "kind": "upper",
+      "direction": "-",
+      "cost_unit": "cycles",
+      "focus": "hinted RISC-V cycles",
+      "tab_label": "Hinted RISC-V",
+      "cycles_per_compression": 1,
+      "cost_note": "The machine reads a prover-chosen view of the signature in place of the raw signature, and the claim bounds every accepting execution over every view. Rejecting runs are not charged, so hinted and deterministic RISC-V totals bound different sets of executions.",
+      "submission_root": "formal/Submissions/UpperRiscvHint",
+      "module_prefix": "Submissions.UpperRiscvHint",
+      "solution_module": "Submissions.UpperRiscvHint.Solution",
+      "challenge_template": "formal/OptimalOTS/Challenge/UpperRiscvHint.lean.in",
+      "challenge_file": "formal/OptimalOTS/Challenge/UpperRiscvHint.lean",
+      "challenge_module": "OptimalOTS.Challenge.UpperRiscvHint",
+      "comparator_config": "verifier/comparator-upper-riscv-hint.json",
+      "allowed_import_prefixes": [
+        "Mathlib",
+        "VCVio",
+        "OptimalOTS.Model",
+        "OptimalOTS.Dag",
+        "OptimalOTS.OracleAlgorithm",
+        "OptimalOTS.RiscvMachine",
+        "OptimalOTS.Riscv",
+        "OptimalOTS.RiscvHint"
+      ]
     }
   ],
   "upper_tracks": [
     "upper-compressions",
     "upper-riscv",
-    "upper-leanisa"
+    "upper-leanisa",
+    "upper-riscv-hint"
   ],
   "lean_root": "formal",
   "frameworks": [

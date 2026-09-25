@@ -186,6 +186,7 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
     upper_admitted = [t for t in config.get('upper_tracks', []) if t in slugs]
     riscv_enabled = 'upper-riscv' in upper_admitted
     leanisa_enabled = 'upper-leanisa' in upper_admitted
+    hint_enabled = 'upper-riscv-hint' in upper_admitted
     # One board per admitted upper track, plus the lower board and the progress table.
     lb_tables = len(upper_admitted) + 2
     # A track with no seeded record draws no chart series, so `upper-leanisa` adds a board and a
@@ -254,6 +255,21 @@ def audit(browser: Marionette, base_url: str, output: Path, config: dict) -> Non
         js('document.querySelector(".seg-btn[data-track=upper]").click(); '
            'document.querySelector(".upper-btn[data-upper=upper-leanisa]").click(); return true;')
         assert js('return !document.querySelector(".upper-board[data-upper=upper-leanisa]").hidden'
+                  ' && document.querySelector(".upper-board[data-upper=upper-compressions]").hidden;')
+        js('document.querySelector(".upper-btn[data-upper=upper-compressions]").click(); '
+           'document.querySelector(".seg-btn[data-track=lower]").click(); '
+           'document.querySelector(".seg-btn[data-track=upper]").click(); return true;')
+    if hint_enabled:
+        # No demo rows exist for this track either; the same generic hooks drive its board.
+        assert js('return document.querySelector(".upper-riscv-hint-card") !== null;')
+        assert js('return document.querySelector(".upper-riscv-hint-card .no-record") !== null;')
+        js('document.querySelector(".chart-btn[data-chart=upper-riscv-hint]").click(); return true;')
+        assert js('return !document.querySelector(".upper-riscv-hint-dashboard").hidden && '
+                  'document.querySelector(".chart-panel[data-chart=compressions]").hidden;')
+        js('document.querySelector(".chart-btn[data-chart=compressions]").click(); return true;')
+        js('document.querySelector(".seg-btn[data-track=upper]").click(); '
+           'document.querySelector(".upper-btn[data-upper=upper-riscv-hint]").click(); return true;')
+        assert js('return !document.querySelector(".upper-board[data-upper=upper-riscv-hint]").hidden'
                   ' && document.querySelector(".upper-board[data-upper=upper-compressions]").hidden;')
         js('document.querySelector(".upper-btn[data-upper=upper-compressions]").click(); '
            'document.querySelector(".seg-btn[data-track=lower]").click(); '

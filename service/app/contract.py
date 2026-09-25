@@ -69,6 +69,11 @@ def upper_leanisa_track() -> dict | None:
     return admitted_upper_track("upper-leanisa")
 
 
+def upper_riscv_hint_track() -> dict | None:
+    """The hinted RISC-V implementation track: the same machine on a prover-chosen view."""
+    return admitted_upper_track("upper-riscv-hint")
+
+
 def upper_tracks() -> list[dict]:
     """Every admitted upper track, in the order the pinned contract lists them. Derived from
     the contract so registering a track opens it; a hard-coded list silently refuses new ones."""
@@ -139,6 +144,31 @@ def improves(direction: str, claim: int, record: int | None) -> bool:
 # for the whole experiment, which ends with a verification, so an unbounded verifier inflated
 # every valid `B` until `B / 2^127 > 1` held vacuously.
 RESULT_COMPATIBILITY = {
+    # Adding the hinted RISC-V track is a pure addition on top of the verification-cost cap
+    # below: three new protected files (`RiscvHint.lean`, its stub and its comparator config)
+    # and the new track's entry and display metadata in `challenges.json`. `RiscvHint.lean`
+    # imports `RiscvMachine.lean` and `OracleAlgorithm.lean` unchanged and defines only new
+    # declarations, so no model constant, surviving declaration, comparator requirement or
+    # package revision moves, and every proof checked under `bf2e3478…` proves exactly the same
+    # statement here. Compose with the audited relations below rather than restating them:
+    # each older contract carries forward precisely the slugs `bf2e3478…` carried from it.
+    # `upper-riscv-hint` is new and has no prior result to carry.
+    "1d21f233c11a9a424917113e31606db38b2f1c31a25767fdfd1b5b7d85947f28": {
+        "bf2e347843dc8a1ff1fd87b38832e7e4f19a07837328e1950f9be290fe97a29d": frozenset({
+            "lower-generality-1", "upper-compressions", "upper-riscv", "upper-leanisa",
+        }),
+        "d3684f44469781b7c19d3f540e0b780f17ff5090595377445faeea0fc425279e": frozenset({
+            "lower-generality-1", "upper-compressions", "upper-riscv",
+        }),
+        "56289b3f45a5fe68fba953d268860758045f1ef919dd1555d04909ba185c11dc": frozenset({
+            "lower-generality-1", "upper-compressions", "upper-riscv",
+        }),
+        "133f49c9ceaf596c3bf6aaf0941ffe126a1efe23db0785c8af1288b149cb093e": frozenset({
+            "lower-generality-1", "upper-compressions",
+        }),
+        "a78ef575231822314169929fa49a707d7788cebf57669c5ef3af9dde947d25cb": frozenset({"upper-compressions"}),
+        "cca4d9add2f2a1d3bdc40381258e6992f146e2f3ad9087706913ff281cff22dc": frozenset({"upper-compressions"}),
+    },
     # The verification-cost cap. Not a pure addition: `Admissible` gained a field, so an old
     # certificate carries forward only where what was already checked implies it.
     #   upper-compressions — its certificate exports `scheme.VerifyCostAtMost <claim>` and the

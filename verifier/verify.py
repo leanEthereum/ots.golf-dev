@@ -604,7 +604,7 @@ def main() -> int:
             return finish("timeout", limit_s=lim["wall_clock_seconds"])
         text = log_path.read_text(errors="replace")
         if proc.returncode == 0 and "Your solution is okay!" in text:
-            if a.track == "upper-riscv":
+            if a.track in ("upper-riscv", "upper-riscv-hint"):
                 size = measure_riscv(project, lean_root, t["comparator_config"], env,
                                      sandbox_env, lim, hidden)
                 if size is not None:

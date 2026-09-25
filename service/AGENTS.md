@@ -53,21 +53,27 @@ unit, and `cost_note` an optional sentence rendered under its card. Every admitt
 has a distinct non-empty `focus`.
 
 `upper-compressions` is “Upper bound”, measured in compressions. `upper-riscv` is “RISC-V upper
-bound” and `upper-leanisa` is “leanISA upper bound”, both measured in cycles; a cycle track gets
+bound”, `upper-leanisa` is “leanISA upper bound” and `upper-riscv-hint` is “Hinted RISC-V upper
+bound”, all measured in cycles; a cycle track gets
 its own card, chart panel, leaderboard panel and rules section, all rendered only while the track
 is admitted, and its chart has an independent cycle axis. DOM hooks are derived from the slug
 (`data-upper`, `data-chart`, `{slug}-dashboard`, `{slug}-chart-points`,
 `{slug}-record-chart`), so adding a track needs no JavaScript change.
 
-The two cycle tracks differ in what their claim covers. `upper-riscv` bounds every execution,
+The cycle tracks differ in what their claim covers. `upper-riscv` bounds every execution,
 accepting or rejecting; every execution must terminate and refine the Lean oracle specification.
 `upper-leanisa` bounds every *completing* execution over every prover-committed memory — rejecting
 runs do not exist in that model and are not charged — and every leanISA claim carries a fixed
-surcharge for re-deriving the public statement inside the machine. Both cycle tracks also carry
-a proved instance-size bound the score cannot see, exported as a second theorem and checked by
-the comparator: `image_size` for RISC-V, `seeded_rows` for leanISA. State that surcharge wherever
-the score appears, and never present the two cycle totals as comparable: the per-hash prices
-differ by a factor of ten, which no constant absorbs.
+surcharge for re-deriving the public statement inside the machine. `upper-riscv-hint` runs the
+RISC-V machine on a prover-chosen view of the signature and bounds every *accepting* execution
+over every view; rejecting runs are not charged, so a hinted total and a deterministic RISC-V
+total bound different sets of executions and are not presented as one leaderboard. All cycle
+tracks also carry a proved instance-size bound the score cannot see, exported as a second
+theorem and checked by the comparator: `image_size` for both RISC-V tracks, `seeded_rows` for
+leanISA. State the leanISA surcharge wherever that score appears, and never present leanISA and
+RISC-V cycle totals as comparable: the per-hash prices differ by a factor of ten, which no
+constant absorbs. Both RISC-V tracks fix a `Riscv.Image`, so the optional image-size collector
+and the instruction and embedded-data columns serve both (`riscv_program_size.IMAGE_TRACKS`).
 
 Show the current whole-word lower record as a dotted cycle reference only on a track that
 declares `cycles_per_compression`, linked to its original submission, at
