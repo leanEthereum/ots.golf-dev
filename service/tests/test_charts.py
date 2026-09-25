@@ -6,7 +6,7 @@ import json
 import unittest
 import xml.etree.ElementTree as ET
 
-from app.charts import _nice_ticks, record_chart
+from app.charts import _log_axis, record_chart
 from app.literature import EQUAL_CHAINS
 
 
@@ -14,12 +14,61 @@ class ChartTests(unittest.TestCase):
     def test_axis_size_is_bounded_through_maximum_admissible_claim(self):
         for high in (1, 18, 93, 106, 250, 1000, 1_000_000):
             with self.subTest(high=high):
-                ticks = _nice_ticks(0, high)
+                floor, ceiling, ticks = _log_axis(1, high)
                 self.assertLessEqual(len(ticks), 9)
                 self.assertEqual(ticks, sorted(set(ticks)))
-                self.assertTrue(all(0 <= tick <= high for tick in ticks))
+                self.assertEqual(floor, 1)
+                self.assertLessEqual(ticks[-1], ceiling)
+                self.assertGreater(ceiling, high)
+                self.assertTrue(all(1 <= tick <= ceiling for tick in ticks))
         chart = record_chart([self.series(1_000_000)], datetime(2026, 1, 1))
         self.assertLess(len(chart['svg']), 6000)
+
+    def test_axis_fits_narrow_ranges_and_single_records(self):
+        for low, high in ((393, 426), (90, 1140), (702, 702), (1_000_000, 1_000_000)):
+            with self.subTest(low=low, high=high):
+                floor, ceiling, ticks = _log_axis(low, high)
+                self.assertGreater(floor, low / 2)
+                self.assertLess(floor, low)
+                self.assertGreater(ceiling, high)
+                self.assertLess(ceiling, high * 2)
+                self.assertTrue(2 <= len(ticks) <= 9)
+                self.assertTrue(all(floor <= t <= ceiling for t in ticks))
+
+    def test_close_records_use_the_plot_height(self):
+        stamp = datetime(2026, 1, 1)
+        points = [dict(t=stamp + timedelta(hours=i), claim=value, login='solver', id=str(i))
+                  for i, value in enumerate((426, 393))]
+        chart = record_chart([self.series(points=points)], stamp + timedelta(days=1))
+        rendered = json.loads(chart['points'])
+        self.assertGreater(rendered[1]['y'] - rendered[0]['y'], 250)
+
+    def test_equal_ratios_have_equal_spacing_and_one_is_at_baseline(self):
+        stamp = datetime(2026, 1, 1)
+        points = [dict(t=stamp + timedelta(hours=i), claim=value, login='solver', id=str(i))
+                  for i, value in enumerate((1, 10, 100, 1000))]
+        chart = record_chart([self.series(points=points)], stamp + timedelta(days=1))
+        svg = ET.fromstring(chart['svg'])
+        rendered = json.loads(chart['points'])
+        self.assertEqual(svg.get('data-y-scale'), 'log')
+        self.assertEqual(rendered[0]['y'], float(svg.find("./line[@class='axis']").get('y1')))
+        gaps = [a['y'] - b['y'] for a, b in zip(rendered, rendered[1:])]
+        self.assertLess(max(gaps) - min(gaps), 0.2)
+        self.assertEqual([p['claim'] for p in rendered], [1, 10, 100, 1000])
+
+    def test_zero_is_not_misrepresented_as_one(self):
+        chart = record_chart([self.series(0)], datetime(2026, 1, 1))
+        self.assertEqual(json.loads(chart['points']), [])
+        self.assertIn('zero-valued record', chart['svg'])
+        svg = ET.fromstring(chart['svg'])
+        self.assertEqual(svg.findall(".//circle[@class='mark']"), [])
+
+    def test_records_and_reference_use_identical_log_coordinates(self):
+        chart = record_chart([self.series(105)], datetime(2026, 1, 1), references=(EQUAL_CHAINS,))
+        svg = ET.fromstring(chart['svg'])
+        y = json.loads(chart['points'])[0]['y']
+        ref = svg.find("./g[@class='chart-reference']/path[@class='line']")
+        self.assertIn(f',{y:.1f} H', ref.get('d'))
 
     @staticmethod
     def series(claim=93, points=None):
