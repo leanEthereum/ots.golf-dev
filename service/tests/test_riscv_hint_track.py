@@ -72,10 +72,8 @@ class RiscvHintTrackTests(unittest.TestCase):
                              None, [], None, None, None)
         self.assertEqual(caught.exception.status_code, 400)
 
-    def test_home_carries_a_fourth_board_with_the_riscv_reference_line(self):
-        """The hinted machine is the RISC-V machine, so the whole-word lower bound reads in its
-        cycles too: hints cannot replace compressions (`Sound` forces every query the decision
-        depends on), and `HASH` still takes an input of any length."""
+    def test_hinted_board_does_not_infer_a_compression_lower_bound(self):
+        """Cached decision agreement alone does not preserve compression costs."""
         html = self.client.get('/').text
         for marker in ('upper-riscv-hint-card', 'data-upper="upper-riscv-hint"',
                        'data-chart="upper-riscv-hint"', 'id="upper-riscv-hint-chart-points"',
@@ -85,7 +83,9 @@ class RiscvHintTrackTests(unittest.TestCase):
                          ['compressions', 'cycles', 'cycles', 'cycles'])
         ids = re.findall(r'\bid="([^"]+)"', html)
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertIn('cycles_per_compression', contract.upper_riscv_hint_track())
+        self.assertNotIn('cycles_per_compression', contract.upper_riscv_hint_track())
+        hinted = next(svg for svg in self.charts(html) if svg.get('aria-labelledby', '').startswith('upper-riscv-hint-'))
+        self.assertEqual(hinted.findall(".//g[@class='chart-reference']"), [])
 
     def test_rules_state_both_obligations_and_the_accepting_bound_without_scores(self):
         html = self.client.get('/rules').text
@@ -93,7 +93,7 @@ class RiscvHintTrackTests(unittest.TestCase):
         for phrase in ('prover-chosen view', 'Faithful', 'Sound', 'projected signature',
                        'every accepting execution', 'not charged', '1,048,576 bits',
                        'strictly less than 1 MiB (1,048,576 bytes)',
-                       'must query the oracle for every answer', 'not a forgery'):
+                       'machine must', 'not a forgery'):
             self.assertIn(phrase, section)
         self.assertIn('formal/Submissions/UpperRiscvHint/', html)
         self.assertIn('<code>upper-riscv-hint</code>', html)

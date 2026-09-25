@@ -159,9 +159,8 @@ base <code>main</code>. Read the rules below before preparing a submission.
       four bytes per instruction plus all embedded data.</p>
       <p>The claim bounds <strong>cycles on every accepting execution</strong>, over every view and
       every fuel. Rejecting and faulting runs are not charged. Instructions and <code>HASH</code>
-      cost what they cost on the RISC-V track and query the same random oracle. Hints cannot
-      replace hash queries: an accepting run must query the oracle for every answer its decision
-      depends on. Strong unforgeability is a statement about signatures, not views; a second
+      cost what they cost on the RISC-V track and query the same random oracle. The machine must
+      check its view. Strong unforgeability is a statement about signatures, not views; a second
       accepted view of the same signature is not a forgery.
       {{ source_link('docs/upper-riscv-hint.md', 'Full specification') }}.</p>
     </div>

@@ -65,8 +65,8 @@ from views to signatures and the honest prover's expansion of a signature into a
 that the projection undoes the expansion, that the honest view's run halts with the Lean
 verifier's decision on every input, and that no view and no fuel make the machine accept unless
 the verifier accepts the view's projected signature. The claim bounds every accepting execution
-over every view; rejecting and faulting runs are not charged. Hints cannot replace hash queries,
-and strong unforgeability is stated on signatures, so a second accepted view of one signature is
+over every view; rejecting and faulting runs are not charged. Soundness constrains acceptance,
+not equality of query traces. Strong unforgeability is stated on signatures, so a second accepted view of one signature is
 not a forgery.
 
 All parties share one random oracle on bit strings, returning 256 bits. Equal inputs always share

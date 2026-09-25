@@ -120,12 +120,11 @@ from this clause by cache weakening, exactly as `LeanIsa.Submission.sound_adapti
 
 `probTrue x = 0` says the bad event occurs on **no** path of the cached simulation, not merely
 with probability zero: `probTrue x = 0 ↔ true ∉ support ((simulateQ oracleImpl x).run' ∅)`
-(`probTrue_eq_zero_iff`). The cache is essential: the machine and the verifier both hash, and
-only the cached simulation makes them see the same answer for the same query. A view carrying
-a hash output the machine never re-queries has a coherent assignment on which the output is
-wrong and the verifier rejects, so this clause forces the machine to query the oracle for every
-answer its acceptance depends on. Hints cannot replace compressions; they can only replace the
-instructions around them. -/
+(`probTrue_eq_zero_iff`). The cache is essential: the machine and the verifier must see the
+same answer for the same query. This constrains acceptance, not the sequence or number of
+queries. In particular, the machine may reuse an answer where the specification repeats a
+query. No compression-cost lower bound is transferred by this clause alone. -/
+
 def Submission.Sound (S : Submission) : Prop :=
   ∀ (pk : PublicKey) (m : Message) (view : View) (n : ℕ),
     probTrue (do

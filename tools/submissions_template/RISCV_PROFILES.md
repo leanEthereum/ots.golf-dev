@@ -2,7 +2,7 @@
 
 Edit [`riscv-profiles.json`](riscv-profiles.json) on this repository's **main** to add,
 update or remove a table on a particular RISC-V submission page. This is a maintainer
-operation, separate from proof PRs. The website checks this file every 60 seconds;
+operation, separate from proof PRs. Both `upper-riscv` and `upper-riscv-hint` support these tables. The website checks this file every 60 seconds;
 no server command or redeployment is needed. Reload the submission page after it refreshes.
 
 Each key under `profiles` is the submission ID from its `ots.golf/submissions/<id>` URL.
@@ -69,3 +69,6 @@ Delete an entry to remove its table. Deleting the file or replacing `profiles` w
 all tables on the next successful refresh. A fresh server reloads the file from GitHub; there is
 no durable server-side profile state. The record bot preserves this file, including concurrent
 maintainer edits. Keep it outside `formal/Submissions/`, and do not include it in proof PRs.
+
+For hinted RISC-V, the certified cycle bound applies only to accepting runs. A measured
+rejection may exceed it; this does not change the submission’s score.

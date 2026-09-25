@@ -197,9 +197,9 @@ Trusted boundaries specific to this track, in full in [the track notes](upper-ri
   prover's rejecting runs must still halt (`Faithful`), but their length is unbounded.
 - `Sound` quantifies views and fuels plainly; `Submission.sound_adaptive` in
   `check-riscv-hint.lean` proves that an oracle-adaptive prover is no stronger.
-- Hints cannot replace compressions: `Sound` is a `probTrue … = 0`, and an accepted run that did
-  not query an answer its decision depends on has a coherent assignment on which the verifier
-  rejects. Hints replace only the instructions around the queries.
+- `Sound` constrains acceptance under a shared oracle, not compression counts. A repeated
+  query in the specification can reuse an answer in the machine. The hinted chart therefore
+  has no automatic whole-word lower reference; that needs a cost-preserving reduction.
 - The honest `expand` carries no cost bound, as leanISA's `prover` carries none. Non-hash
   computation is free everywhere in the model, so a bound in compressions would not bound it.
 

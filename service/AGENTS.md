@@ -80,6 +80,8 @@ declares `cycles_per_compression`, linked to its original submission, at
 `cycles_per_compression · claim + fixed_cycles`. That reading is sound only where a whole-word
 DAG verifier is implementable: RISC-V's `HASH` takes an input of any length, so it declares the
 price; leanISA's `BLAKE2S` fixes every query at 896 bits, so it declares none and gets no line.
+The hinted track also gets no line: its cached decision agreement is not a cost-preserving
+reduction to the whole-word model. Do not infer such a reduction from the HASH price alone.
 Label the whole-word scope explicitly; it is not a lower bound for unrestricted submissions on
 that track. Derive the value from the eligible record, omit it when there is none, and mark demo
 references as demos. The compression upper line remains solid. Upper leaderboards stay outside

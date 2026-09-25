@@ -561,6 +561,30 @@ theorem replay_deterministic {α : Type} (oa : OracleComp Spec α) :
       rw [hrun, pure_bind]
       exact ih u (hk u) cmid c' c'' a hrest hsub
 
+/-- Cached decision agreement does not preserve the number of oracle calls: a deterministic
+computation can be replayed from its populated cache without learning new answers. -/
+theorem repeated_deterministic_agrees {α : Type} [DecidableEq α]
+    (oa : OracleComp Spec α) (hdet : Deterministic oa) :
+    probTrue (do
+      let first ← oa
+      let second ← oa
+      pure (decide (first ≠ second))) = 0 := by
+  rw [probTrue_eq_zero_iff]
+  intro hmem
+  rw [StateT.run'_eq, support_map] at hmem
+  obtain ⟨⟨b, cend⟩, hbc, hb⟩ := hmem
+  simp only at hb
+  subst hb
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hbc
+  obtain ⟨⟨first, c₁⟩, hfirst, hrest⟩ := hbc
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hrest
+  obtain ⟨⟨second, c₂⟩, hsecond, hpure⟩ := hrest
+  have hreplay := replay_deterministic oa hdet ∅ c₁ c₁ first hfirst (Subcache.refl c₁)
+  rw [hreplay] at hsecond
+  simp only [support_pure, Set.mem_singleton_iff, Prod.mk.injEq] at hsecond
+  rcases hsecond with ⟨rfl, rfl⟩
+  simp [simulateQ_pure, StateT.run_pure] at hpure
+
 end OptimalOTS.RiscvHint
 
 namespace OptimalOTS.Riscv
@@ -745,3 +769,9 @@ info: 'OptimalOTS.Riscv.Submission.hinted_certificate' depends on axioms: [prope
 -/
 #guard_msgs in
 #print axioms OptimalOTS.Riscv.Submission.hinted_certificate
+
+/--
+info: 'OptimalOTS.RiscvHint.repeated_deterministic_agrees' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms OptimalOTS.RiscvHint.repeated_deterministic_agrees

@@ -261,10 +261,8 @@ It says: "for every public key, message, view and fuel, on **no** coherent oracl
 does the machine halt accepting while the verifier rejects the signature the view stands for."
 The view and the fuel are quantified plainly — every bit string, every budget — not the honest
 ones. The verifier runs *after* the machine under the same cache, so a hash output the view
-carries and the machine re-queries is checked against the same answer the verifier will see. A
-hash output the machine does *not* re-query is not: there is a coherent assignment on which
-the carried value is wrong and the verifier rejects, and this clause fails on it. That is the
-sentence that makes hints unable to replace compressions (§7).
+carries and the machine re-queries is checked against the same answer the verifier will see. This forbids relying on unchecked hints when doing so could change acceptance under the
+shared oracle. It does not require equality of query traces or compression costs (§7).
 It rests on: the cached semantics; `S.compress`, which the submitter chooses.
 Check it yourself: `sound_of_never_accepts` (`check-riscv-hint.lean:86`) shows the clause is
 vacuous on an image nothing accepts, so read it together with `Faithful`. `sound_adaptive`
@@ -422,13 +420,14 @@ Write `A_M(pk, m, σ)` for "some view compressing to `σ` drives the machine to 
 So `A_M` and `scheme.verify` are the same predicate on every coherent oracle assignment, and the
 winning event of the strong-unforgeability experiment — "an accepted pair other than the given
 one" — is the same event whether the pair is judged by the machine (an accepted view, projected)
-or by the specification. The budget `B` of `Secure` is unaffected: the experiment it bounds
-ends with the *specification's* verifier, which `Admissible` caps at `2^20` compressions, so
-an attacker who works against the machine is an attacker against the specification with the
-same queries and a budget of at most its own cost plus `3 · 2^20`. The machine's cycle count
-never enters that bound. For the identity view the whole transfer is a theorem, [13]; for a
-general `compress` it is the argument above, which is the leanISA track's argument with
-"committed image" replaced by "view".
+or by the specification. The budget in `Secure` counts the specification experiment, including its final verifier.
+It is not automatically the budget of a machine-only experiment: identical acceptance does
+not imply identical oracle costs. Converting a machine attacker by applying `compress` is
+oracle-free, but final specification verification can add up to `2^20` compressions. Including
+key generation and signing gives at most the attacker's own cost plus `3 · 2^20`.
+The general quantitative attacker reduction is not a Lean theorem here. The identity-view
+port theorem [13] constructs a certificate from an existing deterministic one; it does not
+define or prove a separate machine-budget security experiment.
 
 **"An untrusted view could turn a bad signature into an accepted run, or a good one into a
 rejected run."** The first is `Sound`, and it is absolute: no view, no fuel, no coherent
@@ -460,13 +459,16 @@ The two RISC-V tracks share the machine and the hash price, so their scores are 
 but they bound different sets of executions: a hinted score says nothing about the cost of a
 rejection. That is why they are separate leaderboards rather than one.
 
-**Hints cannot replace compressions.** `Sound` is a `probTrue … = 0`: it quantifies over every
-coherent oracle assignment, not over probability. A run that accepts without querying some
-string the verifier's decision depends on has a coherent assignment on which that string's
-answer differs and the verifier rejects, and `Sound` fails on it. So every hash the
-specification's verifier relies on is paid for in `HASH` cycles here, as on the RISC-V track,
-and the whole-word lower bound reads in this track's cycles too: the leaderboard draws it, at
-one cycle per compression, exactly as on `upper-riscv`.
+**Decision agreement does not transfer compression costs.** For example, a specification
+can query `H(x)` twice and check that both answers match a claimed digest. A machine can query
+`H(x)` once and perform the same check. Both decide identically under the cached oracle, but
+the specification pays for two calls and the machine pays for one. The regression theorem
+`repeated_deterministic_agrees` checks the replay equality used by this example.
+
+`Sound` prevents an unchecked hint from changing acceptance. It does not prove that the
+machine performs every compression charged by the specification. A whole-word lower-bound
+reference for this track needs a separate cost-preserving reduction to that framework;
+`cycles_per_compression` is therefore omitted for this track.
 
 **What hints can replace** is the instructions around the hashes. On the current 349-cycle
 RISC-V record about 202 cycles are compressions (189 chain steps, twelve root blocks, one index
@@ -512,9 +514,10 @@ well and say so in the notes; the contract does not ask for it.
 
 ### Stated but not proved
 
-Nothing in the contract is stated and unproved. The general-`compress` form of the security
-transfer of §6 is an argument in prose, as the leanISA track's is; the identity-view instance is
-theorem [13].
+The certificate states proof obligations; defining it does not establish that any submission
+satisfies them. The general-`compress` security transfer in §6 remains a prose argument.
+The identity-view port theorem [13] is checked, but its extra long-view hypothesis has not
+yet been discharged for a real submission.
 
 ### Questions for the author
 
@@ -526,12 +529,17 @@ theorem [13].
    "the first `n` bits"? It would make the signature visible in the view without reading
    `compress`, at the cost of the aligned-layout freedom §2 argues for. Not done.
 
-### Not checked
+### Review validation
 
-- `verifier/MeasureRiscv.lean`, generalised to measure both RISC-V tracks' images, imports the
-  pinned comparator and was not compiled on the development host, where the comparator tools are
-  not installed. It runs only after a certificate has verified and can only withhold display
-  metadata.
+The new contract and `check-riscv-hint.lean` pass Lean 4.33.1, including the replay regression.
+The optional measurement driver's definitions typecheck against the pinned comparator; the
+side-effecting `run_cmd` entry was omitted for this compile check. A real hinted submission
+has not yet exercised export, comparison, replay and measurement end to end.
+
+Before launch, the planned single-track replacement still needs reviewed rules, its matching
+contract, and verified ports retaining original authorship. This PR's current two-track model,
+one-cycle HASH, unbounded expansion and all-accepting-run score are not the beta four-program
+interface. Do not deploy it as if that replacement were complete.
 
 ## 9. Writing a submission
 

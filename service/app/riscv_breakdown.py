@@ -8,7 +8,7 @@ from pathlib import Path
 
 import httpx
 
-from . import github
+from . import github, riscv_program_size
 from .config import settings
 from .riscv_profile_format import MAX_BYTES, REGISTRY_PATH, parse_registry, validate_profile
 
@@ -71,10 +71,11 @@ async def refresh_loop() -> None:
 
 
 def for_submission(sub) -> dict | None:
-    if sub.track != "upper-riscv":
+    if sub.track not in riscv_program_size.IMAGE_TRACKS:
         return None
     if sub.detail_dict.get("demo"):
-        if not settings.phony or sub.detail_dict.get("fixture_id") != "upper-riscv-satoshi-nakamoto-2":
+        if (sub.track != "upper-riscv" or not settings.phony
+                or sub.detail_dict.get("fixture_id") != "upper-riscv-satoshi-nakamoto-2"):
             return None
         return validate_profile(json.loads(FIXTURE.read_text())["profile"])
     repo, profiles = cache.snapshot
@@ -84,6 +85,9 @@ def for_submission(sub) -> dict | None:
     profile = profiles.get(sub.id)
     if (not profile or profile["commit"] != sub.commit
             or profile["contract"] != sub.detail_dict.get("contract")
-            or type(sub.claim) is not int or profile["cycles"] > sub.claim):
+            or type(sub.claim) is not int):
+        return None
+    # The hinted certificate bounds accepting runs only. A measured rejection may cost more.
+    if (sub.track == "upper-riscv" or profile["accepted"]) and profile["cycles"] > sub.claim:
         return None
     return profile

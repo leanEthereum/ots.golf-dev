@@ -162,7 +162,6 @@
       "cost_unit": "cycles",
       "focus": "hinted RISC-V cycles",
       "tab_label": "Hinted RISC-V",
-      "cycles_per_compression": 1,
       "cost_note": "The machine reads a prover-chosen view of the signature in place of the raw signature, and the claim bounds every accepting execution over every view. Rejecting runs are not charged, so hinted and deterministic RISC-V totals bound different sets of executions.",
       "submission_root": "formal/Submissions/UpperRiscvHint",
       "module_prefix": "Submissions.UpperRiscvHint",

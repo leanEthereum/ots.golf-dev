@@ -153,7 +153,7 @@ RESULT_COMPATIBILITY = {
     # statement here. Compose with the audited relations below rather than restating them:
     # each older contract carries forward precisely the slugs `bf2e3478…` carried from it.
     # `upper-riscv-hint` is new and has no prior result to carry.
-    "1d21f233c11a9a424917113e31606db38b2f1c31a25767fdfd1b5b7d85947f28": {
+    "2e8ba38cb5cfb50d5446e9a5f200ca35ef459317e6ca7b7eb75f3ec1d663411e": {
         "bf2e347843dc8a1ff1fd87b38832e7e4f19a07837328e1950f9be290fe97a29d": frozenset({
             "lower-generality-1", "upper-compressions", "upper-riscv", "upper-leanisa",
         }),

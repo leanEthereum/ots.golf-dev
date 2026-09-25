@@ -177,6 +177,22 @@ class ProfilePageTests(unittest.TestCase):
             sub.detail = json.dumps({'contract': 'f' * 64})
             self.assertIsNone(breakdown.for_submission(sub))
 
+    def test_hinted_profiles_preserve_pins_and_accepting_cost_bound(self):
+        sub = self.real()
+        sub.track = 'upper-riscv-hint'
+        self.session.commit()
+        value = validate_profile(profile())
+        with patch.object(settings, 'submissions_repo', REPO), \
+             patch.object(breakdown.cache, 'snapshot', (REPO, {SID: value})):
+            self.assertIs(breakdown.for_submission(sub), value)
+            self.assertIn('Per-instruction breakdown', self.client.get(f'/submissions/{sub.id}').text)
+            sub.claim = 701
+            self.assertIsNone(breakdown.for_submission(sub))
+            value['accepted'] = False
+            self.assertIs(breakdown.for_submission(sub), value)
+            value['commit'] = 'f' * 40
+            self.assertIsNone(breakdown.for_submission(sub))
+
     def test_notes_and_other_ids_cannot_create_a_table(self):
         sub = self.real()
         sub.detail = json.dumps({'contract': profile()['contract'], 'riscv_profile': profile(), 'notes': json.dumps(profile())})
